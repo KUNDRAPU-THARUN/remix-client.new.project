@@ -39,8 +39,6 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  if (!isOpen) return null;
-
   const [inputQuery, setInputQuery] = useState('');
   const [language, setLanguage] = useState<'en' | 'te'>('en');
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +51,8 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
       time: 'Just now',
     },
   ]);
+
+  if (!isOpen) return null;
 
   const handleSend = async (queryToSend?: string) => {
     const q = (queryToSend || inputQuery).trim();
@@ -90,11 +90,15 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     }
   };
 
-  const handleCopyText = (text: string, idx: number) => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
+  const handleCopyText = async (text: string, idx: number) => {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(text);
       setCopiedIdx(idx);
       setTimeout(() => setCopiedIdx(null), 2000);
+    } catch (error) {
+      console.warn('Could not copy assistant response:', error);
+      alert('Could not copy the response. Please select and copy the text manually.');
     }
   };
 

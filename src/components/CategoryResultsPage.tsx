@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { 
   Listing, 
   Category, 
@@ -24,6 +24,14 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
+export interface ResultsFilters {
+  searchQuery: string;
+  selectedArea: string;
+  verifiedOnly: boolean;
+  minRating: number;
+  sortBy: 'rating' | 'popular' | 'latest';
+}
+
 interface CategoryResultsPageProps {
   activeCategoryId: string;
   onSelectCategory: (catId: string) => void;
@@ -33,8 +41,9 @@ interface CategoryResultsPageProps {
   onSelectListing: (listing: Listing) => void;
   onBackToHome: () => void;
   onOpenPostAd: () => void;
-  initialSearchQuery?: string;
-  initialArea?: string;
+  savedOnly: boolean;
+  filters: ResultsFilters;
+  onFiltersChange: (filters: ResultsFilters) => void;
 }
 
 export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
@@ -46,14 +55,17 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
   onSelectListing,
   onBackToHome,
   onOpenPostAd,
-  initialSearchQuery = '',
-  initialArea = 'all',
+  savedOnly,
+  filters,
+  onFiltersChange,
 }) => {
-  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
-  const [selectedArea, setSelectedArea] = useState(initialArea);
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [minRating, setMinRating] = useState<number>(0);
-  const [sortBy, setSortBy] = useState<'rating' | 'popular' | 'latest'>('rating');
+  const { searchQuery, selectedArea, verifiedOnly, minRating, sortBy } = filters;
+  const setSearchQuery = (searchQuery: string) => onFiltersChange({ ...filters, searchQuery });
+  const setSelectedArea = (selectedArea: string) => onFiltersChange({ ...filters, selectedArea });
+  const setVerifiedOnly = (verifiedOnly: boolean) => onFiltersChange({ ...filters, verifiedOnly });
+  const setMinRating = (minRating: number) => onFiltersChange({ ...filters, minRating });
+  const setSortBy = (sortBy: ResultsFilters['sortBy']) => onFiltersChange({ ...filters, sortBy });
+  const savedIds = useMemo(() => new Set(savedListingIds), [savedListingIds]);
 
   // Find active category metadata
   const currentCategory = useMemo(() => {
@@ -69,6 +81,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
   // Filter listings by active category, location, rating, and verified status
   const filteredListings = useMemo(() => {
     return listings.filter((l) => {
+      if (savedOnly && !savedIds.has(l.id)) return false;
       // Category filter
       if (activeCategoryId !== 'all' && l.category !== activeCategoryId) {
         return false;
@@ -91,7 +104,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
 
       // Search query
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.trim().toLowerCase();
         const matchTitle = l.title.toLowerCase().includes(q);
         const matchDesc = l.description.toLowerCase().includes(q);
         const matchAddr = l.address.toLowerCase().includes(q);
@@ -103,7 +116,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
 
       return true;
     });
-  }, [listings, activeCategoryId, selectedArea, verifiedOnly, minRating, searchQuery]);
+  }, [listings, activeCategoryId, selectedArea, verifiedOnly, minRating, searchQuery, savedOnly, savedIds]);
 
   // Sort listings
   const sortedListings = useMemo(() => {
@@ -119,10 +132,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
   }, [filteredListings, sortBy]);
 
   const resetFilters = () => {
-    setSearchQuery('');
-    setSelectedArea('all');
-    setVerifiedOnly(false);
-    setMinRating(0);
+    onFiltersChange({ searchQuery: '', selectedArea: 'all', verifiedOnly: false, minRating: 0, sortBy: 'rating' });
   };
 
   return (
@@ -223,7 +233,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
 
                 {CHITTOOR_CATEGORIES.map((cat) => {
                   const isActive = activeCategoryId === cat.id;
-                  const countForCat = listings.filter((l) => l.category === cat.id).length || cat.count;
+                  const countForCat = listings.filter((l) => l.category === cat.id).length;
 
                   return (
                     <button
@@ -382,7 +392,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
           </aside>
 
           {/* RIGHT COLUMN: BUSINESS SEARCH RESULTS */}
-          <main className="flex-1 w-full min-w-0">
+          <div className="flex-1 w-full min-w-0">
             {/* Top Bar with Sort Dropdown */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <div>
@@ -400,7 +410,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                 <span className="font-semibold text-slate-500">Sort by:</span>
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
+                  onChange={(e) => setSortBy(e.target.value as ResultsFilters['sortBy'])}
                   className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 font-bold text-slate-700 outline-hidden cursor-pointer"
                 >
                   <option value="rating">Top Rated (Highest Stars)</option>
@@ -451,7 +461,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                 </div>
               </div>
             )}
-          </main>
+          </div>
         </div>
       </div>
     </div>

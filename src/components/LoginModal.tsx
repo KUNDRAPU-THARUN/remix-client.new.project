@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   User, 
@@ -25,8 +25,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onLoginSuccess,
 }) => {
-  if (!isOpen) return null;
-
   const [role, setRole] = useState<'customer' | 'provider'>('customer');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -35,9 +33,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const loginTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!isOpen) setIsLoading(false);
+    return () => {
+      if (loginTimer.current !== null) clearTimeout(loginTimer.current);
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     if (!username.trim()) {
       setErrorMessage('Username or Registered Mobile Number is required.');
       return;
@@ -46,7 +54,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setIsLoading(true);
     setErrorMessage('');
 
-    setTimeout(() => {
+    loginTimer.current = setTimeout(() => {
       const user: UserAccount = {
         id: `user-${Date.now()}`,
         username: username.trim(),

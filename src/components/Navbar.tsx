@@ -99,7 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         {/* Left: Brand Logo with red-to-blue gradient pin marker + Subtext */}
         <div 
-          onClick={() => { setActiveTab('home'); if (isSavedViewActive) onToggleSavedView(); }}
+          onClick={() => handleNavClick('home')}
           className="flex items-center gap-2.5 cursor-pointer group select-none shrink-0"
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 via-rose-600 to-blue-600 flex items-center justify-center text-white shadow-md shadow-red-500/20 group-hover:scale-105 transition-transform">

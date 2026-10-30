@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   X, 
   Star, 
@@ -50,15 +50,19 @@ const RATING_LABELS: Record<number, string> = {
   5: 'Excellent (5.0)',
 };
 
-export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
+export const ListingDetailModal: React.FC<ListingDetailModalProps> = (props) => {
+  if (!props.listing) return null;
+  return <ListingDetailContent {...props} listing={props.listing} key={props.listing.id} />;
+};
+
+// Mount the stateful content only for a real listing; switching listings resets its form/gallery.
+const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & { listing: Listing }> = ({
   listing,
   onClose,
   isSaved,
   onToggleSave,
   onAddReview,
 }) => {
-  if (!listing) return null;
-
   const [activeTab, setActiveTab] = useState<SubTab>('about');
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -90,6 +94,11 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
   // Reviews Feed Filter & Sorting State
   const [reviewSort, setReviewSort] = useState<'recent' | 'highest' | 'lowest' | 'photos'>('recent');
   const [helpfulVotes, setHelpfulVotes] = useState<Record<string, { yes: number; no: number; userVote?: 'yes' | 'no' }>>({});
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const schedule = (callback: () => void, delay: number) => {
+    timers.current.push(setTimeout(callback, delay));
+  };
 
   const areaName = CHITTOOR_AREAS.find((a) => a.id === listing.area)?.name || listing.area;
 
@@ -106,11 +115,15 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };
 
-  const handleShare = (textToShare?: string) => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(textToShare || window.location.href);
+  const handleShare = async (textToShare?: string) => {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(textToShare || window.location.href);
       setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
+      schedule(() => setCopiedLink(false), 2000);
+    } catch (error) {
+      console.warn('Could not copy listing:', error);
+      alert('Could not copy the link. Please copy the address from your browser.');
     }
   };
 
@@ -137,12 +150,18 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files[0]) {
+      if (!['image/jpeg', 'image/png'].includes(files[0].type) || files[0].size > 10 * 1024 * 1024) {
+        alert('Please choose a PNG or JPG image up to 10 MB.');
+        e.target.value = '';
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
           setAttachedPhotos((prev) => [...prev, event.target!.result as string]);
         }
       };
+      reader.onerror = () => alert('Could not read this image. Please try another file.');
       reader.readAsDataURL(files[0]);
     }
   };
@@ -158,6 +177,7 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
   // Submit review form
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!authorName.trim() || !reviewComment.trim()) return;
     if (!certifiedExperience) {
       alert('Please certify that this review is based on your genuine local experience.');
@@ -165,7 +185,7 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    schedule(() => {
       onAddReview(listing.id, {
         author: authorName.trim(),
         title: reviewTitle.trim() || undefined,
@@ -196,7 +216,7 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
       setIsMobileVerified(false);
 
       // Switch to reviews feed to view submitted review
-      setTimeout(() => {
+      schedule(() => {
         setShowSuccessToast(false);
         setActiveTab('reviews');
       }, 1200);
@@ -206,7 +226,8 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
   // Helpful vote toggle
   const handleVote = (revId: string, type: 'yes' | 'no') => {
     setHelpfulVotes((prev) => {
-      const existing = prev[revId] || { yes: 0, no: 0 };
+      const review = listing.reviews.find((review) => review.id === revId);
+      const existing = prev[revId] || { yes: review?.helpfulCount ?? 12, no: review?.unhelpfulCount ?? 1 };
       if (existing.userVote === type) {
         return {
           ...prev,

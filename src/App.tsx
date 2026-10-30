@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   INITIAL_LISTINGS, 
   INITIAL_CLASSIFIEDS, 
@@ -16,7 +16,7 @@ import { HeroSearch } from './components/HeroSearch';
 import { FeaturedShowcaseCarousel } from './components/FeaturedShowcaseCarousel';
 import { CategoryPills } from './components/CategoryPills';
 import { HomeSections } from './components/HomeSections';
-import { CategoryResultsPage } from './components/CategoryResultsPage';
+import { CategoryResultsPage, ResultsFilters } from './components/CategoryResultsPage';
 import { UserDashboard } from './components/UserDashboard';
 import { LoginModal } from './components/LoginModal';
 import { ListingDetailModal } from './components/ListingDetailModal';
@@ -29,56 +29,131 @@ import { FloatingChatbot } from './components/FloatingChatbot';
 import { Footer } from './components/Footer';
 import { LanguageProvider } from './i18n/LanguageContext';
 
+type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard';
+interface RouteState {
+  tab: Tab;
+  categoryId: string;
+  savedOnly: boolean;
+  listingId: string | null;
+  filters: ResultsFilters;
+}
+const defaultFilters: ResultsFilters = {
+  searchQuery: '', selectedArea: 'all', verifiedOnly: false, minRating: 0, sortBy: 'rating',
+};
+
+// Keep the existing History API routing, with one source of truth for each URL.
+function readRoute(): RouteState {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  const params = new URLSearchParams(window.location.search);
+  const category = path.match(/^\/category\/([^/]+)$/)?.[1];
+  const categoryId = category && CHITTOOR_CATEGORIES.some((item) => item.id === category) ? category : 'all';
+  const tab: Tab = category || path === '/category' ? 'category'
+    : path === '/dashboard' || path === '/dashboard/my-ads' ? 'dashboard'
+    : path === '/classifieds' ? 'classifieds' : path === '/kanipakam' ? 'kanipakam' : 'home';
+  const area = params.get('area');
+  const sort = params.get('sort');
+  return {
+    tab, categoryId, savedOnly: tab === 'category' && params.get('saved') === '1',
+    listingId: params.get('listing'),
+    filters: {
+      searchQuery: params.get('q') || '',
+      selectedArea: area && CHITTOOR_AREAS.some((item) => item.id === area) ? area : 'all',
+      verifiedOnly: params.get('verified') === '1',
+      minRating: params.get('rating') === '4' ? 4 : 0,
+      sortBy: sort === 'popular' || sort === 'latest' ? sort : 'rating',
+    },
+  };
+}
+
+function routeUrl(route: RouteState): string {
+  const path = route.tab === 'home' ? '/' : route.tab === 'category' ? `/category/${route.categoryId}`
+    : route.tab === 'dashboard' ? '/dashboard/my-ads' : `/${route.tab}`;
+  const params = new URLSearchParams();
+  if (route.tab === 'category') {
+    const filters = route.filters;
+    if (filters.searchQuery) params.set('q', filters.searchQuery);
+    if (filters.selectedArea !== 'all') params.set('area', filters.selectedArea);
+    if (filters.verifiedOnly) params.set('verified', '1');
+    if (filters.minRating) params.set('rating', String(filters.minRating));
+    if (filters.sortBy !== 'rating') params.set('sort', filters.sortBy);
+    if (route.savedOnly) params.set('saved', '1');
+  }
+  if (route.listingId) params.set('listing', route.listingId);
+  return path + (params.size ? `?${params}` : '');
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string');
+const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const stringFields = (value: Record<string, unknown>, fields: string[]) => fields.every((field) => typeof value[field] === 'string');
+const optionalStrings = (value: Record<string, unknown>, fields: string[]) => fields.every((field) => value[field] == null || typeof value[field] === 'string');
+function isReview(value: unknown): value is Review {
+  const subRatings = isRecord(value) ? value.subRatings : undefined;
+  return isRecord(value) && stringFields(value, ['id', 'author', 'comment', 'date']) && finite(value.rating)
+    && optionalStrings(value, ['title', 'userEmail', 'userMobile'])
+    && (value.photos == null || strings(value.photos))
+    && (subRatings == null || (isRecord(subRatings) && ['serviceQuality', 'valueForMoney', 'cleanliness'].every((key) => finite(subRatings[key]))))
+    && (value.ownerResponse == null || (isRecord(value.ownerResponse) && stringFields(value.ownerResponse, ['text', 'date', 'responder'])))
+    && ['helpfulCount', 'unhelpfulCount'].every((key) => value[key] == null || finite(value[key]));
+}
+function isListing(value: unknown): value is Listing {
+  return isRecord(value) && stringFields(value, ['id', 'title', 'category', 'area', 'address', 'phone', 'description', 'timings', 'postedDate'])
+    && optionalStrings(value, ['whatsapp', 'priceRange', 'badge', 'email', 'postedByUser'])
+    && finite(value.rating) && finite(value.reviewsCount) && value.reviewsCount >= 0
+    && typeof value.isVerified === 'boolean' && strings(value.services) && strings(value.images)
+    && Array.isArray(value.reviews) && value.reviews.every(isReview)
+    && (value.viewsCount == null || finite(value.viewsCount))
+    && (value.status == null || ['Active', 'Pending Approval', 'Expired'].includes(String(value.status)));
+}
+function isClassified(value: unknown): value is ClassifiedItem {
+  return isRecord(value) && stringFields(value, ['id', 'title', 'category', 'price', 'condition', 'location', 'phone', 'date', 'image', 'description', 'postedBy'])
+    && optionalStrings(value, ['whatsapp']);
+}
+function isUser(value: unknown): value is UserAccount | null {
+  return value === null || (isRecord(value) && stringFields(value, ['id', 'username', 'email', 'name'])
+    && optionalStrings(value, ['mobile']) && (value.role === 'provider' || value.role === 'customer'));
+}
+function readStored<T>(key: string, fallback: T, valid: (value: unknown) => value is T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    const value: unknown = JSON.parse(raw);
+    if (valid(value)) return value;
+    console.warn(`Ignoring invalid browser data: ${key}`);
+  } catch (error) {
+    console.warn(`Could not read browser data: ${key}`, error);
+  }
+  return fallback;
+}
+
 export const MainAppContent: React.FC = () => {
   // Primary State with localStorage persistence
-  const [listings, setListings] = useState<Listing[]>(() => {
-    try {
-      const saved = localStorage.getItem('chittoorads_listings');
-      return saved ? JSON.parse(saved) : INITIAL_LISTINGS;
-    } catch {
-      return INITIAL_LISTINGS;
-    }
-  });
+  const [listings, setListings] = useState<Listing[]>(() => readStored('chittoorads_listings', INITIAL_LISTINGS,
+    (value): value is Listing[] => Array.isArray(value) && value.every(isListing)));
 
-  const [classifieds, setClassifieds] = useState<ClassifiedItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('chittoorads_classifieds');
-      return saved ? JSON.parse(saved) : INITIAL_CLASSIFIEDS;
-    } catch {
-      return INITIAL_CLASSIFIEDS;
-    }
-  });
+  const [classifieds] = useState<ClassifiedItem[]>(() => readStored('chittoorads_classifieds', INITIAL_CLASSIFIEDS,
+    (value): value is ClassifiedItem[] => Array.isArray(value) && value.every(isClassified)));
 
-  const [savedListingIds, setSavedListingIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('chittoorads_saved');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [savedListingIds, setSavedListingIds] = useState<string[]>(() =>
+    [...new Set(readStored('chittoorads_saved', [], strings))]);
 
   // Current logged in user
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
-    try {
-      const saved = localStorage.getItem('chittoorads_user');
-      return saved ? JSON.parse(saved) : {
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() =>
+    readStored('chittoorads_user', {
         id: 'u-demo',
         username: 'RameshNaidu',
         name: 'Ramesh Naidu',
         email: 'ramesh.chittoor@gmail.com',
         role: 'provider',
         mobile: '9440218456',
-      };
-    } catch {
-      return null;
-    }
-  });
+      }, isUser));
 
   // Navigation & Routing State
-  const [activeTab, setActiveTab] = useState<'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard'>('home');
-  const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
-  const [isSavedViewActive, setIsSavedViewActive] = useState(false);
+  const [route, setRoute] = useState(readRoute);
+  const activeTab = route.tab;
+  const activeCategoryId = route.categoryId;
+  const isSavedViewActive = route.savedOnly;
 
   // Search & Filters for Hero Bar
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,56 +161,49 @@ export const MainAppContent: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Modals state
-  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const selectedListing = listings.find((listing) => listing.id === route.listingId) || null;
+  const savedIds = useMemo(() => {
+    const listingIds = new Set(listings.map((listing) => listing.id));
+    return savedListingIds.filter((id) => listingIds.has(id));
+  }, [savedListingIds, listings]);
   const [isPostAdOpen, setIsPostAdOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const storageWarnings = useRef(new Set<string>());
+  const persist = useCallback((key: string, value: unknown) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      storageWarnings.current.delete(key);
+    } catch (error) {
+      console.warn(`Could not persist ${key}:`, error);
+      if (!storageWarnings.current.has(key)) {
+        storageWarnings.current.add(key);
+        alert('Browser storage is unavailable or full. Changes remain available in this tab but may be lost after reloading.');
+      }
+    }
+  }, []);
 
   // Sync to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('chittoorads_listings', JSON.stringify(listings));
-    } catch (e) {
-      console.warn('Could not persist listings:', e);
-    }
-  }, [listings]);
+    persist('chittoorads_listings', listings);
+  }, [listings, persist]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('chittoorads_saved', JSON.stringify(savedListingIds));
-    } catch (e) {
-      console.warn('Could not persist saved IDs:', e);
-    }
-  }, [savedListingIds]);
+    persist('chittoorads_saved', savedIds);
+  }, [savedIds, persist]);
 
   useEffect(() => {
-    try {
-      if (currentUser) {
-        localStorage.setItem('chittoorads_user', JSON.stringify(currentUser));
-      } else {
-        localStorage.removeItem('chittoorads_user');
-      }
-    } catch (e) {
-      console.warn('Could not persist user:', e);
-    }
-  }, [currentUser]);
+    // Explicit null preserves a demo logout across reloads.
+    persist('chittoorads_user', currentUser);
+  }, [currentUser, persist]);
 
   // Handle URL Path parsing on initial mount and popstate
   useEffect(() => {
     const handleLocationChange = () => {
-      const path = window.location.pathname;
-      if (path.startsWith('/category/')) {
-        const cat = path.replace('/category/', '');
-        setActiveCategoryId(cat || 'all');
-        setActiveTab('category');
-      } else if (path.startsWith('/dashboard')) {
-        setActiveTab('dashboard');
-      } else if (path.startsWith('/classifieds')) {
-        setActiveTab('classifieds');
-      } else if (path.startsWith('/kanipakam')) {
-        setActiveTab('kanipakam');
-      }
+      const next = readRoute();
+      window.history.replaceState(window.history.state, '', routeUrl(next));
+      setRoute(next);
     };
 
     handleLocationChange();
@@ -143,34 +211,42 @@ export const MainAppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handleLocationChange);
   }, []);
 
+  const navigate = (next: RouteState, replace = false, scroll = true) => {
+    const url = routeUrl(next);
+    if (url !== window.location.pathname + window.location.search) {
+      window.history[replace ? 'replaceState' : 'pushState'](
+        next.listingId && !replace ? { listingModal: true } : null, '', url);
+    }
+    setRoute(next);
+    if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateTab = (tab: string) => {
+    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard'].includes(tab)) return;
+    navigate({ tab: tab as Tab, categoryId: 'all', savedOnly: false, listingId: null, filters: defaultFilters });
+  };
+
+  const selectListing = (listing: Listing | null) => {
+    if (listing === null && window.history.state?.listingModal) {
+      window.history.back();
+      return;
+    }
+    navigate({ ...route, listingId: listing?.id || null }, listing === null, false);
+  };
+
   // Dedicated Category Click Redirection
   const handleNavigateToCategory = (catId: string, areaId?: string) => {
-    setActiveCategoryId(catId);
-    if (areaId) setSelectedArea(areaId);
-    setActiveTab('category');
-    setIsSavedViewActive(false);
-
-    // Update URL history without page reload
-    const targetUrl = catId === 'all' ? '/category/all' : `/category/${catId}`;
-    window.history.pushState(null, '', targetUrl);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate({ tab: 'category', categoryId: CHITTOOR_CATEGORIES.some((cat) => cat.id === catId) ? catId : 'all',
+      savedOnly: false, listingId: null, filters: { ...defaultFilters, selectedArea: areaId || 'all' } });
   };
 
   const handleBackToHome = () => {
-    setActiveTab('home');
-    setIsSavedViewActive(false);
-    window.history.pushState(null, '', '/');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    handleNavigateTab('home');
   };
 
-  const handleHeroSearchSubmit = () => {
-    if (selectedCategory !== 'all') {
-      setActiveCategoryId(selectedCategory);
-    }
-    setActiveTab('category');
-    const targetUrl = selectedCategory !== 'all' ? `/category/${selectedCategory}` : '/category/all';
-    window.history.pushState(null, '', targetUrl);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleHeroSearchSubmit = (query = searchQuery) => {
+    navigate({ tab: 'category', categoryId: selectedCategory, savedOnly: false, listingId: null,
+      filters: { ...defaultFilters, searchQuery: query.trim(), selectedArea } });
   };
 
   const handleQuickTagClick = (tagLabel: string, catId?: string) => {
@@ -178,7 +254,7 @@ export const MainAppContent: React.FC = () => {
       handleNavigateToCategory(catId);
     } else {
       setSearchQuery(tagLabel);
-      handleHeroSearchSubmit();
+      handleHeroSearchSubmit(tagLabel);
     }
   };
 
@@ -195,19 +271,20 @@ export const MainAppContent: React.FC = () => {
   const handleDeleteListing = (id: string) => {
     if (confirm('Are you sure you want to delete this listing?')) {
       setListings((prev) => prev.filter((l) => l.id !== id));
+      setSavedListingIds((prev) => prev.filter((savedId) => savedId !== id));
+      if (route.listingId === id) selectListing(null);
     }
   };
 
   const handleAddReview = (listingId: string, newReview: Omit<Review, 'id' | 'date'>) => {
+    const rev: Review = {
+      ...newReview,
+      id: `rev-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+    };
     setListings((prev) =>
       prev.map((l) => {
         if (l.id !== listingId) return l;
-
-        const rev: Review = {
-          ...newReview,
-          id: `rev-${Date.now()}`,
-          date: new Date().toISOString().split('T')[0],
-        };
 
         const updatedReviews = [rev, ...l.reviews];
         const newCount = l.reviewsCount + 1;
@@ -219,10 +296,6 @@ export const MainAppContent: React.FC = () => {
           reviewsCount: newCount,
           reviews: updatedReviews,
         };
-
-        if (selectedListing?.id === listingId) {
-          setSelectedListing(updatedListing);
-        }
 
         return updatedListing;
       })
@@ -239,24 +312,14 @@ export const MainAppContent: React.FC = () => {
         onOpenLogin={() => setIsLoginOpen(true)}
         currentUser={currentUser}
         onLogout={() => setCurrentUser(null)}
-        savedCount={savedListingIds.length}
+        savedCount={savedIds.length}
         onToggleSavedView={() => {
-          setIsSavedViewActive(!isSavedViewActive);
-          if (activeTab !== 'category') setActiveTab('category');
+          navigate({ tab: 'category', categoryId: 'all', savedOnly: !isSavedViewActive,
+            listingId: null, filters: defaultFilters });
         }}
         isSavedViewActive={isSavedViewActive}
         activeTab={activeTab}
-        setActiveTab={(t) => {
-          if (t === 'home') handleBackToHome();
-          else if (t === 'dashboard') {
-            setActiveTab('dashboard');
-            window.history.pushState(null, '', '/dashboard/my-ads');
-          } else {
-            setActiveTab(t as any);
-            window.history.pushState(null, '', `/${t}`);
-          }
-          setIsSavedViewActive(false);
-        }}
+        setActiveTab={handleNavigateTab}
         onSelectCategory={(catId) => handleNavigateToCategory(catId)}
       />
 
@@ -274,7 +337,7 @@ export const MainAppContent: React.FC = () => {
               setSelectedArea={setSelectedArea}
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
-              onSearchSubmit={handleHeroSearchSubmit}
+              onSearchSubmit={() => handleHeroSearchSubmit()}
               onQuickTagClick={handleQuickTagClick}
               onOpenAI={() => setIsAIOpen(true)}
             />
@@ -293,7 +356,7 @@ export const MainAppContent: React.FC = () => {
               {/* 4. Home Sections (Featured Businesses, Search by City Grid, Helping Entrepreneurs Banner) */}
               <HomeSections
                 featuredListings={listings}
-                onSelectListing={(biz) => setSelectedListing(biz)}
+                onSelectListing={selectListing}
                 onSelectArea={(areaId) => handleNavigateToCategory('all', areaId)}
                 onOpenPostAd={() => setIsPostAdOpen(true)}
                 onViewAllBusinesses={() => handleNavigateToCategory('all')}
@@ -307,17 +370,17 @@ export const MainAppContent: React.FC = () => {
           <CategoryResultsPage
             activeCategoryId={activeCategoryId}
             onSelectCategory={(catId) => {
-              setActiveCategoryId(catId);
-              window.history.pushState(null, '', catId === 'all' ? '/category/all' : `/category/${catId}`);
+              navigate({ ...route, categoryId: catId, listingId: null });
             }}
             listings={listings}
-            savedListingIds={savedListingIds}
+            savedListingIds={savedIds}
+            savedOnly={isSavedViewActive}
             onToggleSave={toggleSaveListing}
-            onSelectListing={(listing) => setSelectedListing(listing)}
+            onSelectListing={selectListing}
             onBackToHome={handleBackToHome}
             onOpenPostAd={() => setIsPostAdOpen(true)}
-            initialSearchQuery={searchQuery}
-            initialArea={selectedArea}
+            filters={route.filters}
+            onFiltersChange={(filters) => navigate({ ...route, filters }, true, false)}
           />
         )}
 
@@ -327,7 +390,7 @@ export const MainAppContent: React.FC = () => {
             currentUser={currentUser}
             userListings={listings}
             onOpenPostAd={() => setIsPostAdOpen(true)}
-            onPreviewListing={(listing) => setSelectedListing(listing)}
+            onPreviewListing={selectListing}
             onDeleteListing={handleDeleteListing}
             onBackToHome={handleBackToHome}
           />
@@ -364,8 +427,8 @@ export const MainAppContent: React.FC = () => {
       {/* 1. Business Details Modal with Sub-Tabs */}
       <ListingDetailModal
         listing={selectedListing}
-        onClose={() => setSelectedListing(null)}
-        isSaved={selectedListing ? savedListingIds.includes(selectedListing.id) : false}
+        onClose={() => selectListing(null)}
+        isSaved={selectedListing ? savedIds.includes(selectedListing.id) : false}
         onToggleSave={toggleSaveListing}
         onAddReview={handleAddReview}
       />
@@ -376,9 +439,7 @@ export const MainAppContent: React.FC = () => {
         onClose={() => setIsPostAdOpen(false)}
         onAddListing={handleAddListing}
         onNavigateToDashboard={() => {
-          setActiveTab('dashboard');
-          window.history.pushState(null, '', '/dashboard/my-ads');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          handleNavigateTab('dashboard');
         }}
       />
 

@@ -28,8 +28,6 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
   onAddListing,
   onNavigateToDashboard,
 }) => {
-  if (!isOpen) return null;
-
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(CHITTOOR_CATEGORIES[0].id);
   const [area, setArea] = useState(CHITTOOR_AREAS[1].id);
@@ -43,6 +41,8 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
   const [imageUrl, setImageUrl] = useState('');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleAIAssist = async () => {
     if (!title.trim()) {
@@ -63,6 +63,7 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
       setDescription(generated);
     } catch (e) {
       console.error(e);
+      alert('Could not generate the description. Please try again or enter it manually.');
     } finally {
       setIsGeneratingAI(false);
     }
@@ -71,6 +72,11 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !phone.trim() || !address.trim()) return;
+    if (!/^\d{10,15}$/.test(phone.replace(/\D/g, '')) ||
+        (whatsapp.trim() && !/^\d{10,15}$/.test(whatsapp.replace(/\D/g, '')))) {
+      alert('Please enter a valid phone number and, if provided, WhatsApp number (10–15 digits).');
+      return;
+    }
 
     const services = servicesInput
       ? servicesInput.split(',').map((s) => s.trim()).filter(Boolean)
