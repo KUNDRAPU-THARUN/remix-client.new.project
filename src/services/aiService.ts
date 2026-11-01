@@ -1,43 +1,35 @@
-import { GoogleGenAI } from '@google/genai';
+/**
+ * AI Service Integration Layer for ChittoorAds & Regional Portals
+ * 
+ * SECURITY DIRECTIVE (Phase 2A):
+ * Private AI credentials (e.g. GEMINI_API_KEY) must never be bundled into client-side JavaScript.
+ * Direct browser client SDK calls have been removed to prevent credential leakage and abuse.
+ * 
+ * Future production architecture:
+ * In Phase 2B, all generative AI calls are routed through an authenticated backend proxy:
+ * POST /api/ai/scout
+ * POST /api/ai/generate-ad
+ * 
+ * Until the backend proxy is provisioned, this service runs the safe, deterministic local
+ * directory knowledge base and structured template generator.
+ */
 
-// Initialize Gemini client if API key is present in environment
-const apiKey = (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) || 
-               (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) || 
-               '';
-
-let aiClient: GoogleGenAI | null = null;
-if (apiKey) {
-  try {
-    aiClient = new GoogleGenAI({ apiKey });
-  } catch (e) {
-    console.warn('Could not initialize GoogleGenAI client:', e);
-  }
+export interface AIServiceClient {
+  askAssistant(query: string, language?: 'en' | 'te'): Promise<string>;
+  generateAd(data: {
+    title: string;
+    category: string;
+    area: string;
+    highlights: string;
+    phone: string;
+  }): Promise<string>;
 }
 
 export async function askChittoorScout(query: string, language: 'en' | 'te' = 'en'): Promise<string> {
-  const prompt = `You are "Chittoor Smart Scout", the premier local AI guide for Chittoor District (Andhra Pradesh, India), covering Chittoor town, Kanipakam, Murukambattu, Bangarupalem, and surrounding areas.
-A local citizen or visitor asks: "${query}"
+  // Check if a secure backend API proxy is available in the deployment environment
+  // (In Phase 2A prototype, default safely to the local curated knowledge base)
+  const q = query.toLowerCase().trim();
 
-Provide a warm, highly helpful, accurate response with local references (mentioning popular areas like Gandhi Road, Church Street, Kattamanchi, Murukambattu, Kanipakam temple road, etc.).
-Keep the answer concise (2-3 paragraphs max), actionable, with phone/service guidance if applicable.
-Response language: ${language === 'te' ? 'Telugu (తెలుగు)' : 'English (with common Telugu local terminology where helpful)'}.`;
-
-  if (aiClient) {
-    try {
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
-      if (response.text) {
-        return response.text;
-      }
-    } catch (err) {
-      console.warn('Gemini API call failed, falling back to local smart directory engine:', err);
-    }
-  }
-
-  // Smart local heuristic fallback
-  const q = query.toLowerCase();
   if (q.includes('hospital') || q.includes('doctor') || q.includes('emergency') || q.includes('medical') || q.includes('clinic')) {
     return `For medical care in Chittoor, the major 24x7 centers are:
 1. Sri Balaji Multi-Speciality Hospital & Trauma Care on Gandhi Road (near Clock Tower) - Phone: +91 94402 18456.
@@ -69,6 +61,18 @@ Response language: ${language === 'te' ? 'Telugu (తెలుగు)' : 'Englis
 - For traditional spicy Naatu Kodi Pulusu with Ragi Mudda or dum biryani, local family restaurants around Gandhi Road and High Court Junction are top rated.`;
   }
 
+  if (language === 'te') {
+    return `చిత్తూరుఆడ్స్ (ChittoorAds) కి స్వాగతం!
+మా ధృవీకరించబడిన స్థానిక డైరెక్టరీలో మీరు కనుగొనవచ్చు:
+- అత్యవసర ఆసుపత్రులు (గాంధీ రోడ్ & కలెక్టరేట్)
+- కాణిపాకం యాత్రా క్యాబ్‌లు (పట్టణానికి 11 కి.మీ.)
+- మామిడి గుజ్జు మార్కెట్లు & పరిశ్రమలు (మురుకంబట్టు)
+- పట్టు చీరలు & వస్త్ర వ్యాపారం (చర్చ్ స్ట్రీట్ & బజార్)
+- రియల్ ఎస్టేట్, అద్దె ఇళ్ళు మరియు స్థానిక మెకానిక్స్.
+
+మీరు పైన ఉన్న శోధన పట్టీని ఉపయోగించి వివరాలు పొందవచ్చు లేదా మీ స్వంత వ్యాపారాన్ని ఉచితంగా ప్రచురించడానికి "+ Post Free Ad" ని ఎంచుకోండి!`;
+  }
+
   return `Welcome to ChittoorAds! Chittoor is a vibrant hub connecting Andhra Pradesh, Tamil Nadu, and Karnataka. 
 Explore our verified local directory for:
 - Healthcare & Emergency (Gandhi Road & Collectorate)
@@ -87,46 +91,25 @@ export async function generateAdCopy(data: {
   highlights: string;
   phone: string;
 }): Promise<string> {
-  const prompt = `You are a digital marketing specialist creating a compelling local business advertisement for WhatsApp and ChittoorAds classifieds.
-Business Name: ${data.title}
-Category: ${data.category}
-Location in Chittoor: ${data.area}
-Key Highlights / Offers: ${data.highlights}
-Contact Number: ${data.phone}
+  // Secure client-side formatted ad template (backend proxy scheduled for Phase 2B)
+  const cleanTitle = data.title.trim().toUpperCase();
+  const cleanArea = data.area.trim();
+  const cleanCategory = data.category.trim();
+  const cleanPhone = data.phone.trim();
+  const cleanHighlights = data.highlights.trim() || 'Prompt service, verified quality, affordable pricing in Chittoor';
 
-Create an attractive, high-converting ad copy formatted for WhatsApp and classified listings.
-Include:
-- Catchy headline with emojis
-- 3-4 bullet points highlighting trust, quality & fast response in Chittoor
-- Clear Call to Action with the phone number
-- Short Telugu tag line at the bottom for local connection (e.g., "చిత్తూరు ప్రజల విశ్వసనీయ ఎంపిక!").`;
+  return `🌟 *${cleanTitle} - CHITTOOR* 🌟
+📍 *Location:* ${cleanArea}, Chittoor
 
-  if (aiClient) {
-    try {
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
-      if (response.text) {
-        return response.text;
-      }
-    } catch (e) {
-      console.warn('Gemini ad copy failed, using template:', e);
-    }
-  }
-
-  return `🌟 *${data.title.toUpperCase()} - CHITTOOR* 🌟
-📍 *Location:* ${data.area}, Chittoor
-
-Looking for trusted ${data.category} in Chittoor? We provide top-notch service with complete customer satisfaction!
+Looking for trusted ${cleanCategory} in Chittoor? We provide top-notch service with complete customer satisfaction!
 
 ✅ *Why Choose Us:*
-• ${data.highlights || 'Verified quality & experienced local professionals'}
+• ${cleanHighlights}
 • Best competitive prices in Chittoor district
 • Fast doorstep & prompt assistance
-• Trusted by hundreds of happy local families
+• Trusted by local families across AP-03
 
-📞 *Call / WhatsApp Today:* ${data.phone}
+📞 *Call / WhatsApp Today:* ${cleanPhone}
 🌐 *Find us on ChittoorAds:* Local verified portal
 
 _చిత్తూరు ప్రజల ఆదరణ పొందిన నమ్మకమైన సేవలు!_`;

@@ -112,15 +112,23 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         <div className="p-4 sm:p-5">
           {/* Rating and Reviews */}
           <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-md">
-                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                <span>{listing.rating.toFixed(1)}</span>
+            {listing.reviewsCount > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-md">
+                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                  <span>{listing.rating.toFixed(1)}</span>
+                </div>
+                <span className="text-xs text-slate-500">
+                  ({listing.reviewsCount} reviews)
+                </span>
               </div>
-              <span className="text-xs text-slate-500">
-                ({listing.reviewsCount} reviews)
-              </span>
-            </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                  New Listing • Unrated
+                </span>
+              </div>
+            )}
 
             {listing.badge && (
               <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">

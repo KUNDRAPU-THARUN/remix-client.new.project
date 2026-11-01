@@ -81,6 +81,8 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
   // Filter listings by active category, location, rating, and verified status
   const filteredListings = useMemo(() => {
     return listings.filter((l) => {
+      // Security & Trust: Only active published listings appear in public directory search
+      if (l.status && l.status !== 'Active') return false;
       if (savedOnly && !savedIds.has(l.id)) return false;
       // Category filter
       if (activeCategoryId !== 'all' && l.category !== activeCategoryId) {

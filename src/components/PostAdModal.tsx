@@ -9,9 +9,10 @@ import {
   MessageSquare, 
   ShieldCheck, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Clock 
 } from 'lucide-react';
-import { Listing } from '../types';
+import { Listing, UserAccount } from '../types';
 import { CHITTOOR_AREAS, CHITTOOR_CATEGORIES } from '../data/mockData';
 import { generateAdCopy } from '../services/aiService';
 
@@ -20,6 +21,7 @@ interface PostAdModalProps {
   onClose: () => void;
   onAddListing: (newListing: Listing) => void;
   onNavigateToDashboard?: () => void;
+  currentUser?: UserAccount | null;
 }
 
 export const PostAdModal: React.FC<PostAdModalProps> = ({
@@ -27,6 +29,7 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
   onClose,
   onAddListing,
   onNavigateToDashboard,
+  currentUser,
 }) => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(CHITTOOR_CATEGORIES[0].id);
@@ -90,32 +93,24 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
       address: address.trim(),
       phone: phone.trim(),
       whatsapp: whatsapp.trim() || phone.replace(/[^0-9]/g, ''),
-      description: description.trim() || `${title} offers top-quality local services in ${area}, Chittoor. Contact directly for prices and booking.`,
-      rating: 5.0,
-      reviewsCount: 1,
-      isVerified: true,
+      description: description.trim() || `${title} offers quality local services in ${area}, Chittoor. Contact directly for prices and booking.`,
+      rating: 0,
+      reviewsCount: 0,
+      isVerified: false,
       isFeatured: false,
       priceRange: priceRange.trim() || 'Best Market Rate',
       services,
       timings: timings.trim() || 'Daily: 9:00 AM - 8:00 PM',
-      status: 'Active', // Auto-approval in dev mode
-      viewsCount: 1,
+      status: 'Pending Approval',
+      viewsCount: 0,
+      postedByUser: currentUser?.id || 'u-demo',
       images: [
         imageUrl.trim() ||
         'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80',
       ],
-      reviews: [
-        {
-          id: `rev-${Date.now()}`,
-          author: 'ChittoorAds Verification Desk',
-          rating: 5,
-          comment: 'New verified business listed on ChittoorAds portal. Active contact details verified.',
-          date: 'Just now',
-          verifiedPurchase: true,
-        },
-      ],
+      reviews: [],
       postedDate: new Date().toISOString().split('T')[0],
-      badge: 'Newly Listed',
+      badge: 'Under Review',
     };
 
     onAddListing(newListing);
@@ -148,14 +143,14 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
         {/* Modal Form */}
         {submitted ? (
           <div className="p-8 sm:p-10 text-center space-y-4">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-10 h-10" />
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+              <Clock className="w-10 h-10" />
             </div>
             <h4 className="text-2xl font-black text-slate-900 font-heading">
-              Ad Submitted Successfully!
+              Ad Submitted for Review!
             </h4>
             <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-              Your ad has been submitted successfully! It is currently under review by our team and will be visible on the site shortly (Auto-Approved as <strong className="text-emerald-700">Live</strong> in Test Mode).
+              Your business listing has been submitted successfully and placed in <strong className="text-amber-700">Pending Approval</strong> status. It is saved to your Business Owner Dashboard and will become publicly visible once verified by city moderation staff.
             </p>
             
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
