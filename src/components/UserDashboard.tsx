@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Listing, 
-  UserAccount 
+  UserAccount,
+  CityConfig
 } from '../types';
 import { 
   PlusCircle, 
@@ -27,6 +28,7 @@ interface UserDashboardProps {
   onDeleteListing: (id: string) => void;
   onBackToHome: () => void;
   onOpenLogin?: () => void;
+  currentCity?: CityConfig;
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({
@@ -37,8 +39,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onDeleteListing,
   onBackToHome,
   onOpenLogin,
+  currentCity,
 }) => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'Active' | 'Pending Approval'>('all');
+  const cityName = currentCity?.name || 'Chittoor';
+  const cityCode = currentCity?.code || 'AP-03';
 
   // Anonymous / Logged-out state
   if (!currentUser) {
@@ -172,9 +177,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Home</span>
             </button>
-            <h1 className="text-2xl sm:text-3xl font-black font-heading tracking-tight">
-              My Ads & Business Listings
-            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-black font-heading tracking-tight">
+                My Ads & Business Listings
+              </h1>
+              <span className="text-xs bg-slate-800 text-slate-300 border border-slate-700 px-2.5 py-0.5 rounded-full font-bold">
+                {cityName} ({cityCode})
+              </span>
+            </div>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
               Logged in as <strong className="text-white">{currentUser.name}</strong> ({currentUser.email})
             </p>

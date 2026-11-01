@@ -1,3 +1,68 @@
+import { SupportedLanguage } from './i18n/translations';
+
+export type CityId = 'chittoor' | 'vellore' | 'bengaluru';
+
+export interface CityTheme {
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  badgeBg: string;
+  badgeText: string;
+}
+
+export interface CityGridItem {
+  id: string;
+  name: string;
+  image: string;
+  count: number;
+  tagline: string;
+}
+
+export interface HeroBannerConfig {
+  id: string;
+  image: string;
+  title: string;
+  tag: string;
+  category: string;
+}
+
+export interface CityConfig {
+  id: CityId;
+  name: string;
+  nameNative: string;
+  brandName: string;
+  brandSuffix: string;
+  code: string; // e.g. AP-03, TN-23, KA-01
+  tagline: string;
+  state: string;
+  domain: string;
+  primaryLanguage: SupportedLanguage;
+  supportedLanguages: SupportedLanguage[];
+  theme: CityTheme;
+  localities: Area[];
+  cityGrid: CityGridItem[];
+  heroBanners: HeroBannerConfig[];
+  contact: {
+    address: string;
+    phone: string;
+    email: string;
+  };
+  seo: {
+    title: string;
+    description: string;
+  };
+  features: {
+    hasKanipakamSpecial: boolean;
+    landmark: string;
+    heroHeadingMain: string;
+    heroHeadingHighlight: string;
+  };
+  stats: {
+    totalListingsCount: number;
+    activeLocalitiesCount: number;
+  };
+}
+
 export interface Review {
   id: string;
   author: string;
@@ -25,6 +90,7 @@ export interface Review {
 
 export interface Listing {
   id: string;
+  cityId?: CityId; // City scoping
   title: string;
   category: string;
   area: string;
@@ -53,6 +119,8 @@ export interface Category {
   id: string;
   name: string;
   nameTe: string; // Telugu translation
+  nameTa?: string; // Tamil translation
+  nameKn?: string; // Kannada translation
   icon: string;
   description: string;
   count: number;
@@ -67,16 +135,19 @@ export interface UserAccount {
   role: 'provider' | 'customer';
   name: string;
   mobile?: string;
+  cityId?: CityId;
 }
 
 export interface Area {
   id: string;
+  cityId?: CityId;
   name: string;
   landmark: string;
 }
 
 export interface ClassifiedItem {
   id: string;
+  cityId?: CityId;
   title: string;
   category: string;
   price: string;
@@ -92,6 +163,7 @@ export interface ClassifiedItem {
 
 export interface EmergencyContact {
   id: string;
+  cityId?: CityId;
   name: string;
   teluguName: string;
   phone: string;
