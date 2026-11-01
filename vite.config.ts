@@ -11,6 +11,9 @@ export default defineConfig(() => {
         '@': import.meta.dirname,
       },
     },
+    build: {
+      chunkSizeWarningLimit: 850,
+    },
     server: {
       host: '0.0.0.0',
       port: 3000,

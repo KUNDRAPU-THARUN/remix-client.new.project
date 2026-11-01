@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { 
-  X, 
-  Star, 
-  MapPin, 
-  Phone, 
-  MessageSquare, 
-  ShieldCheck, 
-  Clock, 
-  CheckCircle2, 
-  Share2, 
+import {
+  X,
+  Star,
+  MapPin,
+  Phone,
+  MessageSquare,
+  ShieldCheck,
+  Clock,
+  CheckCircle2,
+  Share2,
   Bookmark,
   Send,
   User,
@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Listing, Review } from '../types';
 import { CHITTOOR_AREAS } from '../data/mockData';
+import { enquiryService } from '../services/enquiryService';
 
 interface ListingDetailModalProps {
   listing: Listing | null;
@@ -102,6 +103,41 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
   // Direct contact handlers
   const handleCall = () => {
     window.location.href = `tel:${listing.phone.replace(/\s+/g, '')}`;
+  };
+
+  // Customer Enquiry Dialog State
+  const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
+  const [enquiryName, setEnquiryName] = useState('');
+  const [enquiryPhone, setEnquiryPhone] = useState('');
+  const [enquiryEmail, setEnquiryEmail] = useState('');
+  const [enquiryMessage, setEnquiryMessage] = useState('');
+  const [isEnquirySubmitting, setIsEnquirySubmitting] = useState(false);
+  const [enquirySuccess, setEnquirySuccess] = useState(false);
+  const [enquiryError, setEnquiryError] = useState('');
+
+  const handleEnquirySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsEnquirySubmitting(true);
+    setEnquiryError('');
+    const res = await enquiryService.submitEnquiry({
+      businessId: listing.id,
+      businessName: listing.title,
+      cityId: listing.cityId || 'chittoor',
+      customerName: enquiryName,
+      customerPhone: enquiryPhone,
+      customerEmail: enquiryEmail || undefined,
+      message: enquiryMessage,
+    });
+    setIsEnquirySubmitting(false);
+    if (res.error) {
+      setEnquiryError(res.error);
+    } else {
+      setEnquirySuccess(true);
+      setEnquiryName('');
+      setEnquiryPhone('');
+      setEnquiryEmail('');
+      setEnquiryMessage('');
+    }
   };
 
   const handleWhatsApp = () => {
@@ -328,6 +364,18 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => {
+                  setIsEnquiryOpen(true);
+                  setEnquirySuccess(false);
+                  setEnquiryError('');
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition cursor-pointer"
+                title="Send Enquiry to Business"
+              >
+                <Send className="w-4 h-4" />
+                <span>Enquire</span>
+              </button>
               <button
                 onClick={handleCall}
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm shadow-xs transition"
@@ -1187,6 +1235,151 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
           )}
         </div>
       </div>
+
+      {/* Customer Enquiry Modal Dialog */}
+      {isEnquiryOpen && (
+        <div
+          onClick={() => setIsEnquiryOpen(false)}
+          className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150"
+          >
+            {/* Header */}
+            <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white">
+                  <Send className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm font-heading">Direct Customer Enquiry</h4>
+                  <p className="text-[11px] text-slate-400 line-clamp-1">{listing.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEnquiryOpen(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              {enquirySuccess ? (
+                <div className="py-6 text-center space-y-3">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <h5 className="font-bold text-base text-slate-900">Enquiry Sent Successfully!</h5>
+                  <p className="text-xs text-slate-600 max-w-xs mx-auto leading-relaxed">
+                    Your enquiry has been securely submitted directly to the verified business owner of <strong>{listing.title}</strong>. They will contact you shortly.
+                  </p>
+                  <button
+                    onClick={() => setIsEnquiryOpen(false)}
+                    className="mt-2 px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Close Window
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleEnquirySubmit} className="space-y-3">
+                  {enquiryError && (
+                    <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
+                      {enquiryError}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Your Full Name *
+                    </label>
+                    <div className="flex items-center px-3 py-2 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <User className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type="text"
+                        required
+                        value={enquiryName}
+                        onChange={(e) => setEnquiryName(e.target.value)}
+                        placeholder="e.g. Anand Kumar"
+                        className="w-full text-xs font-medium text-slate-900 outline-hidden bg-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Mobile / WhatsApp Number *
+                    </label>
+                    <div className="flex items-center px-3 py-2 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <Smartphone className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type="tel"
+                        required
+                        value={enquiryPhone}
+                        onChange={(e) => setEnquiryPhone(e.target.value)}
+                        placeholder="e.g. 98480 12345"
+                        className="w-full text-xs font-medium text-slate-900 outline-hidden bg-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Email Address (Optional)
+                    </label>
+                    <div className="flex items-center px-3 py-2 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <Mail className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type="email"
+                        value={enquiryEmail}
+                        onChange={(e) => setEnquiryEmail(e.target.value)}
+                        placeholder="e.g. anand@gmail.com"
+                        className="w-full text-xs font-medium text-slate-900 outline-hidden bg-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Your Message / Service Request *
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      value={enquiryMessage}
+                      onChange={(e) => setEnquiryMessage(e.target.value)}
+                      placeholder="Describe what services or details you require from this business..."
+                      className="w-full p-2.5 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:border-red-500 outline-hidden bg-slate-50 focus:bg-white transition resize-none"
+                    />
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="submit"
+                      disabled={isEnquirySubmitting}
+                      className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    >
+                      {isEnquirySubmitting ? (
+                        <span>Sending Enquiry...</span>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Submit Enquiry Directly</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 text-center pt-1">
+                    Your contact information will only be shared with this verified merchant.
+                  </p>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox Modal for Full Photo View */}
       {lightboxPhoto && (

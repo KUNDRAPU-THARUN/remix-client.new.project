@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, 
-  User, 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ShieldCheck, 
-  CheckCircle2, 
-  Building2, 
+import React, { useState, useEffect } from 'react';
+import {
+  X,
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  CheckCircle2,
+  Building2,
   Sparkles,
   ArrowRight
 } from 'lucide-react';
 import { UserAccount } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -25,6 +26,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onLoginSuccess,
 }) => {
+  const { signIn, signUp, resetPassword, isConfigured } = useAuth();
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [role, setRole] = useState<'customer' | 'provider'>('customer');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -33,47 +36,112 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const loginTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+
   useEffect(() => {
-    if (!isOpen) setIsLoading(false);
-    return () => {
-      if (loginTimer.current !== null) clearTimeout(loginTimer.current);
-    };
+    if (!isOpen) {
+      setIsLoading(false);
+      setErrorMessage('');
+      setSuccessMessage('');
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    if (!username.trim()) {
-      setErrorMessage('Username or Registered Mobile Number is required.');
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    if (authMode === 'signup') {
+      if (!email.trim() || !password.trim() || !username.trim()) {
+        setErrorMessage('Full name, email address, and password are required.');
+        return;
+      }
+      if (password.length < 6) {
+        setErrorMessage('Password must be at least 6 characters long.');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const res = await signUp({
+          email: email.trim(),
+          password,
+          fullName: username.trim(),
+          phone: username.replace(/[^0-9]/g, '') || undefined,
+          role,
+        });
+
+        if (res.error) {
+          setErrorMessage(res.error);
+        } else if (res.user) {
+          onLoginSuccess(res.user);
+          onClose();
+        }
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : 'Registration failed.');
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
+    // SIGN IN MODE
+    if (!username.trim() && !email.trim()) {
+      setErrorMessage('Username or Registered Email / Mobile Number is required.');
+      return;
+    }
+
+    const loginEmail = email.trim() || (username.includes('@') ? username.trim() : `${username.trim().toLowerCase()}@chittoorads.com`);
+
     setIsLoading(true);
-    setErrorMessage('');
+    try {
+      const res = await signIn({
+        email: loginEmail,
+        password: password || 'demo123',
+      });
 
-    loginTimer.current = setTimeout(() => {
-      const user: UserAccount = {
-        id: `user-${Date.now()}`,
-        username: username.trim(),
-        email: email.trim() || `${username.trim().toLowerCase()}@chittoorads.com`,
-        role,
-        name: username.trim(),
-        mobile: username.replace(/[^0-9]/g, '') || '9440218456',
-      };
-
-      onLoginSuccess(user);
+      if (res.error) {
+        setErrorMessage(res.error);
+      } else if (res.user) {
+        // Apply selected role if in demo mode
+        const updatedUser: UserAccount = {
+          ...res.user,
+          role: isConfigured ? res.user.role : role,
+          name: username.trim() || res.user.name,
+        };
+        onLoginSuccess(updatedUser);
+        onClose();
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Sign in failed.');
+    } finally {
       setIsLoading(false);
-      onClose();
-    }, 600);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const targetEmail = email.trim() || (username.includes('@') ? username.trim() : '');
+    if (!targetEmail) {
+      setErrorMessage('Please enter your email address above to receive a password reset link.');
+      return;
+    }
+    setIsLoading(true);
+    const res = await resetPassword(targetEmail);
+    setIsLoading(false);
+    if (res.success) {
+      setSuccessMessage(`Password recovery link sent to ${targetEmail}. Please check your inbox.`);
+    } else {
+      setErrorMessage(res.error || 'Failed to send reset link.');
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Header */}
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -82,7 +150,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-base font-heading">
-                Sign In to ChittoorAds
+                {authMode === 'signin' ? 'Sign In to ChittoorAds' : 'Create an Account'}
               </h3>
               <p className="text-[11px] text-slate-400">Discover Chittoor in One Click</p>
             </div>
@@ -90,7 +158,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -129,11 +197,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
+          {successMessage && (
+            <div className="mb-4 p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{successMessage}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 1. Username (or Registered Mobile Number) */}
+            {/* 1. Username / Full Name */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                Username / Registered Mobile *
+                {authMode === 'signup' ? 'Full Name *' : 'Username / Registered Mobile *'}
               </label>
               <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
                 <User className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
@@ -142,7 +217,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. RameshNaidu or 9440218456"
+                  placeholder={authMode === 'signup' ? 'e.g. Ramesh Naidu' : 'e.g. RameshNaidu or 9440218456'}
                   className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
                 />
               </div>
@@ -151,12 +226,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             {/* 2. Email Address */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                Email Address
+                Email Address {authMode === 'signup' && '*'}
               </label>
               <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
                 <Mail className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                 <input
                   type="email"
+                  required={authMode === 'signup'}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e.g. ramesh@example.com"
@@ -168,7 +244,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             {/* 3. Password (with toggle show/hide) */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                Password
+                Password *
               </label>
               <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
                 <Lock className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
@@ -192,46 +268,72 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded text-red-600 accent-red-600 cursor-pointer"
-                />
-                <span className="font-semibold text-slate-700">Remember Me</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => alert('Password reset link sent to your registered mobile/email in Chittoor.')}
-                className="font-semibold text-red-600 hover:underline"
-              >
-                Forgot Password?
-              </button>
-            </div>
+            {authMode === 'signin' && (
+              <div className="flex items-center justify-between text-xs pt-1">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded text-red-600 accent-red-600 cursor-pointer"
+                  />
+                  <span className="font-semibold text-slate-700">Remember Me</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="font-semibold text-red-600 hover:underline cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            )}
 
             {/* Main Submit Button */}
             <div className="pt-2">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white font-extrabold text-sm shadow-md shadow-red-600/30 transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white font-extrabold text-sm shadow-md shadow-red-600/30 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               >
                 {isLoading ? (
-                  <span>Signing In...</span>
+                  <span>{authMode === 'signin' ? 'Signing In...' : 'Creating Account...'}</span>
                 ) : (
                   <>
-                    <span>Sign In →</span>
+                    <span>{authMode === 'signin' ? 'Sign In →' : 'Register Free →'}</span>
                   </>
                 )}
               </button>
             </div>
           </form>
 
+          {/* Switch between Sign In and Sign Up */}
+          <div className="mt-3 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+                setErrorMessage('');
+                setSuccessMessage('');
+              }}
+              className="text-xs font-bold text-slate-600 hover:text-red-600 transition cursor-pointer"
+            >
+              {authMode === 'signin' ? (
+                <>New to ChittoorAds? <span className="text-red-600 underline">Create an Account</span></>
+              ) : (
+                <>Already have an account? <span className="text-red-600 underline">Sign In</span></>
+              )}
+            </button>
+          </div>
+
           {/* Quick Demo Credentials Help */}
           <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-center text-[11px] text-slate-500">
-            <span className="font-bold text-slate-700">Instant Demo Login:</span> Enter any username & password to sign in and test your provider dashboard.
+            <span className="font-bold text-slate-700">
+              {isConfigured ? 'Live Supabase Auth Active:' : 'Instant Demo Login:'}
+            </span>{' '}
+            {isConfigured
+              ? 'Enter your registered email & password to authenticate.'
+              : 'Enter any username & password to sign in and test your provider dashboard.'}
           </div>
         </div>
 
