@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Clock 
 } from 'lucide-react';
-import { Listing, UserAccount } from '../types';
+import { Listing, UserAccount, CityConfig } from '../types';
 import { CHITTOOR_AREAS, CHITTOOR_CATEGORIES } from '../data/mockData';
 import { generateAdCopy } from '../services/aiService';
 
@@ -22,6 +22,7 @@ interface PostAdModalProps {
   onAddListing: (newListing: Listing) => void;
   onNavigateToDashboard?: () => void;
   currentUser?: UserAccount | null;
+  currentCity?: CityConfig;
 }
 
 export const PostAdModal: React.FC<PostAdModalProps> = ({
@@ -30,10 +31,12 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
   onAddListing,
   onNavigateToDashboard,
   currentUser,
+  currentCity,
 }) => {
+  const localities = currentCity?.localities || CHITTOOR_AREAS;
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(CHITTOOR_CATEGORIES[0].id);
-  const [area, setArea] = useState(CHITTOOR_AREAS[1].id);
+  const [area, setArea] = useState(localities[1]?.id || 'all');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('+91 ');
   const [whatsapp, setWhatsapp] = useState('');
@@ -86,14 +89,15 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
       : ['Verified Service', 'Customer Support'];
 
     const newListing: Listing = {
-      id: `ch-user-${Date.now()}`,
+      id: `${currentCity?.id || 'ch'}-user-${Date.now()}`,
+      cityId: currentCity?.id || 'chittoor',
       title: title.trim(),
       category,
       area,
       address: address.trim(),
       phone: phone.trim(),
       whatsapp: whatsapp.trim() || phone.replace(/[^0-9]/g, ''),
-      description: description.trim() || `${title} offers quality local services in ${area}, Chittoor. Contact directly for prices and booking.`,
+      description: description.trim() || `${title} offers quality local services in ${area}, ${currentCity?.name || 'Chittoor'}. Contact directly for prices and booking.`,
       rating: 0,
       reviewsCount: 0,
       isVerified: false,
@@ -217,14 +221,14 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                  Chittoor Locality / Area *
+                  {currentCity?.name || 'City'} Locality / Area *
                 </label>
                 <select
                   value={area}
                   onChange={(e) => setArea(e.target.value)}
                   className="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-hidden bg-white"
                 >
-                  {CHITTOOR_AREAS.filter((a) => a.id !== 'all').map((ar) => (
+                  {localities.filter((a) => a.id !== 'all').map((ar) => (
                     <option key={ar.id} value={ar.id}>
                       {ar.name} ({ar.landmark})
                     </option>

@@ -9,18 +9,23 @@ import {
   PlusCircle,
   Sparkles
 } from 'lucide-react';
-import { ClassifiedItem } from '../types';
+import { ClassifiedItem, CityConfig } from '../types';
 
 interface ClassifiedsSectionProps {
   classifieds: ClassifiedItem[];
   onOpenPostAd: () => void;
+  currentCity?: CityConfig;
 }
 
 export const ClassifiedsSection: React.FC<ClassifiedsSectionProps> = ({
   classifieds,
   onOpenPostAd,
+  currentCity,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const cityName = currentCity?.name || 'Chittoor';
+  const cityCode = currentCity?.code || 'AP-03';
+  const brandName = currentCity?.brandName || 'ChittoorAds';
 
   const categories = ['all', ...Array.from(new Set(classifieds.map((c) => c.category)))];
 
@@ -31,7 +36,7 @@ export const ClassifiedsSection: React.FC<ClassifiedsSectionProps> = ({
   const handleWhatsApp = (item: ClassifiedItem) => {
     const phone = item.whatsapp || item.phone.replace(/[^0-9]/g, '');
     const message = encodeURIComponent(
-      `Hello ${item.postedBy}! I am interested in your classified ad "${item.title}" listed on ChittoorAds.`
+      `Hello ${item.postedBy}! I am interested in your classified ad "${item.title}" listed on ${brandName}.`
     );
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };
@@ -49,13 +54,13 @@ export const ClassifiedsSection: React.FC<ClassifiedsSectionProps> = ({
             <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded uppercase">
               Free Local Classifieds
             </span>
-            <span className="text-xs text-slate-400">AP-03 Buy & Sell</span>
+            <span className="text-xs text-slate-400">{cityCode} Buy & Sell</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading mt-1">
-            Chittoor Classifieds & Used Deals
+            {cityName} Classifieds & Deals
           </h2>
           <p className="text-xs sm:text-sm text-slate-600">
-            Used bikes, rental homes, commercial shops, farm harvest & gadgets from direct owners.
+            Used vehicles, rental homes, commercial shops, farm harvest & gadgets in {cityName}.
           </p>
         </div>
 

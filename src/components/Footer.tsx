@@ -10,7 +10,8 @@ import {
   ExternalLink,
   Info
 } from 'lucide-react';
-import { CHITTOOR_AREAS, CHITTOOR_CATEGORIES } from '../data/mockData';
+import { CHITTOOR_CATEGORIES } from '../data/mockData';
+import { CityConfig } from '../types';
 
 interface FooterProps {
   onSelectCategory: (catId: string) => void;
@@ -18,6 +19,8 @@ interface FooterProps {
   onOpenEmergency: () => void;
   onOpenPostAd: () => void;
   onOpenAI: () => void;
+  currentCity: CityConfig;
+  allCities: CityConfig[];
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -26,6 +29,8 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenEmergency,
   onOpenPostAd,
   onOpenAI,
+  currentCity,
+  allCities,
 }) => {
   return (
     <footer className="bg-slate-950 text-slate-300 pt-12 pb-8 border-t border-slate-800" aria-label="Site Footer">
@@ -47,28 +52,30 @@ export const Footer: React.FC<FooterProps> = ({
                 </span>
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-white font-heading mt-0.5">
-                Chittoor in Your Pocket
+                {currentCity.name} in Your Pocket
               </h3>
               <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                Bookmark ChittoorAds on your smartphone home screen for instant access to local shops, emergency doctors, and classified listings across AP-03.
+                Bookmark {currentCity.brandName} on your smartphone home screen for instant access to local shops, emergency doctors, and classified listings across {currentCity.code}.
               </p>
             </div>
           </div>
 
-          {/* Regional Network Status */}
+          {/* Regional Multi-City Network Status */}
           <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-col gap-2 shrink-0 text-xs">
-            <div className="flex items-center gap-2 text-slate-300 font-bold">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#15995F]" />
-              <span>ChittoorAds (AP-03) — Active</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-500">
-              <span className="w-2 h-2 rounded-full bg-slate-600" />
-              <span>VelloreAds — Coming Soon (TN-23)</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-500">
-              <span className="w-2 h-2 rounded-full bg-slate-600" />
-              <span>BengaluruAds — Coming Soon (KA-01)</span>
-            </div>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+              KAARYAN Multi-City Network
+            </span>
+            {allCities.map((c) => {
+              const isCurrent = c.id === currentCity.id;
+              return (
+                <div key={c.id} className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${isCurrent ? 'bg-[#15995F] animate-pulse' : 'bg-slate-600'}`} />
+                  <span className={isCurrent ? 'text-white font-bold' : 'text-slate-400'}>
+                    {c.brandName} ({c.code}) — {isCurrent ? 'Active' : 'Live Platform'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -81,11 +88,11 @@ export const Footer: React.FC<FooterProps> = ({
                 <MapPin className="w-5 h-5 fill-white" />
               </div>
               <span className="text-2xl font-black text-white tracking-tight font-heading">
-                Chittoor<span className="text-[#E51E31]">Ads</span>
+                {currentCity.name}<span className="text-[#E51E31]">Ads</span>
               </span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed font-medium">
-              Chittoor's premier hyper-local digital business discovery directory and classifieds portal. Connecting residents, pilgrims, farmers, and traders across AP-03.
+              {currentCity.name}'s hyper-local digital business discovery directory and classifieds portal ({currentCity.code}). Connecting residents, pilgrims, businesses, and traders across {currentCity.state}.
             </p>
 
             <div className="mt-4 flex items-center gap-2 text-xs text-[#15995F] font-bold">
@@ -133,14 +140,14 @@ export const Footer: React.FC<FooterProps> = ({
             </ul>
           </div>
 
-          {/* Localities & Mandals */}
+          {/* City Localities & Areas */}
           <div>
             <h4 className="text-xs font-extrabold text-white uppercase tracking-wider mb-3.5 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#176AC4]" />
-              <span>Chittoor Locations</span>
+              <span>{currentCity.name} Locations</span>
             </h4>
             <div className="grid grid-cols-2 gap-2 text-xs text-slate-400 font-medium">
-              {CHITTOOR_AREAS.slice(1, 9).map((a) => (
+              {currentCity.localities.filter((a) => a.id !== 'all').slice(0, 8).map((a) => (
                 <button
                   key={a.id}
                   onClick={() => onSelectArea(a.id)}
@@ -182,13 +189,13 @@ export const Footer: React.FC<FooterProps> = ({
                   className="text-rose-400 hover:text-rose-300 font-semibold transition cursor-pointer flex items-center gap-1.5"
                 >
                   <Phone className="w-3.5 h-3.5 text-rose-500" />
-                  <span>District Emergency Helplines (24x7)</span>
+                  <span>24x7 Emergency Helplines</span>
                 </button>
               </li>
               <li className="pt-2 text-slate-400 text-[11px] leading-relaxed border-t border-slate-900 space-y-1">
-                <p><strong className="text-slate-300">Office:</strong> Gandhi Road Center, Chittoor - 517001, AP</p>
-                <p><strong className="text-slate-300">Helpline:</strong> +91 94402 18456</p>
-                <p><strong className="text-slate-300">Email:</strong> support@chittoorads.com</p>
+                <p><strong className="text-slate-300">Office:</strong> {currentCity.contact.address}</p>
+                <p><strong className="text-slate-300">Helpline:</strong> {currentCity.contact.phone}</p>
+                <p><strong className="text-slate-300">Email:</strong> {currentCity.contact.email}</p>
               </li>
             </ul>
           </div>
@@ -196,9 +203,9 @@ export const Footer: React.FC<FooterProps> = ({
 
         {/* Bottom Credits & Legal Notice */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} ChittoorAds (AP-03). A KAARYAN LABS Platform. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {currentCity.brandName} ({currentCity.code}). A KAARYAN LABS Platform. All rights reserved.</p>
           <p className="flex items-center gap-1">
-            Built with <Heart className="w-3.5 h-3.5 text-[#E51E31] fill-[#E51E31]" /> for the citizens of Chittoor District
+            Built with <Heart className="w-3.5 h-3.5 text-[#E51E31] fill-[#E51E31]" /> for the citizens of {currentCity.name} ({currentCity.state})
           </p>
         </div>
       </div>

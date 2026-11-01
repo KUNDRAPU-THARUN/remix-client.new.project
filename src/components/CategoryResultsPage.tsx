@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { 
   Listing, 
   Category, 
-  Area 
+  Area,
+  CityConfig
 } from '../types';
 import { 
   CHITTOOR_CATEGORIES, 
@@ -44,6 +45,7 @@ interface CategoryResultsPageProps {
   savedOnly: boolean;
   filters: ResultsFilters;
   onFiltersChange: (filters: ResultsFilters) => void;
+  currentCity?: CityConfig;
 }
 
 export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
@@ -58,7 +60,10 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
   savedOnly,
   filters,
   onFiltersChange,
+  currentCity,
 }) => {
+  const localities = currentCity?.localities || CHITTOOR_AREAS;
+  const cityName = currentCity?.name || 'Chittoor';
   const { searchQuery, selectedArea, verifiedOnly, minRating, sortBy } = filters;
   const setSearchQuery = (searchQuery: string) => onFiltersChange({ ...filters, searchQuery });
   const setSelectedArea = (selectedArea: string) => onFiltersChange({ ...filters, selectedArea });
@@ -224,7 +229,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                         <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
                       )}
                     </span>
-                    <span>All Chittoor Directory</span>
+                    <span>All {cityName} Directory</span>
                   </div>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
                     activeCategoryId === 'all' ? 'bg-red-700 text-white' : 'bg-slate-100 text-slate-500'
@@ -308,7 +313,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
               {/* Location / Area Dropdown */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
-                  Location / Area in Chittoor
+                  Location / Area in {cityName}
                 </label>
                 <div className="relative">
                   <MapPin className="w-4 h-4 text-red-500 absolute left-3 top-2.5 pointer-events-none" />
@@ -317,7 +322,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                     onChange={(e) => setSelectedArea(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:border-red-500 outline-hidden font-medium cursor-pointer"
                   >
-                    {CHITTOOR_AREAS.map((a) => (
+                    {localities.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.name}
                       </option>
@@ -402,7 +407,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                   Showing <strong className="text-slate-900">{sortedListings.length}</strong> businesses in{' '}
                   <strong className="text-red-600">{currentCategory.name}</strong>
                   {selectedArea !== 'all' && (
-                    <span> • {CHITTOOR_AREAS.find((a) => a.id === selectedArea)?.name}</span>
+                    <span> • {localities.find((a) => a.id === selectedArea)?.name}</span>
                   )}
                 </p>
               </div>
