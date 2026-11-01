@@ -68,13 +68,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
             <div className="flex items-center gap-1.5 flex-wrap">
               {listing.isVerified && (
-                <span className="inline-flex items-center gap-1 bg-emerald-600/95 text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
+                <span className="inline-flex items-center gap-1 bg-[#15995F] text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   Verified
                 </span>
               )}
               {listing.isFeatured && (
-                <span className="inline-flex items-center bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                <span className="inline-flex items-center bg-[#F5C325] text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                   Featured
                 </span>
               )}
@@ -84,7 +84,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               onClick={handleSave}
               className={`p-2 rounded-full backdrop-blur-md transition ${
                 isSaved
-                  ? 'bg-red-600 text-white'
+                  ? 'bg-[#E51E31] text-white'
                   : 'bg-black/40 text-white hover:bg-black/60'
               }`}
               title={isSaved ? 'Remove from saved' : 'Save business'}
@@ -180,14 +180,14 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             onClick={handleCall}
             className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-200 text-slate-800 hover:bg-slate-50 font-semibold text-xs sm:text-sm transition cursor-pointer"
           >
-            <Phone className="w-4 h-4 text-emerald-600" />
+            <Phone className="w-4 h-4 text-[#15995F]" />
             <span>Call Now</span>
           </button>
 
           {/* WhatsApp Button */}
           <button
             onClick={handleWhatsApp}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm transition shadow-2xs shadow-emerald-600/30 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#15995F] hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm transition shadow-2xs shadow-emerald-600/30 cursor-pointer"
           >
             <MessageSquare className="w-4 h-4" />
             <span>WhatsApp</span>
