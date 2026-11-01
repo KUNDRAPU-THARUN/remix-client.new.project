@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { 
-  X, 
-  PlusCircle, 
-  Sparkles, 
-  Upload, 
-  MapPin, 
-  Phone, 
-  MessageSquare, 
-  ShieldCheck, 
-  CheckCircle2, 
+import {
+  X,
+  PlusCircle,
+  Sparkles,
+  Upload,
+  MapPin,
+  Phone,
+  MessageSquare,
+  ShieldCheck,
+  CheckCircle2,
   AlertCircle,
-  Clock 
+  Clock
 } from 'lucide-react';
 import { Listing, UserAccount, CityConfig } from '../types';
 import { CHITTOOR_AREAS, CHITTOOR_CATEGORIES } from '../data/mockData';
 import { generateAdCopy } from '../services/aiService';
+import { storageService } from '../services/storageService';
 
 interface PostAdModalProps {
   isOpen: boolean;
@@ -45,8 +46,29 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
   const [timings, setTimings] = useState('Mon - Sat: 9:00 AM - 8:00 PM');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingImage(true);
+    setUploadError('');
+    try {
+      const res = await storageService.uploadBusinessImage(file, currentCity?.id || 'chittoor');
+      if (res.error) {
+        setUploadError(res.error);
+      } else if (res.url) {
+        setImageUrl(res.url);
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Image upload failed.');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -156,7 +178,7 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
             <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
               Your business listing has been submitted successfully and placed in <strong className="text-amber-700">Pending Approval</strong> status. It is saved to your Business Owner Dashboard and will become publicly visible once verified by city moderation staff.
             </p>
-            
+
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
               {onNavigateToDashboard && (
                 <button
@@ -356,18 +378,50 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
               />
             </div>
 
-            {/* Image URL */}
+            {/* Image Upload & URL */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                Photo URL (optional)
+                Business Photo (Upload or URL)
               </label>
-              <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://example.com/shop-photo.jpg (Leave empty for default category photo)"
-                className="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-hidden"
-              />
+
+              {uploadError && (
+                <div className="mb-2 p-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+                  {uploadError}
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <label className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition shrink-0">
+                  <Upload className="w-4 h-4 text-slate-600" />
+                  <span>{isUploadingImage ? 'Uploading...' : 'Choose File (Max 5MB)'}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={isUploadingImage}
+                    onChange={handleImageFileChange}
+                    className="hidden"
+                  />
+                </label>
+
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="Or paste photo URL: https://example.com/photo.jpg"
+                  className="flex-1 text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-hidden bg-slate-50 focus:bg-white transition"
+                />
+              </div>
+
+              {imageUrl && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    className="w-12 h-12 rounded-xl object-cover border border-slate-200"
+                  />
+                  <span className="text-[11px] text-slate-500 line-clamp-1">{imageUrl}</span>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}

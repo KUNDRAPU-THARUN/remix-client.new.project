@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { 
-  INITIAL_LISTINGS, 
-  INITIAL_CLASSIFIEDS, 
-  CHITTOOR_AREAS, 
-  CHITTOOR_CATEGORIES 
+import {
+  INITIAL_LISTINGS,
+  INITIAL_CLASSIFIEDS,
+  CHITTOOR_AREAS,
+  CHITTOOR_CATEGORIES
 } from './data/mockData';
-import { 
-  Listing, 
-  ClassifiedItem, 
-  Review, 
+import {
+  Listing,
+  ClassifiedItem,
+  Review,
   UserAccount,
   CityId,
   CityConfig
@@ -33,6 +33,9 @@ import { EmergencySection } from './components/EmergencySection';
 import { FloatingChatbot } from './components/FloatingChatbot';
 import { Footer } from './components/Footer';
 import { LanguageProvider } from './i18n/LanguageContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { businessService } from './services/businessService';
+import { migrationService } from './services/migrationService';
 
 type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard';
 
@@ -169,17 +172,31 @@ export const MainAppContent: React.FC = () => {
   const [savedListingIds, setSavedListingIds] = useState<string[]>(() =>
     [...new Set(readStored('chittoorads_saved', [], strings))]);
 
-  // Current logged in user
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() =>
-    readStored('chittoorads_user', {
-        id: 'u-demo',
-        username: 'RameshNaidu',
-        name: 'Ramesh Naidu',
-        email: 'ramesh.chittoor@gmail.com',
-        role: 'provider',
-        mobile: '9440218456',
-        cityId: 'chittoor',
-      }, isUser));
+  // Authenticated user state from AuthContext
+  const { currentUser, setCurrentUser, signOut: handleSignOut } = useAuth();
+
+  // Fetch live listings from database when configured
+  useEffect(() => {
+    if (businessService.isConfigured()) {
+      businessService.getPublishedListings(route.cityId).then((remoteListings) => {
+        if (remoteListings.length > 0) {
+          setListings((prev) => {
+            const userPending = prev.filter(
+              (l) => l.status === 'Pending Approval' && (l.cityId || 'chittoor') === route.cityId
+            );
+            return [...userPending, ...remoteListings];
+          });
+        }
+      });
+    }
+  }, [route.cityId]);
+
+  // Reconcile user-created local listings when user logs in
+  useEffect(() => {
+    if (businessService.isConfigured() && currentUser && currentUser.id !== 'u-demo') {
+      migrationService.reconcileLocalListingsToBackend(currentUser.id, route.cityId);
+    }
+  }, [currentUser, route.cityId]);
 
   // Search & Filters for Hero Bar
   const [searchQuery, setSearchQuery] = useState('');
@@ -293,7 +310,7 @@ export const MainAppContent: React.FC = () => {
   // City switching handler
   const handleCityChange = (newCityId: CityId) => {
     if (newCityId === route.cityId) return;
-    
+
     // Incompatible filters reset
     setSearchQuery('');
     setSelectedArea('all');
@@ -310,13 +327,13 @@ export const MainAppContent: React.FC = () => {
 
   const handleNavigateTab = (tab: string) => {
     if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard'].includes(tab)) return;
-    navigate({ 
+    navigate({
       ...route,
-      tab: tab as Tab, 
-      categoryId: 'all', 
-      savedOnly: false, 
-      listingId: null, 
-      filters: defaultFilters 
+      tab: tab as Tab,
+      categoryId: 'all',
+      savedOnly: false,
+      listingId: null,
+      filters: defaultFilters
     });
   };
 
@@ -330,13 +347,13 @@ export const MainAppContent: React.FC = () => {
 
   // Dedicated Category Click Redirection
   const handleNavigateToCategory = (catId: string, areaId?: string) => {
-    navigate({ 
+    navigate({
       ...route,
-      tab: 'category', 
+      tab: 'category',
       categoryId: CHITTOOR_CATEGORIES.some((cat) => cat.id === catId) ? catId : 'all',
-      savedOnly: false, 
-      listingId: null, 
-      filters: { ...defaultFilters, selectedArea: areaId || 'all' } 
+      savedOnly: false,
+      listingId: null,
+      filters: { ...defaultFilters, selectedArea: areaId || 'all' }
     });
   };
 
@@ -345,13 +362,13 @@ export const MainAppContent: React.FC = () => {
   };
 
   const handleHeroSearchSubmit = (query = searchQuery) => {
-    navigate({ 
+    navigate({
       ...route,
-      tab: 'category', 
-      categoryId: selectedCategory, 
-      savedOnly: false, 
+      tab: 'category',
+      categoryId: selectedCategory,
+      savedOnly: false,
       listingId: null,
-      filters: { ...defaultFilters, searchQuery: query.trim(), selectedArea } 
+      filters: { ...defaultFilters, searchQuery: query.trim(), selectedArea }
     });
   };
 
@@ -370,27 +387,49 @@ export const MainAppContent: React.FC = () => {
     );
   };
 
-  const handleAddListing = (newListing: Listing) => {
+  const handleAddListing = async (newListing: Listing) => {
     const listingWithOwner: Listing = {
       ...newListing,
       cityId: route.cityId,
       postedByUser: newListing.postedByUser || currentUser?.id || 'u-demo',
       status: 'Pending Approval',
     };
+
+    if (businessService.isConfigured() && currentUser) {
+      const res = await businessService.createListing(listingWithOwner, currentUser.id);
+      if (res.listing) {
+        setListings((prev) => [res.listing!, ...prev]);
+        return;
+      }
+    }
+
     setListings((prev) => [listingWithOwner, ...prev]);
   };
 
-  const handleDeleteListing = (id: string) => {
+  const handleDeleteListing = async (id: string) => {
     const target = listings.find((l) => l.id === id);
     if (!target) return;
     if (!currentUser || target.postedByUser !== currentUser.id) {
       alert('Unauthorized: You cannot delete this listing. Only the verified business owner who posted this ad can remove it.');
       return;
     }
+
+    if (businessService.isConfigured()) {
+      const res = await businessService.deleteListing(id, currentUser.id);
+      if (!res.success) {
+        alert(`Deletion failed: ${res.error}`);
+        return;
+      }
+    }
+
     setListings((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleAddReview = (listingId: string, newReview: Omit<Review, 'date' | 'id'>) => {
+  const handleAddReview = async (listingId: string, newReview: Omit<Review, 'date' | 'id'>) => {
+    if (businessService.isConfigured()) {
+      await businessService.addReview(listingId, newReview, currentUser?.id);
+    }
+
     setListings((prev) =>
       prev.map((l) => {
         if (l.id !== listingId) return l;
@@ -425,16 +464,19 @@ export const MainAppContent: React.FC = () => {
           onOpenEmergency={() => setIsEmergencyOpen(true)}
           onOpenLogin={() => setIsLoginOpen(true)}
           currentUser={currentUser}
-          onLogout={() => setCurrentUser(null)}
+          onLogout={async () => {
+            await handleSignOut();
+            setCurrentUser(null);
+          }}
           savedCount={savedIds.length}
           onToggleSavedView={() => {
-            navigate({ 
+            navigate({
               ...route,
-              tab: 'category', 
-              categoryId: 'all', 
+              tab: 'category',
+              categoryId: 'all',
               savedOnly: !isSavedViewActive,
-              listingId: null, 
-              filters: defaultFilters 
+              listingId: null,
+              filters: defaultFilters
             });
           }}
           isSavedViewActive={isSavedViewActive}
@@ -448,7 +490,7 @@ export const MainAppContent: React.FC = () => {
 
         {/* Main Content Views */}
         <main className="flex-1">
-          
+
           {/* VIEW 1: HOMEPAGE */}
           {activeTab === 'home' && !isSavedViewActive && (
             <div>
@@ -608,7 +650,9 @@ export const MainAppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <LanguageProvider>
-      <MainAppContent />
+      <AuthProvider>
+        <MainAppContent />
+      </AuthProvider>
     </LanguageProvider>
   );
 };
