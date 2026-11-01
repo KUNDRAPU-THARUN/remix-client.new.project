@@ -434,6 +434,7 @@ export const INITIAL_LISTINGS: Listing[] = [
       'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80',
     ],
     postedDate: '2026-04-10',
+    postedByUser: 'u-demo',
     badge: 'Local Food Icon',
     reviews: [
       {

@@ -80,9 +80,6 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
   const [cleanliness, setCleanliness] = useState<number>(5);
   const [authorName, setAuthorName] = useState('');
   const [userMobile, setUserMobile] = useState('');
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [isMobileVerified, setIsMobileVerified] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [reviewTitle, setReviewTitle] = useState('');
   const [reviewComment, setReviewComment] = useState('');
@@ -124,25 +121,6 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
     } catch (error) {
       console.warn('Could not copy listing:', error);
       alert('Could not copy the link. Please copy the address from your browser.');
-    }
-  };
-
-  // OTP Simulation
-  const handleSendOtp = () => {
-    if (!userMobile || userMobile.length < 10) {
-      alert('Please enter a valid 10-digit mobile number first.');
-      return;
-    }
-    setIsOtpSent(true);
-    setOtpCode('7492'); // simulated test OTP
-  };
-
-  const handleVerifyOtp = () => {
-    if (otpCode === '7492' || otpCode.length === 4) {
-      setIsMobileVerified(true);
-      setIsOtpSent(false);
-    } else {
-      alert('Invalid OTP. Please enter the 4-digit code (Use: 7492).');
     }
   };
 
@@ -191,9 +169,7 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
         title: reviewTitle.trim() || undefined,
         rating,
         comment: reviewComment.trim(),
-        userMobile: userMobile.trim() || undefined,
-        userEmail: userEmail.trim() || undefined,
-        verifiedPurchase: isMobileVerified || true,
+        verifiedPurchase: false, // In Phase 2A prototype, reviews cannot claim verified customer status without backend gateway evidence
         subRatings: {
           serviceQuality,
           valueForMoney,
@@ -213,7 +189,6 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
       setReviewTitle('');
       setReviewComment('');
       setAttachedPhotos([]);
-      setIsMobileVerified(false);
 
       // Switch to reviews feed to view submitted review
       schedule(() => {
@@ -807,58 +782,24 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                     </div>
                   </div>
 
-                  {/* Mobile Number with OTP Verification Option */}
+                  {/* Mobile Number (Optional) */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                      Mobile Number (For Verification)
+                      Mobile Number (Optional)
                     </label>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 flex items-center px-3 rounded-xl border border-slate-200 focus-within:border-red-500 bg-white">
-                        <Smartphone className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
-                        <input
-                          type="tel"
-                          value={userMobile}
-                          onChange={(e) => setUserMobile(e.target.value)}
-                          placeholder="e.g. 9440212345"
-                          className="w-full py-2.5 text-xs sm:text-sm outline-hidden font-medium text-slate-900"
-                        />
-                      </div>
-                      {isMobileVerified ? (
-                        <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-2 rounded-xl flex items-center gap-1 shrink-0">
-                          <Check className="w-3.5 h-3.5" />
-                          Verified
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleSendOtp}
-                          className="text-xs bg-slate-900 hover:bg-slate-800 text-white font-semibold px-3 py-2.5 rounded-xl transition shrink-0 cursor-pointer"
-                        >
-                          Send OTP
-                        </button>
-                      )}
+                    <div className="flex items-center px-3 rounded-xl border border-slate-200 focus-within:border-red-500 bg-white">
+                      <Smartphone className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type="tel"
+                        value={userMobile}
+                        onChange={(e) => setUserMobile(e.target.value)}
+                        placeholder="e.g. 9440212345"
+                        className="w-full py-2.5 text-xs sm:text-sm outline-hidden font-medium text-slate-900"
+                      />
                     </div>
-                    {/* OTP verification input if sent */}
-                    {isOtpSent && !isMobileVerified && (
-                      <div className="mt-2 p-2 bg-amber-50 rounded-xl border border-amber-200 flex items-center gap-2 text-xs">
-                        <span className="text-amber-800">Test OTP: <strong>7492</strong></span>
-                        <input
-                          type="text"
-                          maxLength={4}
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value)}
-                          className="w-20 px-2 py-1 bg-white border border-amber-300 rounded text-center font-bold"
-                          placeholder="7492"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleVerifyOtp}
-                          className="px-2.5 py-1 bg-emerald-600 text-white rounded font-bold hover:bg-emerald-700"
-                        >
-                          Verify
-                        </button>
-                      </div>
-                    )}
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Note: Live SMS OTP verification is disabled in demo mode. All community reviews are submitted without unearned verification badges.
+                    </p>
                   </div>
 
                   {/* Email Address */}

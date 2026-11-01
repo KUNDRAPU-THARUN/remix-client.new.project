@@ -81,6 +81,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     // Hero Section
     topHeroBadge: "Chittoor's No.1 Local Search Platform",
     localInformationBadge: 'Chittoor Local Directory',
+    heroHeadlineMain: 'Your City. Everything You Need.',
+    heroSupportingMessage: 'Discover local businesses, trusted services and opportunities near you.',
     heroHeadingMain: 'Find Everything in',
     heroHeadingHighlight: 'Chittoor',
     heroSubtitle: 'Search for businesses, services, jobs, property, education, healthcare and more – all in one place.',
@@ -166,6 +168,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     // Hero Section
     topHeroBadge: "చిత్తూరు నెం.1 స్థానిక సెర్చ్ ప్లాట్‌ఫారమ్",
     localInformationBadge: 'చిత్తూరు స్థానిక డైరెక్టరీ',
+    heroHeadlineMain: 'మీ నగరం. మీకు కావాల్సినవన్నీ.',
+    heroSupportingMessage: 'మీ సమీపంలోని స్థానిక వ్యాపారాలు, నమ్మకమైన సేవలు మరియు అవకాశాలను కనుగొనండి.',
     heroHeadingMain: 'అన్నీ ఒకే చోట కనుగొనండి -',
     heroHeadingHighlight: 'చిత్తూరు',
     heroSubtitle: 'వ్యాపారాలు, సేవలు, ఉద్యోగాలు, ఇళ్ళు, విద్య, వైద్యం మరియు మరిన్నింటిని ఒకే చోట సులభంగా వెతకండి.',
@@ -251,6 +255,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     // Hero Section
     topHeroBadge: "சித்தூரின் நம்பர் 1 உள்ளூர் தேடல் தளம்",
     localInformationBadge: 'சித்தூர் உள்ளூர் தகவல் தளம்',
+    heroHeadlineMain: 'உங்கள் நகரம். உங்களுக்கு தேவையான அனைத்தும்.',
+    heroSupportingMessage: 'உங்களுக்கு அருகிலுள்ள உள்ளூர் வணிகங்கள், நம்பகமான சேவைகள் மற்றும் வாய்ப்புகளைக் கண்டறியவும்.',
     heroHeadingMain: 'அனைத்தையும் கண்டறியுங்கள் -',
     heroHeadingHighlight: 'சித்தூர்',
     heroSubtitle: 'வணிகங்கள், சேவைகள், வேலைகள், வீடுகள், கல்வி, மருத்துவம் அனைத்தையும் ஒரே இடத்தில் தேடுங்கள்.',
@@ -336,6 +342,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     // Hero Section
     topHeroBadge: "ಚಿತ್ತೂರಿನ ನಂ.1 ಸ್ಥಳೀಯ ಹುಡುಕಾಟ ವೇದಿಕೆ",
     localInformationBadge: 'ಚಿತ್ತೂರು ಸ್ಥಳೀಯ ಮಾಹಿತಿ ಕೋಶ',
+    heroHeadlineMain: 'ನಿಮ್ಮ ನಗರ. ನಿಮಗೆ ಬೇಕಾದ ಎಲ್ಲವೂ.',
+    heroSupportingMessage: 'ನಿಮ್ಮ ಸಮೀಪವಿರುವ ಸ್ಥಳೀಯ ವ್ಯವಹಾರಗಳು, ವಿಶ್ವಾಸಾರ್ಹ ಸೇವೆಗಳು ಮತ್ತು ಅವಕಾಶಗಳನ್ನು ಅನ್ವೇಷಿಸಿ.',
     heroHeadingMain: 'ಎಲ್ಲವನ್ನೂ ಹುಡುಕಿ -',
     heroHeadingHighlight: 'ಚಿತ್ತೂರು',
     heroSubtitle: 'ವ್ಯವಹಾರಗಳು, ಸೇವೆಗಳು, ಉದ್ಯೋಗಗಳು, ಆಸ್ತಿ, ಶಿಕ್ಷಣ, ಆರೋಗ್ಯ ರಕ್ಷಣೆ ಎಲ್ಲವನ್ನೂ ಒಂದೇ ಸ್ಥಳದಲ್ಲಿ ಹುಡುಕಿ.',
@@ -421,6 +429,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     // Hero Section
     topHeroBadge: "چتور کا نمبر 1 مقامی سرچ پلیٹ فارم",
     localInformationBadge: 'چتور لوکل ڈائریکٹری',
+    heroHeadlineMain: 'آپ کا شہر۔ آپ کی ہر ضرورت۔',
+    heroSupportingMessage: 'اپنے قریبی مقامی کاروبار، قابل اعتماد خدمات اور نئے مواقع تلاش کریں۔',
     heroHeadingMain: 'سب کچھ تلاش کریں -',
     heroHeadingHighlight: 'چتور',
     heroSubtitle: 'کاروبار، خدمات، نوکریاں، جائیداد، تعلیم، اور صحت کی دیکھ بھال ایک ہی جگہ پر تلاش کریں۔',
@@ -506,6 +516,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     // Hero Section
     topHeroBadge: "चित्तूर का नंबर 1 स्थानीय सर्च प्लेटफॉर्म",
     localInformationBadge: 'चित्तूर स्थानीय डायरेक्टरी',
+    heroHeadlineMain: 'आपका शहर। आपकी हर ज़रूरत।',
+    heroSupportingMessage: 'अपने आस-पास के स्थानीय व्यवसायों, विश्वसनीय सेवाओं और नए अवसरों की खोज करें।',
     heroHeadingMain: 'सब कुछ खोजें -',
     heroHeadingHighlight: 'चित्तूर',
     heroSubtitle: 'व्यवसाय, सेवाएं, नौकरियां, संपत्ति, शिक्षा, और स्वास्थ्य देखभाल सभी एक ही स्थान पर खोजें।',

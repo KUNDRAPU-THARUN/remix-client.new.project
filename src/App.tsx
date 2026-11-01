@@ -160,8 +160,27 @@ export const MainAppContent: React.FC = () => {
   const [selectedArea, setSelectedArea] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // Modals state
-  const selectedListing = listings.find((listing) => listing.id === route.listingId) || null;
+  // Filtered views for public directory vs owner dashboard
+  const publishedListings = useMemo(() => {
+    return listings.filter((l) => (l.status || 'Active') === 'Active');
+  }, [listings]);
+
+  const userOwnedListings = useMemo(() => {
+    if (!currentUser) return [];
+    return listings.filter((l) => l.postedByUser === currentUser.id);
+  }, [listings, currentUser]);
+
+  // Modals state: only allow public preview of active listings, or pending listings if viewed by the owner
+  const selectedListing = useMemo(() => {
+    if (!route.listingId) return null;
+    const found = listings.find((listing) => listing.id === route.listingId);
+    if (!found) return null;
+    if (found.status === 'Pending Approval') {
+      if (currentUser && found.postedByUser === currentUser.id) return found;
+      return null;
+    }
+    return found;
+  }, [listings, route.listingId, currentUser]);
   const savedIds = useMemo(() => {
     const listingIds = new Set(listings.map((listing) => listing.id));
     return savedListingIds.filter((id) => listingIds.has(id));
@@ -265,11 +284,22 @@ export const MainAppContent: React.FC = () => {
   };
 
   const handleAddListing = (newListing: Listing) => {
-    setListings((prev) => [newListing, ...prev]);
+    const listingWithOwner: Listing = {
+      ...newListing,
+      postedByUser: newListing.postedByUser || currentUser?.id || 'u-demo',
+      status: 'Pending Approval',
+    };
+    setListings((prev) => [listingWithOwner, ...prev]);
   };
 
   const handleDeleteListing = (id: string) => {
-    if (confirm('Are you sure you want to delete this listing?')) {
+    const target = listings.find((l) => l.id === id);
+    if (!target) return;
+    if (!currentUser || target.postedByUser !== currentUser.id) {
+      alert('Unauthorized: You cannot delete this listing. Only the verified business owner who posted this ad can remove it.');
+      return;
+    }
+    if (confirm(`Are you sure you want to delete "${target.title}"?`)) {
       setListings((prev) => prev.filter((l) => l.id !== id));
       setSavedListingIds((prev) => prev.filter((savedId) => savedId !== id));
       if (route.listingId === id) selectListing(null);
@@ -355,7 +385,7 @@ export const MainAppContent: React.FC = () => {
 
               {/* 4. Home Sections (Featured Businesses, Search by City Grid, Helping Entrepreneurs Banner) */}
               <HomeSections
-                featuredListings={listings}
+                featuredListings={publishedListings}
                 onSelectListing={selectListing}
                 onSelectArea={(areaId) => handleNavigateToCategory('all', areaId)}
                 onOpenPostAd={() => setIsPostAdOpen(true)}
@@ -372,7 +402,7 @@ export const MainAppContent: React.FC = () => {
             onSelectCategory={(catId) => {
               navigate({ ...route, categoryId: catId, listingId: null });
             }}
-            listings={listings}
+            listings={publishedListings}
             savedListingIds={savedIds}
             savedOnly={isSavedViewActive}
             onToggleSave={toggleSaveListing}
@@ -388,11 +418,12 @@ export const MainAppContent: React.FC = () => {
         {activeTab === 'dashboard' && (
           <UserDashboard
             currentUser={currentUser}
-            userListings={listings}
+            userListings={userOwnedListings}
             onOpenPostAd={() => setIsPostAdOpen(true)}
             onPreviewListing={selectListing}
             onDeleteListing={handleDeleteListing}
             onBackToHome={handleBackToHome}
+            onOpenLogin={() => setIsLoginOpen(true)}
           />
         )}
 
@@ -438,6 +469,7 @@ export const MainAppContent: React.FC = () => {
         isOpen={isPostAdOpen}
         onClose={() => setIsPostAdOpen(false)}
         onAddListing={handleAddListing}
+        currentUser={currentUser}
         onNavigateToDashboard={() => {
           handleNavigateTab('dashboard');
         }}
