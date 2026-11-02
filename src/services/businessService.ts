@@ -1,6 +1,9 @@
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { Listing, CityId, Review } from '../types';
 import { INITIAL_LISTINGS } from '../data/mockData';
+import { Database } from '../types/database.types';
+
+type BusinessUpdate = Database['public']['Tables']['businesses']['Update'];
 
 // Helper to convert database row to frontend Listing type
 function mapDbBusinessToListing(row: any, images: string[] = []): Listing {
@@ -184,6 +187,74 @@ export const businessService = {
       return { listing: mapDbBusinessToListing(data, newListing.images) };
     } catch (err) {
       return { listing: null, error: err instanceof Error ? err.message : 'Failed to create business listing.' };
+    }
+  },
+
+  async updateListing(
+    listingId: string,
+    updates: Partial<Listing>,
+    userId: string
+  ): Promise<{ listing: Listing | null; error?: string }> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      // Local fallback
+      const raw = localStorage.getItem('chittoorads_listings');
+      let listings: Listing[] = INITIAL_LISTINGS;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) listings = parsed;
+        } catch {
+          // ignore
+        }
+      }
+      const idx = listings.findIndex((l) => l.id === listingId);
+      if (idx !== -1) {
+        listings[idx] = { ...listings[idx], ...updates, status: 'Pending Approval' };
+        localStorage.setItem('chittoorads_listings', JSON.stringify(listings));
+        return { listing: listings[idx] };
+      }
+      return { listing: null, error: 'Listing not found.' };
+    }
+
+    try {
+      const { data: found } = await supabase
+        .from('businesses')
+        .select('id, owner_id')
+        .or(`id.eq.${listingId},legacy_id.eq.${listingId}`)
+        .maybeSingle();
+
+      if (!found) {
+        return { listing: null, error: 'Listing not found.' };
+      }
+
+      if (found.owner_id !== userId) {
+        return { listing: null, error: 'Unauthorized: You can only edit your own listings.' };
+      }
+
+      const updatePayload: BusinessUpdate = {};
+      if (updates.title) updatePayload.name = updates.title.trim();
+      if (updates.description) updatePayload.description = updates.description.trim();
+      if (updates.phone) updatePayload.phone = updates.phone.trim();
+      if (updates.whatsapp !== undefined) updatePayload.whatsapp = updates.whatsapp?.trim() || null;
+      if (updates.email !== undefined) updatePayload.email = updates.email?.trim() || null;
+      if (updates.address) updatePayload.address = updates.address.trim();
+      if (updates.area) updatePayload.locality = updates.area;
+      if (updates.priceRange) updatePayload.price_range = updates.priceRange;
+      if (updates.timings) updatePayload.timings = updates.timings;
+      if (updates.services) updatePayload.services = updates.services;
+
+      const { data, error } = await supabase
+        .from('businesses')
+        .update(updatePayload)
+        .eq('id', found.id)
+        .select()
+        .single();
+
+      if (error) return { listing: null, error: error.message };
+      return { listing: mapDbBusinessToListing(data, updates.images) };
+    } catch (err) {
+      return { listing: null, error: err instanceof Error ? err.message : 'Failed to update listing.' };
     }
   },
 

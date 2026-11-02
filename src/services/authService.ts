@@ -178,25 +178,33 @@ export const authService = {
 
     try {
       // Query user profile
-      const { data: profile } = await supabase
+      const { data: profile, error: profileErr } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      // Query user roles
-      const { data: roles } = await supabase
+      if (profileErr) {
+        console.warn('Error fetching profile via RLS:', profileErr.message);
+      }
+
+      // Query user roles - server-enforced role table
+      const { data: roles, error: rolesErr } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
 
+      if (rolesErr) {
+        console.warn('Error fetching user_roles via RLS:', rolesErr.message);
+      }
+
       const isProvider = roles?.some(
         (r) => r.role === 'business_owner' || r.role === 'city_franchise' || r.role === 'super_admin'
-      );
+      ) ?? false;
 
       const userAccount: UserAccount = {
         id: userId,
-        username: defaultEmail.split('@')[0],
+        username: profile?.display_name || defaultEmail.split('@')[0],
         email: profile?.email || defaultEmail,
         name: profile?.display_name || defaultEmail.split('@')[0],
         mobile: profile?.phone || undefined,
@@ -224,10 +232,22 @@ export const authService = {
     if (!supabase) return null;
 
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error || !session?.user) return null;
+      // 1. Check local session presence (enables auto-refresh and token lifecycle)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.user) return null;
 
-      const res = await this.fetchUserAccount(session.user.id, session.user.email || '');
+      // 2. Server-side identity verification via auth.getUser():
+      // Cryptographically validates the bearer JWT against Supabase Auth server (/auth/v1/user)
+      // to guarantee the user exists, is not revoked, expired or forged.
+      const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser();
+      if (userError || !verifiedUser) {
+        console.warn('Server-side identity verification failed:', userError?.message);
+        await supabase.auth.signOut().catch(() => {});
+        return null;
+      }
+
+      // 3. Load user account and roles from PostgreSQL via RLS using verified user ID
+      const res = await this.fetchUserAccount(verifiedUser.id, verifiedUser.email || session.user.email || '');
       return res.user;
     } catch (err) {
       console.warn('Session restoration failed:', err);

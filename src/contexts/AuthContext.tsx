@@ -17,9 +17,24 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const isConfigured = authService.isConfigured();
+
+  // If Supabase is configured, NEVER trust client localStorage on boot:
+  // All permissions and roles MUST be verified against Supabase Auth & user_roles.
+  // In unconfigured offline demo mode (no backend configured), fallback to local demo user.
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    if (!isConfigured) {
+      try {
+        const raw = localStorage.getItem('chittoorads_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') return parsed;
+        }
+      } catch {}
+    }
+    return null;
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Restore authenticated session on mount
   useEffect(() => {
@@ -28,10 +43,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initAuth = async () => {
       try {
         if (isConfigured) {
+          // Trusted verification: validate real Supabase session and fetch trusted user_roles
           const user = await authService.restoreSession();
-          if (isMounted) setCurrentUser(user);
+          if (isMounted) {
+            setCurrentUser(user);
+            if (!user) {
+              // Ensure any forged or stale localStorage token cannot grant permissions
+              localStorage.removeItem('chittoorads_user');
+            }
+          }
         } else {
-          // Fallback to existing local stored demo user if available
+          // Fallback to existing local stored demo user ONLY in unconfigured mode
           const raw = localStorage.getItem('chittoorads_user');
           if (raw) {
             try {
@@ -46,6 +68,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (err) {
         console.warn('Authentication initialization error:', err);
+        if (isMounted && isConfigured) {
+          setCurrentUser(null);
+          localStorage.removeItem('chittoorads_user');
+        }
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -59,11 +85,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (supabase) {
       const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          const res = await authService.fetchUserAccount(session.user.id, session.user.email || '');
-          if (isMounted) setCurrentUser(res.user);
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
+          // Cryptographically verify server identity via auth.getUser() on token events
+          const { data: { user: verifiedUser }, error: userError } = await supabase.auth.getUser();
+          if (!userError && verifiedUser) {
+            const res = await authService.fetchUserAccount(verifiedUser.id, verifiedUser.email || session.user.email || '');
+            if (isMounted) setCurrentUser(res.user);
+          } else {
+            if (isMounted) {
+              setCurrentUser(null);
+              localStorage.removeItem('chittoorads_user');
+            }
+          }
         } else if (event === 'SIGNED_OUT') {
-          if (isMounted) setCurrentUser(null);
+          if (isMounted) {
+            setCurrentUser(null);
+            localStorage.removeItem('chittoorads_user');
+          }
         }
       });
       subscription = listener.subscription;

@@ -198,6 +198,24 @@ export const MainAppContent: React.FC = () => {
     }
   }, [currentUser, route.cityId]);
 
+  // Synchronize authenticated owner listings with database
+  const refreshOwnerListings = useCallback(() => {
+    if (businessService.isConfigured() && currentUser) {
+      businessService.getOwnerListings(currentUser.id, route.cityId).then((ownerListings) => {
+        if (ownerListings.length > 0) {
+          setListings((prev) => {
+            const others = prev.filter((l) => l.postedByUser !== currentUser.id);
+            return [...others, ...ownerListings];
+          });
+        }
+      });
+    }
+  }, [currentUser, route.cityId]);
+
+  useEffect(() => {
+    refreshOwnerListings();
+  }, [refreshOwnerListings, activeTab]);
+
   // Search & Filters for Hero Bar
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('all');
@@ -213,10 +231,12 @@ export const MainAppContent: React.FC = () => {
     return cityListings.filter((l) => (l.status || 'Active') === 'Active');
   }, [cityListings]);
 
-  // Owner dashboard listings for active city and current logged-in demo account
+  // Owner dashboard listings for active city and current logged-in account
   const userOwnedListings = useMemo(() => {
     if (!currentUser) return [];
-    return listings.filter((l) => l.postedByUser === currentUser.id && (l.cityId || 'chittoor') === route.cityId);
+    return listings.filter(
+      (l) => l.postedByUser === currentUser.id && (l.cityId || 'chittoor') === route.cityId
+    );
   }, [listings, currentUser, route.cityId]);
 
   // Classifieds for active city
@@ -272,7 +292,9 @@ export const MainAppContent: React.FC = () => {
   }, [savedIds, persist]);
 
   useEffect(() => {
-    persist('chittoorads_user', currentUser);
+    if (!businessService.isConfigured() && currentUser) {
+      persist('chittoorads_user', currentUser);
+    }
   }, [currentUser, persist]);
 
   // Update document title and SEO metadata on city change
@@ -563,6 +585,7 @@ export const MainAppContent: React.FC = () => {
               onBackToHome={handleBackToHome}
               onOpenLogin={() => setIsLoginOpen(true)}
               currentCity={currentCity}
+              onListingCreatedOrUpdated={refreshOwnerListings}
             />
           )}
 
