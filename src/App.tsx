@@ -201,16 +201,14 @@ export const MainAppContent: React.FC = () => {
   // Synchronize authenticated owner listings with database
   const refreshOwnerListings = useCallback(() => {
     if (businessService.isConfigured() && currentUser) {
-      businessService.getOwnerListings(currentUser.id, route.cityId).then((ownerListings) => {
-        if (ownerListings.length > 0) {
-          setListings((prev) => {
-            const others = prev.filter((l) => l.postedByUser !== currentUser.id);
-            return [...others, ...ownerListings];
-          });
-        }
+      businessService.getOwnerListings(currentUser.id).then((ownerListings) => {
+        setListings((prev) => {
+          const others = prev.filter((l) => l.postedByUser !== currentUser.id);
+          return [...others, ...ownerListings];
+        });
       });
     }
-  }, [currentUser, route.cityId]);
+  }, [currentUser]);
 
   useEffect(() => {
     refreshOwnerListings();
@@ -231,13 +229,11 @@ export const MainAppContent: React.FC = () => {
     return cityListings.filter((l) => (l.status || 'Active') === 'Active');
   }, [cityListings]);
 
-  // Owner dashboard listings for active city and current logged-in account
+  // Owner dashboard listings for current logged-in account (all cities owned by merchant)
   const userOwnedListings = useMemo(() => {
     if (!currentUser) return [];
-    return listings.filter(
-      (l) => l.postedByUser === currentUser.id && (l.cityId || 'chittoor') === route.cityId
-    );
-  }, [listings, currentUser, route.cityId]);
+    return listings.filter((l) => l.postedByUser === currentUser.id);
+  }, [listings, currentUser]);
 
   // Classifieds for active city
   const cityClassifieds = useMemo(() => {
@@ -249,12 +245,12 @@ export const MainAppContent: React.FC = () => {
     if (!route.listingId) return null;
     const found = listings.find((listing) => listing.id === route.listingId);
     if (!found) return null;
-    // Ensure listing matches current city
-    if ((found.cityId || 'chittoor') !== route.cityId) return null;
     if (found.status === 'Pending Approval') {
       if (currentUser && found.postedByUser === currentUser.id) return found;
       return null;
     }
+    // Public non-owner preview requires matching active city
+    if ((found.cityId || 'chittoor') !== route.cityId) return null;
     return found;
   }, [listings, route.listingId, route.cityId, currentUser]);
 

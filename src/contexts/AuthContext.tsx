@@ -11,6 +11,7 @@ interface AuthContextType {
   signUp: (params: SignUpParams) => Promise<AuthResponse>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (updates: { displayName?: string; phone?: string }) => Promise<{ success: boolean; error?: string }>;
   setCurrentUser: (user: UserAccount | null) => void;
 }
 
@@ -160,6 +161,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return authService.resetPassword(email);
   }, []);
 
+  const updateProfile = useCallback(
+    async (updates: { displayName?: string; phone?: string }) => {
+      if (!currentUser) return { success: false, error: 'No active session.' };
+      const res = await authService.updateUserProfile(currentUser.id, updates);
+      if (res.success) {
+        setCurrentUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: updates.displayName?.trim() || prev.name,
+                username: updates.displayName?.trim() || prev.username,
+                mobile: updates.phone !== undefined ? updates.phone.trim() : prev.mobile,
+              }
+            : null
+        );
+      }
+      return res;
+    },
+    [currentUser]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -170,6 +192,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signUp,
         signOut,
         resetPassword,
+        updateProfile,
         setCurrentUser,
       }}
     >

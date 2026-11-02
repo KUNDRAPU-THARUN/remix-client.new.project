@@ -42,6 +42,7 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Pending Approval'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [cityFilter, setCityFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [listingToDelete, setListingToDelete] = useState<Listing | null>(null);
 
@@ -57,6 +58,9 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
       const itemStatus = item.status || 'Active';
       if (statusFilter !== 'all' && itemStatus !== statusFilter) return false;
 
+      // City filter
+      if (cityFilter !== 'all' && (item.cityId || 'chittoor') !== cityFilter) return false;
+
       // Category filter
       if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
 
@@ -71,7 +75,7 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
 
       return true;
     });
-  }, [userListings, statusFilter, categoryFilter, searchQuery]);
+  }, [userListings, statusFilter, cityFilter, categoryFilter, searchQuery]);
 
   const confirmDelete = () => {
     if (listingToDelete) {
@@ -154,6 +158,19 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
                 className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 transition"
               />
             </div>
+
+            {/* City Select */}
+            <select
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden"
+              aria-label="Filter by City"
+            >
+              <option value="all">All Cities</option>
+              <option value="chittoor">Chittoor (AP-03)</option>
+              <option value="vellore">Vellore (TN-23)</option>
+              <option value="bengaluru">Bengaluru (KA-01)</option>
+            </select>
 
             {/* Category Select */}
             <select

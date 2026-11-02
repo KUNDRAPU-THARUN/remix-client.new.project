@@ -62,27 +62,58 @@ export const businessService = {
     }
 
     try {
-      const { data, error } = await supabase
+      let data: any[] | null = null;
+      const joinedRes = await supabase
         .from('businesses')
-        .select('*')
+        .select(`
+          *,
+          business_images (
+            id,
+            storage_path,
+            image_url,
+            is_cover,
+            sort_order
+          )
+        `)
         .eq('city_id', cityId)
         .eq('status', 'active')
         .order('is_featured', { ascending: false })
         .order('rating', { ascending: false });
 
-      if (error) {
-        console.warn('Error fetching published businesses from Supabase:', error.message);
-        return [];
+      if (joinedRes.error) {
+        const fallbackRes = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('city_id', cityId)
+          .eq('status', 'active')
+          .order('is_featured', { ascending: false })
+          .order('rating', { ascending: false });
+
+        if (fallbackRes.error) {
+          console.warn('Error fetching published businesses from Supabase:', fallbackRes.error.message);
+          return [];
+        }
+        data = fallbackRes.data;
+      } else {
+        data = joinedRes.data;
       }
 
-      return (data || []).map((row) => mapDbBusinessToListing(row));
+      return (data || []).map((row) => {
+        const images = Array.isArray(row.business_images) && row.business_images.length > 0
+          ? row.business_images
+              .sort((a: any, b: any) => (b.is_cover ? 1 : 0) - (a.is_cover ? 1 : 0) || (a.sort_order || 0) - (b.sort_order || 0))
+              .map((img: any) => img.image_url)
+              .filter(Boolean)
+          : [];
+        return mapDbBusinessToListing(row, images);
+      });
     } catch (err) {
       console.warn('Unexpected error in getPublishedListings:', err);
       return [];
     }
   },
 
-  async getOwnerListings(userId: string, cityId: CityId): Promise<Listing[]> {
+  async getOwnerListings(userId: string, cityId?: CityId): Promise<Listing[]> {
     const supabase = getSupabaseClient();
     if (!supabase) {
       // Local fallback
@@ -97,24 +128,61 @@ export const businessService = {
         }
       }
       return listings.filter(
-        (l) => l.postedByUser === userId && (l.cityId || 'chittoor') === cityId
+        (l) => l.postedByUser === userId && (!cityId || (l.cityId || 'chittoor') === cityId)
       );
     }
 
     try {
-      const { data, error } = await supabase
+      let data: any[] | null = null;
+      let query = supabase
         .from('businesses')
-        .select('*')
-        .eq('owner_id', userId)
-        .eq('city_id', cityId)
-        .order('created_at', { ascending: false });
+        .select(`
+          *,
+          business_images (
+            id,
+            storage_path,
+            image_url,
+            is_cover,
+            sort_order
+          )
+        `)
+        .eq('owner_id', userId);
 
-      if (error) {
-        console.warn('Error fetching owner businesses:', error.message);
-        return [];
+      if (cityId) {
+        query = query.eq('city_id', cityId);
       }
 
-      return (data || []).map((row) => mapDbBusinessToListing(row));
+      const joinedRes = await query.order('created_at', { ascending: false });
+
+      if (joinedRes.error) {
+        let fallbackQuery = supabase
+          .from('businesses')
+          .select('*')
+          .eq('owner_id', userId);
+
+        if (cityId) {
+          fallbackQuery = fallbackQuery.eq('city_id', cityId);
+        }
+
+        const fallbackRes = await fallbackQuery.order('created_at', { ascending: false });
+        if (fallbackRes.error) {
+          console.warn('Error fetching owner businesses:', fallbackRes.error.message);
+          return [];
+        }
+        data = fallbackRes.data;
+      } else {
+        data = joinedRes.data;
+      }
+
+      return (data || []).map((row) => {
+        const images = Array.isArray(row.business_images) && row.business_images.length > 0
+          ? row.business_images
+              .sort((a: any, b: any) => (b.is_cover ? 1 : 0) - (a.is_cover ? 1 : 0) || (a.sort_order || 0) - (b.sort_order || 0))
+              .map((img: any) => img.image_url)
+              .filter(Boolean)
+          : [];
+        return mapDbBusinessToListing(row, images);
+      });
     } catch (err) {
       console.warn('Unexpected error in getOwnerListings:', err);
       return [];
@@ -252,6 +320,24 @@ export const businessService = {
         .single();
 
       if (error) return { listing: null, error: error.message };
+
+      // Sync business_images if updated images provided
+      if (updates.images && updates.images.length > 0) {
+        try {
+          await supabase.from('business_images').delete().eq('business_id', found.id);
+          const imageRows = updates.images.map((url, idx) => ({
+            business_id: found.id,
+            storage_path: `public/${found.id}/${idx}`,
+            image_url: url,
+            is_cover: idx === 0,
+            sort_order: idx,
+          }));
+          await supabase.from('business_images').insert(imageRows);
+        } catch {
+          // ignore non-critical image sync error
+        }
+      }
+
       return { listing: mapDbBusinessToListing(data, updates.images) };
     } catch (err) {
       return { listing: null, error: err instanceof Error ? err.message : 'Failed to update listing.' };
