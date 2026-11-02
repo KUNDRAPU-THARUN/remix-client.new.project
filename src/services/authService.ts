@@ -172,6 +172,44 @@ export const authService = {
     }
   },
 
+  async updateUserProfile(
+    userId: string,
+    updates: { displayName?: string; phone?: string }
+  ): Promise<{ success: boolean; error?: string }> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return { success: true };
+    }
+
+    try {
+      const payload: { display_name?: string; phone?: string } = {};
+      if (updates.displayName !== undefined) payload.display_name = updates.displayName.trim();
+      if (updates.phone !== undefined) payload.phone = updates.phone.trim();
+
+      const { error } = await supabase
+        .from('user_profiles')
+        .update(payload)
+        .eq('id', userId);
+
+      if (error) return { success: false, error: error.message };
+
+      // Sync metadata in auth session
+      await supabase.auth.updateUser({
+        data: {
+          display_name: updates.displayName?.trim(),
+          phone: updates.phone?.trim(),
+        },
+      }).catch(() => {});
+
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to update profile.',
+      };
+    }
+  },
+
   async fetchUserAccount(userId: string, defaultEmail: string): Promise<AuthResponse> {
     const supabase = getSupabaseClient();
     if (!supabase) return { user: null };

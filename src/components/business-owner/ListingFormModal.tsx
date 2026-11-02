@@ -104,7 +104,11 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
     setIsUploadingImage(true);
     setUploadError('');
     try {
-      const res = await storageService.uploadBusinessImage(file, currentCity?.id || 'chittoor');
+      const res = await storageService.uploadBusinessImage(
+        file,
+        initialListing?.cityId || currentCity?.id || 'chittoor',
+        initialListing?.id || 'new'
+      );
       if (res.error) {
         setUploadError(res.error);
       } else if (res.url) {
@@ -185,7 +189,7 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
       services,
       timings: timings.trim() || 'Daily: 9:00 AM - 8:00 PM',
       description: description.trim(),
-      cityId: currentCity?.id || 'chittoor',
+      cityId: initialListing?.cityId || currentCity?.id || 'chittoor',
       images: imageUrl
         ? [imageUrl]
         : ['https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80'],

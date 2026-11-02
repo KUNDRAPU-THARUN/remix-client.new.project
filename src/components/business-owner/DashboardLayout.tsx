@@ -15,6 +15,7 @@ import { InsightsPage } from './pages/InsightsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ListingFormModal } from './ListingFormModal';
+import { DashboardSkeleton } from './DashboardSkeleton';
 
 export interface DashboardLayoutProps {
   currentUser: UserAccount;
@@ -84,27 +85,22 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [enquiries, setEnquiries] = useState<CustomerEnquiry[]>([]);
   const [isLoadingEnquiries, setIsLoadingEnquiries] = useState(true);
 
-  // Load enquiries
-  useEffect(() => {
-    let isMounted = true;
+  // Load enquiries from database
+  const loadEnquiries = React.useCallback(async () => {
     setIsLoadingEnquiries(true);
-    enquiryService
-      .getOwnerEnquiries(currentUser.id, currentCity?.id)
-      .then((data) => {
-        if (isMounted) {
-          setEnquiries(data);
-          setIsLoadingEnquiries(false);
-        }
-      })
-      .catch((err) => {
-        console.warn('Could not load owner customer enquiries:', err);
-        if (isMounted) setIsLoadingEnquiries(false);
-      });
+    try {
+      const data = await enquiryService.getOwnerEnquiries(currentUser.id);
+      setEnquiries(data);
+    } catch (err) {
+      console.warn('Could not load owner customer enquiries:', err);
+    } finally {
+      setIsLoadingEnquiries(false);
+    }
+  }, [currentUser.id]);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUser.id, currentCity?.id]);
+  useEffect(() => {
+    loadEnquiries();
+  }, [loadEnquiries]);
 
   const handleUpdateEnquiryStatus = async (
     enquiryId: string,
@@ -138,6 +134,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         return { success: false, error: res.error };
       }
       if (onListingCreatedOrUpdated) onListingCreatedOrUpdated();
+      loadEnquiries();
       return { success: true };
     } else {
       // Create new listing
@@ -170,6 +167,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         return { success: false, error: res.error };
       }
       if (onListingCreatedOrUpdated) onListingCreatedOrUpdated();
+      loadEnquiries();
       return { success: true };
     }
   };
@@ -216,67 +214,73 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
         {/* Content Body */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {activeTab === 'overview' && (
-            <OverviewPage
-              currentUser={currentUser}
-              userListings={userListings}
-              enquiries={enquiries}
-              currentCity={currentCity}
-              onSelectTab={handleTabChange}
-              onOpenPostAd={handleOpenAdd}
-              onPreviewListing={onPreviewListing}
-              onEditListing={handleOpenEdit}
-            />
-          )}
+          {isLoadingEnquiries && userListings.length === 0 && enquiries.length === 0 ? (
+            <DashboardSkeleton />
+          ) : (
+            <>
+              {activeTab === 'overview' && (
+                <OverviewPage
+                  currentUser={currentUser}
+                  userListings={userListings}
+                  enquiries={enquiries}
+                  currentCity={currentCity}
+                  onSelectTab={handleTabChange}
+                  onOpenPostAd={handleOpenAdd}
+                  onPreviewListing={onPreviewListing}
+                  onEditListing={handleOpenEdit}
+                />
+              )}
 
-          {activeTab === 'listings' && (
-            <ListingsPage
-              currentUser={currentUser}
-              userListings={userListings}
-              currentCity={currentCity}
-              onOpenPostAd={handleOpenAdd}
-              onPreviewListing={onPreviewListing}
-              onEditListing={handleOpenEdit}
-              onDeleteListing={onDeleteListing}
-            />
-          )}
+              {activeTab === 'listings' && (
+                <ListingsPage
+                  currentUser={currentUser}
+                  userListings={userListings}
+                  currentCity={currentCity}
+                  onOpenPostAd={handleOpenAdd}
+                  onPreviewListing={onPreviewListing}
+                  onEditListing={handleOpenEdit}
+                  onDeleteListing={onDeleteListing}
+                />
+              )}
 
-          {activeTab === 'enquiries' && (
-            <EnquiriesPage
-              currentUser={currentUser}
-              enquiries={enquiries}
-              userListings={userListings}
-              currentCity={currentCity}
-              onUpdateStatus={handleUpdateEnquiryStatus}
-              onOpenPostAd={handleOpenAdd}
-            />
-          )}
+              {activeTab === 'enquiries' && (
+                <EnquiriesPage
+                  currentUser={currentUser}
+                  enquiries={enquiries}
+                  userListings={userListings}
+                  currentCity={currentCity}
+                  onUpdateStatus={handleUpdateEnquiryStatus}
+                  onOpenPostAd={handleOpenAdd}
+                />
+              )}
 
-          {activeTab === 'insights' && (
-            <InsightsPage
-              currentUser={currentUser}
-              userListings={userListings}
-              enquiries={enquiries}
-              currentCity={currentCity}
-            />
-          )}
+              {activeTab === 'insights' && (
+                <InsightsPage
+                  currentUser={currentUser}
+                  userListings={userListings}
+                  enquiries={enquiries}
+                  currentCity={currentCity}
+                />
+              )}
 
-          {activeTab === 'profile' && (
-            <ProfilePage
-              currentUser={currentUser}
-              userListings={userListings}
-              currentCity={currentCity}
-              onPreviewListing={onPreviewListing}
-            />
-          )}
+              {activeTab === 'profile' && (
+                <ProfilePage
+                  currentUser={currentUser}
+                  userListings={userListings}
+                  currentCity={currentCity}
+                  onPreviewListing={onPreviewListing}
+                />
+              )}
 
-          {activeTab === 'settings' && (
-            <SettingsPage
-              currentUser={currentUser}
-              currentCity={currentCity}
-              onSignOut={onSignOut}
-              onBackToHome={onBackToHome}
-            />
+              {activeTab === 'settings' && (
+                <SettingsPage
+                  currentUser={currentUser}
+                  currentCity={currentCity}
+                  onSignOut={onSignOut}
+                  onBackToHome={onBackToHome}
+                />
+              )}
+            </>
           )}
         </main>
       </div>

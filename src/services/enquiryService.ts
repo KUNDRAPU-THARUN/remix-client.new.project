@@ -171,16 +171,28 @@ export const enquiryService = {
         query = query.eq('city_id', cityId);
       }
 
-      const { data, error } = await query;
-      if (error) {
-        console.warn('Error fetching owner enquiries:', error.message);
-        return [];
+      let data: any[] | null = null;
+      const res = await query;
+      if (res.error) {
+        let fallbackQuery = supabase
+          .from('customer_enquiries')
+          .select('id, business_id, city_id, customer_id, customer_name, customer_phone, customer_email, message, status, created_at')
+          .order('created_at', { ascending: false });
+        if (cityId) fallbackQuery = fallbackQuery.eq('city_id', cityId);
+        const fallbackRes = await fallbackQuery;
+        if (fallbackRes.error) {
+          console.warn('Error fetching owner enquiries:', fallbackRes.error.message);
+          return [];
+        }
+        data = fallbackRes.data;
+      } else {
+        data = res.data;
       }
 
       return (data || []).map((row: any) => ({
         id: row.id,
         businessId: row.business_id,
-        businessName: row.businesses?.name || 'Your Business',
+        businessName: row.businesses?.name || 'Your Business Listing',
         cityId: row.city_id as CityId,
         customerId: row.customer_id || undefined,
         customerName: row.customer_name,

@@ -154,7 +154,7 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
         )}
       </div>
 
-      {/* 4. Truthful Notice Regarding Historical Time-Series Analytics (Phase 5B Roadmap) */}
+      {/* 4. Truthful Notice Regarding Historical Time-Series Analytics (Phase 5C Roadmap) */}
       <div className="bg-slate-50 rounded-3xl border border-slate-200/90 p-6 sm:p-7 space-y-3">
         <div className="flex items-center gap-2">
           <Info className="w-5 h-5 text-blue-600" />
@@ -162,11 +162,11 @@ export const InsightsPage: React.FC<InsightsPageProps> = ({
             Continuous Impression Tracking & Engagement Heatmaps
           </h3>
           <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-            Phase 5B Roadmap
+            Phase 5C Roadmap
           </span>
         </div>
         <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">
-          In alignment with our engineering standards, KAARYAN LABS strictly avoids synthetic or fabricated performance charts. Day-by-day clickstream analytics, referral breakdown, and hourly traffic heatmaps require dedicated time-series event instrumentation, which will be integrated in <strong>Phase 5B</strong> via Supabase Edge Functions. The numbers above reflect verified real-time totals from your production database.
+          In alignment with our engineering standards, KAARYAN LABS strictly avoids synthetic or fabricated performance charts. Day-by-day clickstream analytics, referral breakdown, and hourly traffic heatmaps require dedicated time-series event instrumentation, which will be integrated in <strong>Phase 5C</strong> via dedicated analytics schema tables and Supabase Edge Functions. The metrics displayed above reflect live, verified PostgreSQL listing views and customer enquiry records.
         </p>
       </div>
     </div>
