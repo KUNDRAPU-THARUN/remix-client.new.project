@@ -155,6 +155,7 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by title, phone, area..."
+                aria-label="Search listings by title, phone, or area"
                 className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50 transition"
               />
             </div>
@@ -177,6 +178,7 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-hidden"
+              aria-label="Filter by Category"
             >
               <option value="all">All Categories</option>
               {CHITTOOR_CATEGORIES.map((c) => (

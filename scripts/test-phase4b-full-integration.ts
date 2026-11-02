@@ -6,7 +6,7 @@ const url = process.env.VITE_SUPABASE_URL || '';
 const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 const testCustomerEmail = process.env.TEST_CUSTOMER_EMAIL || 'dev.customer@kaaryanlabs.com';
 const testOwnerEmail = process.env.TEST_OWNER_EMAIL || 'dev.owner@kaaryanlabs.com';
-const testPassword = process.env.TEST_USER_PASSWORD || 'DevTestPassword123!#';
+const testPassword = process.env.TEST_USER_PASSWORD || process.env.TEST_PASSWORD || '';
 
 if (!url || !key) {
   console.error('FATAL: Missing Supabase credentials in .env.local');
