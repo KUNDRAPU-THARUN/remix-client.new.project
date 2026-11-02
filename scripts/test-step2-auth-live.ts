@@ -18,11 +18,17 @@ async function testLiveAuth() {
   const customerClient = createClient(url, key);
   const ownerClient = createClient(url, key);
 
+  const testPassword = process.env.TEST_PASSWORD || process.env.DEV_PASSWORD || '';
+  if (!testPassword) {
+    console.error('❌ TEST_PASSWORD or DEV_PASSWORD environment variable required.');
+    process.exit(1);
+  }
+
   // 1. Customer Login
   console.log('▶ 1. Testing Customer Login (dev.customer@kaaryanlabs.com)...');
   const { data: custAuth, error: custErr } = await customerClient.auth.signInWithPassword({
     email: 'dev.customer@kaaryanlabs.com',
-    password: 'DevTestPassword123!#'
+    password: testPassword,
   });
 
   if (custErr) {
@@ -64,7 +70,7 @@ async function testLiveAuth() {
   console.log('\n▶ 2. Testing Business Owner Login (dev.owner@kaaryanlabs.com)...');
   const { data: ownerAuth, error: ownerErr } = await ownerClient.auth.signInWithPassword({
     email: 'dev.owner@kaaryanlabs.com',
-    password: 'DevTestPassword123!#'
+    password: testPassword,
   });
 
   if (ownerErr) {

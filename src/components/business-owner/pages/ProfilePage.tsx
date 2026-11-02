@@ -265,8 +265,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               )}
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Display / Business Owner Name</label>
+                <label htmlFor="profile-edit-name" className="text-xs font-bold text-slate-700">Display / Business Owner Name</label>
                 <input
+                  id="profile-edit-name"
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -277,8 +278,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Contact Mobile Number</label>
+                <label htmlFor="profile-edit-phone" className="text-xs font-bold text-slate-700">Contact Mobile Number</label>
                 <input
+                  id="profile-edit-phone"
                   type="tel"
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}

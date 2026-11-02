@@ -4,10 +4,15 @@ dotenv.config({ path: '.env.local' });
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
-const testPassword = process.env.TEST_PASSWORD || process.env.DEV_PASSWORD || 'DevTestPassword123!#';
+const testPassword = process.env.TEST_PASSWORD || process.env.DEV_PASSWORD || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Missing Supabase configuration in .env.local');
+  process.exit(1);
+}
+
+if (!testPassword) {
+  console.error('❌ TEST_PASSWORD or DEV_PASSWORD environment variable is required to execute authenticated test journeys.');
   process.exit(1);
 }
 
