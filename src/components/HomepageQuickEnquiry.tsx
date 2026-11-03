@@ -63,7 +63,7 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
   };
 
   return (
-    <section 
+    <section
       className="rounded-3xl overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-6 sm:p-10 shadow-2xl relative border border-slate-800 my-8"
       aria-label={`Get Free Quotes in ${currentCity.name}`}
     >

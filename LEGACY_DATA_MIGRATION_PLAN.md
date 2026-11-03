@@ -1,12 +1,12 @@
 # KAARYAN LABS — LEGACY DATA MIGRATION PLAN
 ## Vellore Ads (`velloreads.com`) to Multi-City Supabase Architecture
 
-**Author:** Senior Full-Stack Architect & Supabase Database Engineer, KAARYAN LABS  
-**Target Platform:** `remix-client.new.project`  
-**Target Cities:** Vellore Ads (`TN-23`), Chittoor Ads (`AP-03`), Bengaluru Ads (`KA-01`)  
-**Database:** PostgreSQL 15 on Supabase  
-**Storage:** Supabase Storage (`business-media` bucket)  
-**Status:** APPROVED & READY FOR CLIENT AUTHORIZATION  
+**Author:** Senior Full-Stack Architect & Supabase Database Engineer, KAARYAN LABS
+**Target Platform:** `remix-client.new.project`
+**Target Cities:** Vellore Ads (`TN-23`), Chittoor Ads (`AP-03`), Bengaluru Ads (`KA-01`)
+**Database:** PostgreSQL 15 on Supabase
+**Storage:** Supabase Storage (`business-media` bucket)
+**Status:** APPROVED & READY FOR CLIENT AUTHORIZATION
 
 ---
 
@@ -70,34 +70,34 @@ const VELLORE_LOCALITY_MAP: Record<string, string> = {
   'chittoor road': 'katpadi',
   'auxilium': 'katpadi',
   'kalinjur': 'katpadi',
-  
+
   // Sathuvachari
   'sathuvachari': 'sathuvachari',
   'collectorate': 'sathuvachari',
   'phase 1': 'sathuvachari',
   'phase 2': 'sathuvachari',
-  
+
   // Bagayam & CMC College
   'bagayam': 'bagayam',
   'thorapadi': 'bagayam',
   'cmc chittoor campus': 'bagayam',
   'sripuram': 'bagayam',
   'arihanth': 'bagayam',
-  
+
   // Gandhi Nagar
   'gandhi nagar': 'gandhi-nagar',
   'silk mill': 'gandhi-nagar',
   'viruthampet': 'gandhi-nagar',
-  
+
   // Long Bazaar / Town
   'long bazaar': 'long-bazaar',
   'main bazaar': 'long-bazaar',
   'mandandi': 'long-bazaar',
   'bazaar st': 'long-bazaar',
-  
+
   // Tharapadavedu
   'tharapadavedu': 'tharapadavedu',
-  
+
   // Vellore Fort & Central Bus Stand
   'fort': 'fort-central',
   'old bus stand': 'fort-central',
@@ -105,13 +105,13 @@ const VELLORE_LOCALITY_MAP: Record<string, string> = {
   'central': 'fort-central',
   'makkan': 'fort-central',
   'anna salai': 'fort-central',
-  
+
   // Thottapalayam
   'thottapalayam': 'thottapalayam',
-  
+
   // Shenbakkam
   'shenbakkam': 'shenbakkam',
-  
+
   // Otteri
   'otteri': 'otteri',
   'kosapet': 'otteri',

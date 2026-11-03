@@ -108,3 +108,4 @@ export const FranchiseModal: React.FC<FranchiseModalProps> = ({
   );
 };
 
+

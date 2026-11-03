@@ -1,9 +1,9 @@
 # KAARYAN LABS — THREE-CITY BACKEND ACTIVATION READINESS REPORT
 
-**Document ID:** KL-REL-202611-006  
-**Date:** November 3, 2026  
-**Auditor:** Senior Full-Stack Engineer, Supabase Architect & Release QA Lead  
-**Branch:** `feat/three-city-content-parity`  
+**Document ID:** KL-REL-202611-006
+**Date:** November 3, 2026
+**Auditor:** Senior Full-Stack Engineer, Supabase Architect & Release QA Lead
+**Branch:** `feat/three-city-content-parity`
 **Target Environments:**
 - **Chittoor Ads (`AP-03`):** `https://remix-client-new-project.vercel.app/city/chittoor`
 - **Vellore Ads (`TN-23`):** `https://remix-client-new-project.vercel.app/city/vellore`
@@ -25,7 +25,7 @@ In previous versions, public quote requests attempted to write to `public.custom
 ```sql
 business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE
 ```
-When a visitor requests a general quote across an entire category (e.g., "Need AC repair in Vellore"), no single merchant ID exists. Supplying a fabricated UUID either breaks foreign key integrity or corrupts business ownership records. 
+When a visitor requests a general quote across an entire category (e.g., "Need AC repair in Vellore"), no single merchant ID exists. Supplying a fabricated UUID either breaks foreign key integrity or corrupts business ownership records.
 
 The new dedicated table `public.general_service_requests` provides clean schema isolation, strict multi-territory foreign keys, engine-level abuse guards, and zero-trust lead privacy.
 
@@ -140,19 +140,19 @@ supabase db push
 ### Verification Query (Post-Deployment Sanity Check)
 ```sql
 -- 1. Check table existence and column definitions
-SELECT column_name, data_type, is_nullable 
-FROM information_schema.columns 
-WHERE table_name = 'general_service_requests' 
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'general_service_requests'
 ORDER BY ordinal_position;
 
 -- 2. Verify RLS is enabled
-SELECT relname, relrowsecurity 
-FROM pg_class 
+SELECT relname, relrowsecurity
+FROM pg_class
 WHERE relname = 'general_service_requests';
 
 -- 3. Verify Active Policies
-SELECT policyname, permissive, roles, cmd 
-FROM pg_policies 
+SELECT policyname, permissive, roles, cmd
+FROM pg_policies
 WHERE tablename = 'general_service_requests';
 ```
 

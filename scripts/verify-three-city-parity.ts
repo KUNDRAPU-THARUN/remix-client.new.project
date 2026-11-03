@@ -389,7 +389,7 @@ async function main() {
           const text = document.body.innerText;
           const has999 = text.includes('₹999') || text.includes('999/year');
           const has2499 = text.includes('₹2,499') || text.includes('2,499/month');
-          const hasAdvertisePlanBtn = Array.from(document.querySelectorAll('button')).some(b => 
+          const hasAdvertisePlanBtn = Array.from(document.querySelectorAll('button')).some(b =>
             b.innerText.includes('Advertise & Business Plans')
           );
           return { has999, has2499, hasAdvertisePlanBtn };
