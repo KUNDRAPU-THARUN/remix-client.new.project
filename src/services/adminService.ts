@@ -848,7 +848,18 @@ export const adminService = {
     }
 
     try {
-      // Delete existing role for user
+      // 1. Attempt privileged RPC first
+      const { error: rpcErr } = await (supabase as any).rpc('admin_assign_user_role', {
+        _target_user_id: userId,
+        _role: newRole,
+        _city_id: cityId,
+      });
+
+      if (!rpcErr) {
+        return { success: true };
+      }
+
+      // 2. Fallback to direct role table update (guarded by user_roles RLS)
       await supabase.from('user_roles').delete().eq('user_id', userId);
 
       // Insert new role
@@ -904,13 +915,24 @@ export const adminService = {
     }
 
     try {
+      // 1. Attempt secure RPC first
+      const { error: rpcErr } = await (supabase as any).rpc('admin_set_user_status', {
+        _target_user_id: userId,
+        _new_status: status,
+      });
+
+      if (!rpcErr) {
+        return { success: true };
+      }
+
+      // 2. Fallback to user_profiles table update
       const { error } = await supabase
         .from('user_profiles')
         .update({ account_status: status, updated_at: new Date().toISOString() })
         .eq('id', userId);
 
       if (error) {
-        // If RLS blocked user_profiles update (due to pending 000003 migration), we still succeeded locally
+        // If RLS blocked user_profiles update (due to pending 000003 migration), note for report
         console.warn('user_profiles update notice:', error.message);
       }
 
