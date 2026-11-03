@@ -30,7 +30,7 @@ import {
   Info
 } from 'lucide-react';
 import { Listing, Review } from '../types';
-import { CHITTOOR_AREAS } from '../data/mockData';
+import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
 import { enquiryService } from '../services/enquiryService';
 
 interface ListingDetailModalProps {
@@ -98,7 +98,8 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
     timers.current.push(setTimeout(callback, delay));
   };
 
-  const areaName = CHITTOOR_AREAS.find((a) => a.id === listing.area)?.name || listing.area;
+  const cityConfig = CITIES[listing.cityId || DEFAULT_CITY_ID] || CITIES[DEFAULT_CITY_ID];
+  const areaName = cityConfig.localities.find((a) => a.id === listing.area)?.name || listing.area;
 
   // Direct contact handlers
   const handleCall = () => {
@@ -143,7 +144,7 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
   const handleWhatsApp = () => {
     const phone = listing.whatsapp || listing.phone.replace(/[^0-9]/g, '');
     const message = encodeURIComponent(
-      `Hello! I found your listing "${listing.title}" on ChittoorAds (AP-03 local directory). I'd like more details.`
+      `Hello! I found your listing "${listing.title}" on ${cityConfig.brandName} (${cityConfig.code} local directory). I'd like more details.`
     );
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };
@@ -354,11 +355,17 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                 {listing.title}
               </h2>
               <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-slate-600">
-                <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-md">
-                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                  <span>{listing.rating.toFixed(1)} / 5</span>
-                  <span className="text-amber-700 font-medium">({listing.reviewsCount} reviews)</span>
-                </div>
+                {listing.reviewsCount > 0 ? (
+                  <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-md">
+                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                    <span>{listing.rating.toFixed(1)} / 5</span>
+                    <span className="text-amber-700 font-medium">({listing.reviewsCount} reviews)</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md text-[11px]">
+                    <span>New Listing • Unrated</span>
+                  </div>
+                )}
                 <span className="text-slate-500">{listing.address}</span>
               </div>
             </div>
@@ -1022,7 +1029,9 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                     ))}
                   </div>
                   <p className="text-xs text-slate-500 font-semibold">
-                    Based on {listing.reviewsCount} verified reviews
+                    {listing.reviewsCount > 0
+                      ? `Based on ${listing.reviewsCount} verified reviews`
+                      : 'No community reviews recorded yet'}
                   </p>
                   <button
                     onClick={() => setActiveTab('write-review')}
@@ -1222,13 +1231,26 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                 </div>
               ) : (
                 <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
-                  <p className="text-sm font-semibold text-slate-700">No reviews matching the filter.</p>
-                  <button
-                    onClick={() => setReviewSort('recent')}
-                    className="mt-2 text-xs text-red-600 font-bold hover:underline"
-                  >
-                    View all reviews
-                  </button>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {listing.reviews.length === 0
+                      ? 'No community reviews published yet.'
+                      : 'No reviews matching the filter.'}
+                  </p>
+                  {listing.reviews.length === 0 ? (
+                    <button
+                      onClick={() => setActiveTab('write-review')}
+                      className="mt-3 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition"
+                    >
+                      + Write the First Review
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setReviewSort('recent')}
+                      className="mt-2 text-xs text-red-600 font-bold hover:underline"
+                    >
+                      View all reviews
+                    </button>
+                  )}
                 </div>
               )}
             </div>

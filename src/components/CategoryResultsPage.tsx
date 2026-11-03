@@ -6,9 +6,9 @@ import {
   CityConfig
 } from '../types';
 import { 
-  CHITTOOR_CATEGORIES, 
   CHITTOOR_AREAS 
 } from '../data/mockData';
+import { getCityCategories } from '../config/categories';
 import { ListingCard } from './ListingCard';
 import { 
   Search, 
@@ -64,6 +64,8 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
 }) => {
   const localities = currentCity?.localities || CHITTOOR_AREAS;
   const cityName = currentCity?.name || 'Chittoor';
+  const cityId = currentCity?.id || 'chittoor';
+  const cityCategories = useMemo(() => getCityCategories(cityId), [cityId]);
   const { searchQuery, selectedArea, verifiedOnly, minRating, sortBy } = filters;
   const setSearchQuery = (searchQuery: string) => onFiltersChange({ ...filters, searchQuery });
   const setSelectedArea = (selectedArea: string) => onFiltersChange({ ...filters, selectedArea });
@@ -74,14 +76,14 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
 
   // Find active category metadata
   const currentCategory = useMemo(() => {
-    return CHITTOOR_CATEGORIES.find((c) => c.id === activeCategoryId) || {
+    return cityCategories.find((c) => c.id === activeCategoryId) || {
       id: 'all',
       name: 'All Categories',
       nameTe: 'అన్ని విభాగాలు',
-      description: 'Explore verified local businesses, stores, and services in Chittoor.',
+      description: `Explore verified local businesses, stores, and services in ${cityName}.`,
       count: listings.length,
     };
-  }, [activeCategoryId, listings.length]);
+  }, [cityCategories, activeCategoryId, listings.length, cityName]);
 
   // Filter listings by active category, location, rating, and verified status
   const filteredListings = useMemo(() => {
@@ -206,7 +208,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                   <p className="text-[11px] text-slate-400">Select module to switch results</p>
                 </div>
                 <span className="text-xs bg-red-600 font-bold px-2 py-0.5 rounded text-white">
-                  {CHITTOOR_CATEGORIES.length} Modules
+                  {cityCategories.length} Modules
                 </span>
               </div>
 
@@ -238,7 +240,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                   </span>
                 </button>
 
-                {CHITTOOR_CATEGORIES.map((cat) => {
+                {cityCategories.map((cat) => {
                   const isActive = activeCategoryId === cat.id;
                   const countForCat = listings.filter((l) => l.category === cat.id).length;
 
@@ -382,19 +384,23 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
             </div>
 
             {/* Helpline Assistance Box */}
-            <div className="p-4 bg-gradient-to-br from-red-600 to-rose-700 rounded-2xl text-white shadow-sm">
+            <div className="p-4 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl text-white shadow-sm">
               <h4 className="font-bold text-sm">Need help finding a service?</h4>
-              <p className="text-xs text-red-100 mt-1">
-                WhatsApp our Chittoor Helpdesk directly for personalized recommendations.
+              <p className="text-xs text-slate-300 mt-1">
+                {currentCity?.contact?.phone
+                  ? `WhatsApp our ${currentCity.brandName} Helpdesk directly for verified recommendations.`
+                  : `Connect with our ${currentCity?.brandName || 'Local'} Helpdesk online for verified recommendations.`}
               </p>
-              <a
-                href="https://wa.me/919440218456?text=Hi%20ChittoorAds,%20I%20need%20help%20finding%20a%20service"
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-block px-3.5 py-1.5 bg-white text-red-700 text-xs font-bold rounded-xl shadow-xs hover:bg-red-50 transition"
-              >
-                Chat on WhatsApp
-              </a>
+              {currentCity?.contact?.phone && (
+                <a
+                  href={`https://wa.me/${currentCity.contact.phone.replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(currentCity.brandName)},%20I%20need%20help%20finding%20a%20service%20in%20${encodeURIComponent(currentCity.name)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-block px-3.5 py-1.5 bg-white text-slate-900 text-xs font-bold rounded-xl shadow-xs hover:bg-slate-100 transition"
+                >
+                  Chat on WhatsApp
+                </a>
+              )}
             </div>
           </aside>
 

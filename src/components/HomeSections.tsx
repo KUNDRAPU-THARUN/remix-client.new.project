@@ -15,7 +15,7 @@ import {
   PlusCircle
 } from 'lucide-react';
 import { Listing, CityConfig } from '../types';
-import { CHITTOOR_CATEGORIES } from '../data/mockData';
+import { getCityCategories } from '../config/categories';
 import { useTranslation } from '../i18n/LanguageContext';
 
 interface HomeSectionsProps {
@@ -87,7 +87,8 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
         {featuredListings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {featuredListings.slice(0, 5).map((biz) => {
-              const catName = CHITTOOR_CATEGORIES.find((c) => c.id === biz.category)?.name || biz.category;
+              const cityCats = getCityCategories(currentCity.id);
+              const catName = cityCats.find((c) => c.id === biz.category)?.name || biz.category;
               const areaName = currentCity.localities.find((a) => a.id === biz.area)?.name || biz.area;
 
               return (

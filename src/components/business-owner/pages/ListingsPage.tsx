@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Building2,
   Search,
@@ -16,8 +16,9 @@ import {
   AlertTriangle,
   ExternalLink,
 } from 'lucide-react';
-import { Listing, UserAccount, CityConfig } from '../../../types';
-import { CHITTOOR_CATEGORIES, CHITTOOR_AREAS } from '../../../data/mockData';
+import { Listing, UserAccount, CityConfig, CityId } from '../../../types';
+import { getCityCategories } from '../../../config/categories';
+import { CITIES } from '../../../config/cities';
 import { DashboardEmptyState } from '../DashboardEmptyState';
 
 interface ListingsPageProps {
@@ -47,6 +48,23 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
   const [listingToDelete, setListingToDelete] = useState<Listing | null>(null);
 
   const cityName = currentCity?.name || 'Chittoor';
+
+  const availableCategories = useMemo(() => {
+    if (cityFilter !== 'all' && (cityFilter === 'chittoor' || cityFilter === 'vellore' || cityFilter === 'bengaluru')) {
+      return getCityCategories(cityFilter as CityId);
+    }
+    return getCityCategories(currentCity?.id || 'chittoor');
+  }, [cityFilter, currentCity?.id]);
+
+  const resolveCategoryName = useCallback((item: Listing) => {
+    const cats = getCityCategories(item.cityId || 'chittoor');
+    return cats.find((c) => c.id === item.category)?.name || item.category;
+  }, []);
+
+  const resolveAreaName = useCallback((item: Listing) => {
+    const city = CITIES[item.cityId || 'chittoor'] || CITIES.chittoor;
+    return city.localities.find((a) => a.id === item.area)?.name || item.area;
+  }, []);
 
   const activeCount = userListings.filter((l) => (l.status || 'Active') === 'Active').length;
   const pendingCount = userListings.filter((l) => l.status === 'Pending Approval').length;
@@ -181,7 +199,7 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
               aria-label="Filter by Category"
             >
               <option value="all">All Categories</option>
-              {CHITTOOR_CATEGORIES.map((c) => (
+              {availableCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
@@ -235,8 +253,8 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredListings.map((item) => {
-                    const catName = CHITTOOR_CATEGORIES.find((c) => c.id === item.category)?.name || item.category;
-                    const areaName = CHITTOOR_AREAS.find((a) => a.id === item.area)?.name || item.area;
+                    const catName = resolveCategoryName(item);
+                    const areaName = resolveAreaName(item);
                     const status = item.status || 'Active';
 
                     return (
@@ -327,8 +345,8 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
           /* Grid Card View */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredListings.map((item) => {
-              const catName = CHITTOOR_CATEGORIES.find((c) => c.id === item.category)?.name || item.category;
-              const areaName = CHITTOOR_AREAS.find((a) => a.id === item.area)?.name || item.area;
+              const catName = resolveCategoryName(item);
+              const areaName = resolveAreaName(item);
               const status = item.status || 'Active';
 
               return (

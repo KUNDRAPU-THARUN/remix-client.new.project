@@ -85,6 +85,10 @@ export function parseCityRoute(
   const isCategory = Boolean(categoryMatch) || effectiveSubpath === '/category';
   const rawCatId = categoryMatch?.[1];
 
+  // Direct business route matching (/business/:id)
+  const businessMatch = effectiveSubpath.match(/^\/business\/([^/]+)$/);
+  const directListingId = businessMatch ? businessMatch[1] : null;
+
   let tab: ParsedCityRoute['tab'] = 'home';
   if (isCategory) {
     tab = 'category';
@@ -98,7 +102,7 @@ export function parseCityRoute(
 
   const categoryId = rawCatId || 'all';
   const savedOnly = tab === 'category' && params.get('saved') === '1';
-  const listingId = params.get('listing');
+  const listingId = directListingId || params.get('listing');
   const sort = params.get('sort');
 
   const cityConfig = CITIES[cityId] || CITIES[DEFAULT_CITY_ID];
@@ -149,7 +153,9 @@ export function buildCityRouteUrl(
   const prefix = isCityDomain ? '' : `/city/${cityId}`;
 
   let path = '';
-  if (tab === 'home') {
+  if (tab === 'home' && filters?.listingId) {
+    path = `${prefix}/business/${filters.listingId}`;
+  } else if (tab === 'home') {
     path = prefix || '/';
   } else if (tab === 'category') {
     path = `${prefix}/category/${categoryId}`;
@@ -176,7 +182,7 @@ export function buildCityRouteUrl(
     if (filters.sortBy && filters.sortBy !== 'rating') params.set('sort', filters.sortBy);
     if (filters.savedOnly) params.set('saved', '1');
   }
-  if (filters?.listingId) {
+  if (filters?.listingId && tab !== 'home') {
     params.set('listing', filters.listingId);
   }
 

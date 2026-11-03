@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
-import { 
-  X, 
-  Sparkles, 
-  Send, 
-  MessageSquare, 
-  Bot, 
-  User, 
-  Copy, 
-  Check, 
-  Languages, 
-  Building2, 
-  MapPin, 
-  Phone 
+import React, { useState, useMemo } from 'react';
+import {
+  X,
+  Sparkles,
+  Send,
+  MapPin,
+  Copy,
+  Check,
+  Bot,
+  User,
+  HelpCircle,
+  Lightbulb
 } from 'lucide-react';
-import { askChittoorScout } from '../services/aiService';
+import { askCityScout } from '../services/aiService';
+import { CityConfig } from '../types';
 
 interface AIAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
+  currentCity?: CityConfig;
 }
 
 interface Message {
@@ -26,7 +26,7 @@ interface Message {
   time: string;
 }
 
-const PRESET_QUESTIONS = [
+const CHITTOOR_PRESETS = [
   'Best 24/7 hospital & emergency care in Chittoor',
   'Kanipakam temple darshan timings & taxi pickup',
   'Totapuri mango pulp mandis in Murukambattu',
@@ -35,19 +35,65 @@ const PRESET_QUESTIONS = [
   'House rentals & plot prices near Chittoor Bypass',
 ];
 
+const VELLORE_PRESETS = [
+  'CMC Vellore doctor appointment & emergency helpline',
+  'Katpadi student PGs & hostels near VIT University',
+  'Famous Ambur Seeraga Samba mutton biryani spots',
+  'Sripuram Golden Temple timings and family lodging',
+  'Vellore Fort and Jalakandeswarar temple history',
+  'Leather manufacturing and footwear in Ranipet',
+];
+
+const BENGALURU_PRESETS = [
+  'Coworking desks & startup spaces in Indiranagar',
+  'Managed co-living PGs in HSR Layout and Koramangala',
+  'Best crispy butter benne dosa & degree filter coffee',
+  'Super-speciality robotic surgery & multispeciality hospitals',
+  'Software developer and tech recruitment consultancies',
+  'Apartments & gated community flats along ORR',
+];
+
 export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
   isOpen,
   onClose,
+  currentCity,
 }) => {
+  const cityId = currentCity?.id || 'chittoor';
+  const cityName = currentCity?.name || 'Chittoor';
+  const brandName = currentCity?.brandName || 'Chittoor Ads';
+  const cityCode = currentCity?.code || 'AP-03';
+
+  const presets = useMemo(() => {
+    switch (cityId) {
+      case 'vellore':
+        return VELLORE_PRESETS;
+      case 'bengaluru':
+        return BENGALURU_PRESETS;
+      case 'chittoor':
+      default:
+        return CHITTOOR_PRESETS;
+    }
+  }, [cityId]);
+
   const [inputQuery, setInputQuery] = useState('');
   const [language, setLanguage] = useState<'en' | 'te'>('en');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
+  const initialGreeting = useMemo(() => {
+    if (cityId === 'vellore') {
+      return `Vanakkam! 🙏 I am your **Vellore Smart Scout**, your AI directory assistant for Vellore Fort City, Katpadi, Sathuvachari, and TN-23.\n\nAsk me about CMC Hospital specialists, student PGs near VIT, Ambur Star Biryani, Sripuram Golden Temple lodges, or emergency helplines!`;
+    }
+    if (cityId === 'bengaluru') {
+      return `Namaskara! 🙏 I am your **Bengaluru Smart Scout**, your AI assistant for Silicon City, Indiranagar, Koramangala, HSR Layout, and KA-01.\n\nAsk me about coworking spaces, managed tech PGs, iconic filter coffee spots, super-speciality hospitals, or real estate!`;
+    }
+    return `Namaskaram! 🙏 I am your **Chittoor Smart Scout**, your local AI assistant for Chittoor town, Kanipakam, Murukambattu, and AP-03 surroundings.\n\nAsk me anything about local hospitals, mango agro mandis, silk boutiques, temple cab bookings, food spots, or emergency helplines!`;
+  }, [cityId]);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      text: `Namaskaram! 🙏 I am your **Chittoor Smart Scout**, your local AI assistant for Chittoor town, Kanipakam, Murukambattu, and AP-03 surroundings.\n\nAsk me anything about local hospitals, mango agro mandis, silk boutiques, temple cab bookings, food spots, or emergency helplines! You can also ask in Telugu (తెలుగులో కూడా అడగవచ్చు).`,
+      text: initialGreeting,
       time: 'Just now',
     },
   ]);
@@ -69,19 +115,19 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     setIsLoading(true);
 
     try {
-      const reply = await askChittoorScout(q, language);
+      const reply = await askCityScout(cityId, q, language);
       const botMsg: Message = {
         role: 'assistant',
         text: reply,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, botMsg]);
-    } catch (e) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          text: 'Apologies, could not fetch AI response. Please check local directory search or emergency contacts.',
+          text: `Apologies, could not fetch AI response. Please check local directory search or emergency contacts for ${cityName}.`,
           time: 'Just now',
         },
       ]);
@@ -113,140 +159,140 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm sm:text-base font-heading">Chittoor Smart Scout</h3>
+                <h3 className="font-bold text-sm sm:text-base font-heading">{cityName} Smart Scout</h3>
                 <span className="text-[10px] bg-red-600 font-bold px-1.5 py-0.2 rounded text-white uppercase">
                   AI Powered
                 </span>
               </div>
               <p className="text-[11px] text-slate-300">
-                Local Concierge & Ad Assistant • Chittoor AP-03
+                Local Concierge & Ad Assistant • {brandName} ({cityCode})
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Language Toggle */}
-            <button
-              onClick={() => setLanguage(language === 'en' ? 'te' : 'en')}
-              className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 text-amber-300 transition"
-              title="Toggle Telugu / English responses"
-            >
-              <Languages className="w-3.5 h-3.5" />
-              <span>{language === 'en' ? 'English' : 'తెలుగు'}</span>
-            </button>
-
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+              aria-label="Close assistant modal"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Message Stream */}
+        {/* Chat History Messages */}
         <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4 bg-slate-50">
-          {messages.map((m, idx) => (
-            <div
-              key={idx}
-              className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {m.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-900 flex items-center justify-center shrink-0 mt-1 font-bold text-xs border border-amber-300">
-                  <Bot className="w-4 h-4 text-amber-700" />
-                </div>
-              )}
-
+          {messages.map((msg, idx) => {
+            const isBot = msg.role === 'assistant';
+            return (
               <div
-                className={`max-w-[85%] rounded-2xl p-4 text-xs sm:text-sm leading-relaxed shadow-2xs relative group ${
-                  m.role === 'user'
-                    ? 'bg-red-600 text-white rounded-tr-none'
-                    : 'bg-white text-slate-800 border border-slate-200/80 rounded-tl-none'
-                }`}
+                key={idx}
+                className={`flex gap-3 max-w-[88%] ${isBot ? 'self-start' : 'self-end ml-auto flex-row-reverse'}`}
               >
-                <div className="whitespace-pre-line font-normal">{m.text}</div>
-                <div className="flex items-center justify-between gap-3 mt-2 text-[10px] opacity-75">
-                  <span>{m.time}</span>
-                  {m.role === 'assistant' && (
-                    <button
-                      onClick={() => handleCopyText(m.text, idx)}
-                      className="opacity-0 group-hover:opacity-100 transition flex items-center gap-1 hover:text-red-600"
-                      title="Copy text"
-                    >
-                      {copiedIdx === idx ? (
-                        <Check className="w-3 h-3 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-3 h-3" />
-                      )}
-                      <span>{copiedIdx === idx ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  )}
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    isBot ? 'bg-amber-400 text-slate-950' : 'bg-[#E51E31] text-white'
+                  }`}
+                >
+                  {isBot ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                </div>
+
+                <div>
+                  <div
+                    className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+                      isBot
+                        ? 'bg-white border border-slate-200 text-slate-800 shadow-2xs whitespace-pre-line'
+                        : 'bg-[#E51E31] text-white font-medium'
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-2 mt-1 text-[10px] text-slate-400 ${
+                      isBot ? '' : 'justify-end'
+                    }`}
+                  >
+                    <span>{msg.time}</span>
+                    {isBot && (
+                      <button
+                        onClick={() => handleCopyText(msg.text, idx)}
+                        className="hover:text-slate-700 flex items-center gap-0.5 cursor-pointer"
+                      >
+                        {copiedIdx === idx ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            <span className="text-emerald-600 font-bold">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {m.role === 'user' && (
-                <div className="w-7 h-7 rounded-full bg-red-100 text-red-700 flex items-center justify-center shrink-0 mt-1 font-bold text-xs">
-                  <User className="w-4 h-4" />
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
 
           {isLoading && (
-            <div className="flex gap-3 justify-start">
-              <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-900 flex items-center justify-center shrink-0 font-bold text-xs border border-amber-300">
-                <Bot className="w-4 h-4 text-amber-700" />
-              </div>
-              <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-500 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                <span>Chittoor Smart Scout is searching local directory...</span>
-              </div>
+            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium pl-10">
+              <Sparkles className="w-4 h-4 text-amber-500 animate-spin" />
+              <span>{cityName} Smart Scout is searching local directory...</span>
             </div>
           )}
         </div>
 
-        {/* Preset suggestions */}
-        <div className="p-2.5 bg-slate-100 border-t border-slate-200 overflow-x-auto shrink-0 flex gap-1.5 no-scrollbar">
-          {PRESET_QUESTIONS.map((q, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSend(q)}
-              className="text-[11px] whitespace-nowrap bg-white hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200 px-2.5 py-1 rounded-full font-medium transition shrink-0"
-            >
-              {q}
-            </button>
-          ))}
+        {/* Suggested Quick Question Chips */}
+        <div className="px-4 py-2.5 bg-white border-t border-slate-200 shrink-0">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-1.5">
+            <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+            <span>Popular Queries in {cityName}:</span>
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {presets.map((preset, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSend(preset)}
+                className="text-xs bg-slate-100 hover:bg-red-50 hover:text-[#E51E31] hover:border-red-200 border border-slate-200 px-2.5 py-1 rounded-full whitespace-nowrap transition cursor-pointer font-medium"
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Input box */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
-          className="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0"
-        >
-          <input
-            type="text"
-            value={inputQuery}
-            onChange={(e) => setInputQuery(e.target.value)}
-            placeholder={
-              language === 'te'
-                ? 'చిత్తూరులో ఆసుపత్రులు, మామిడి మార్కెట్, కాణిపాకం సేవల గురించి అడగండి...'
-                : 'Ask about local shops, doctors, mango mandis, Kanipakam cabs...'
-            }
-            className="flex-1 px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-hidden focus:border-red-500 font-medium"
-          />
-
-          <button
-            type="submit"
-            disabled={!inputQuery.trim() || isLoading}
-            className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white p-2.5 sm:px-4 sm:py-2.5 rounded-xl font-semibold transition flex items-center gap-1.5 cursor-pointer text-xs sm:text-sm"
+        {/* Input Text Form */}
+        <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
+            className="flex items-center gap-2"
           >
-            <Send className="w-4 h-4" />
-            <span className="hidden sm:inline">Ask</span>
-          </button>
-        </form>
+            <input
+              type="text"
+              value={inputQuery}
+              onChange={(e) => setInputQuery(e.target.value)}
+              placeholder={`Ask ${cityName} Scout anything...`}
+              disabled={isLoading}
+              className="flex-1 text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-hidden bg-slate-50 focus:bg-white transition"
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !inputQuery.trim()}
+              className="p-2.5 rounded-xl bg-[#E51E31] hover:bg-red-700 disabled:opacity-50 text-white transition cursor-pointer shrink-0"
+              aria-label="Send query"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
