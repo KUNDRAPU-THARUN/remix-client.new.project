@@ -3,25 +3,36 @@ import {
   X, 
   PhoneCall, 
   AlertTriangle, 
-  ShieldAlert, 
-  Flame, 
-  Zap, 
-  Building, 
-  Ambulance, 
   Clock 
 } from 'lucide-react';
-import { CHITTOOR_EMERGENCY_CONTACTS } from '../data/mockData';
+import { getCityEmergencyContacts } from '../config/emergency';
+import { CityConfig } from '../types';
 
 interface EmergencySectionProps {
   isOpen: boolean;
   onClose: () => void;
+  currentCity?: CityConfig;
 }
 
 export const EmergencySection: React.FC<EmergencySectionProps> = ({
   isOpen,
   onClose,
+  currentCity,
 }) => {
   if (!isOpen) return null;
+
+  const cityId = currentCity?.id || 'chittoor';
+  const cityName = currentCity?.name || 'Chittoor';
+  const brandName = currentCity?.brandName || 'Chittoor Ads';
+  const cityCode = currentCity?.code || 'AP-03';
+  const contacts = getCityEmergencyContacts(cityId);
+
+  const nativeSubtitle =
+    cityId === 'vellore'
+      ? 'வேலூர் மாவட்ட அவசர உதவி எண்கள் • Tap to dial immediately'
+      : cityId === 'bengaluru'
+      ? 'ಬೆಂಗಳೂರು ತುರ್ತು ಸಹಾಯವಾಣಿ ಸಂಖ್ಯೆಗಳು • Tap to dial immediately'
+      : 'చిత్తూరు అత్యవసర హెల్ప్‌లైన్ నంబర్లు • Tap to dial immediately';
 
   const handleDial = (phone: string) => {
     const cleanNumber = phone.split('/')[0].trim().replace(/[^0-9]/g, '');
@@ -39,17 +50,18 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
             </div>
             <div>
               <h3 className="font-extrabold text-lg sm:text-xl font-heading text-white">
-                Chittoor District 24x7 Emergency Helplines
+                {cityName} 24x7 Emergency Helplines
               </h3>
               <p className="text-xs text-red-100">
-                చిత్తూరు అత్యవసర హెల్ప్‌లైన్ నంబర్లు • Tap to dial immediately
+                {nativeSubtitle}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition"
+            className="p-1.5 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+            aria-label="Close emergency modal"
           >
             <X className="w-5 h-5" />
           </button>
@@ -60,12 +72,12 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2.5 text-amber-900 text-xs font-medium">
             <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
             <span>
-              For critical health emergencies on highways or within mandals, dial <strong>108</strong> directly for immediate ambulance dispatch.
+              For critical health emergencies or accidents, dial <strong>108</strong> directly for immediate ambulance dispatch.
             </span>
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            {CHITTOOR_EMERGENCY_CONTACTS.map((item) => (
+            {contacts.map((item) => (
               <div
                 key={item.id}
                 className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:border-red-300 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
@@ -82,7 +94,9 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-red-700 font-semibold mt-0.5">{item.teluguName}</p>
+                  {item.teluguName && (
+                    <p className="text-xs text-red-700 font-semibold mt-0.5">{item.teluguName}</p>
+                  )}
                   <p className="text-xs text-slate-600 mt-1">{item.description}</p>
                   {item.address && (
                     <p className="text-[11px] text-slate-400 mt-0.5">Location: {item.address}</p>
@@ -94,7 +108,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
                   className="sm:self-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <PhoneCall className="w-4 h-4" />
-                  <span>Call {item.phone}</span>
+                  <span>Call {item.phone.split('/')[0].trim()}</span>
                 </button>
               </div>
             ))}
@@ -103,7 +117,7 @@ export const EmergencySection: React.FC<EmergencySectionProps> = ({
 
         {/* Footer */}
         <div className="p-4 bg-white border-t border-slate-200 text-center text-xs text-slate-500 shrink-0">
-          Maintained as a public civic utility by ChittoorAds (AP-03)
+          Maintained as a public civic utility by {brandName} ({cityCode})
         </div>
       </div>
     </div>

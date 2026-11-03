@@ -3,7 +3,7 @@ import {
   INITIAL_LISTINGS,
   INITIAL_CLASSIFIEDS,
   CHITTOOR_AREAS,
-  CHITTOOR_CATEGORIES
+  getCityCategories
 } from './data/mockData';
 import {
   Listing,
@@ -16,16 +16,22 @@ import {
 import { CITIES, DEFAULT_CITY_ID, SUPPORTED_CITY_IDS, isCityId } from './config/cities';
 import { parseCityRoute, buildCityRouteUrl, ParsedCityRoute } from './utils/cityResolver';
 import { CityProvider } from './contexts/CityContext';
+import { SEOHead } from './components/SEOHead';
 import { Navbar } from './components/Navbar';
 import { HeroSearch } from './components/HeroSearch';
 import { FeaturedShowcaseCarousel } from './components/FeaturedShowcaseCarousel';
 import { CategoryPills } from './components/CategoryPills';
 import { HomeSections } from './components/HomeSections';
+import { VelloreAttractionsSection } from './components/VelloreAttractionsSection';
+import { VelloreTheatresSection } from './components/VelloreTheatresSection';
+import { HomepageQuickEnquiry } from './components/HomepageQuickEnquiry';
 import { CategoryResultsPage, ResultsFilters } from './components/CategoryResultsPage';
 import { UserDashboard } from './components/UserDashboard';
 import { LoginModal } from './components/LoginModal';
 import { ListingDetailModal } from './components/ListingDetailModal';
 import { PostAdModal } from './components/PostAdModal';
+import { PricingModal } from './components/PricingModal';
+import { FranchiseModal } from './components/FranchiseModal';
 import { AIAssistantModal } from './components/AIAssistantModal';
 import { ClassifiedsSection } from './components/ClassifiedsSection';
 import { KanipakamSpecial } from './components/KanipakamSpecial';
@@ -179,14 +185,13 @@ export const MainAppContent: React.FC = () => {
   useEffect(() => {
     if (businessService.isConfigured()) {
       businessService.getPublishedListings(route.cityId).then((remoteListings) => {
-        if (remoteListings.length > 0) {
-          setListings((prev) => {
-            const userPending = prev.filter(
-              (l) => l.status === 'Pending Approval' && (l.cityId || 'chittoor') === route.cityId
-            );
-            return [...userPending, ...remoteListings];
-          });
-        }
+        setListings((prev) => {
+          const userPending = prev.filter(
+            (l) => l.status === 'Pending Approval' && (l.cityId || 'chittoor') === route.cityId
+          );
+          const others = prev.filter((l) => (l.cityId || 'chittoor') !== route.cityId);
+          return [...others, ...userPending, ...remoteListings];
+        });
       });
     }
   }, [route.cityId]);
@@ -243,7 +248,10 @@ export const MainAppContent: React.FC = () => {
   // Modals state: only allow public preview of active listings, or pending listings if viewed by the owner
   const selectedListing = useMemo(() => {
     if (!route.listingId) return null;
-    const found = listings.find((listing) => listing.id === route.listingId);
+    let found = listings.find((listing) => listing.id === route.listingId);
+    if (!found) {
+      found = INITIAL_LISTINGS.find((listing) => listing.id === route.listingId);
+    }
     if (!found) return null;
     if (found.status === 'Pending Approval') {
       if (currentUser && found.postedByUser === currentUser.id) return found;
@@ -263,6 +271,8 @@ export const MainAppContent: React.FC = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
+  const [isFranchiseOpen, setIsFranchiseOpen] = useState(false);
   const storageWarnings = useRef(new Set<string>());
 
   const persist = useCallback((key: string, value: unknown) => {
@@ -368,7 +378,7 @@ export const MainAppContent: React.FC = () => {
     navigate({
       ...route,
       tab: 'category',
-      categoryId: CHITTOOR_CATEGORIES.some((cat) => cat.id === catId) ? catId : 'all',
+      categoryId: getCityCategories(route.cityId).some((cat) => cat.id === catId) ? catId : 'all',
       savedOnly: false,
       listingId: null,
       filters: { ...defaultFilters, selectedArea: areaId || 'all' }
@@ -474,6 +484,9 @@ export const MainAppContent: React.FC = () => {
 
   return (
     <CityProvider currentCityId={route.cityId} onCityChange={handleCityChange}>
+      {/* Dynamic SEO Title, Description, Open Graph & Canonical Tags */}
+      <SEOHead currentCity={currentCity} selectedListing={selectedListing} />
+
       <div className="min-h-screen flex flex-col bg-white">
         {/* Navigation Bar with Premium City Switcher */}
         <Navbar
@@ -530,11 +543,13 @@ export const MainAppContent: React.FC = () => {
                 {/* 2. Featured Showcase Carousel */}
                 <FeaturedShowcaseCarousel
                   onSelectCategory={handleNavigateToCategory}
+                  currentCity={currentCity}
                 />
 
                 {/* 3. Explore Categories Grid */}
                 <CategoryPills
                   onSelectCategory={handleNavigateToCategory}
+                  currentCity={currentCity}
                 />
 
                 {/* 4. Home Sections (Featured Listings, City Localities Grid, Grow Your Business) */}
@@ -546,6 +561,17 @@ export const MainAppContent: React.FC = () => {
                   onViewAllBusinesses={() => handleNavigateToCategory('all')}
                   currentCity={currentCity}
                 />
+
+                {/* Vellore Legacy Feature Parity: Cinemas & Attractions */}
+                {route.cityId === 'vellore' && (
+                  <div className="space-y-8 my-8">
+                    <VelloreTheatresSection />
+                    <VelloreAttractionsSection />
+                  </div>
+                )}
+
+                {/* Homepage Quick Callback Request */}
+                <HomepageQuickEnquiry currentCity={currentCity} />
               </div>
             </div>
           )}
@@ -611,6 +637,7 @@ export const MainAppContent: React.FC = () => {
           onOpenEmergency={() => setIsEmergencyOpen(true)}
           onOpenPostAd={() => setIsPostAdOpen(true)}
           onOpenAI={() => setIsAIOpen(true)}
+          onOpenFranchise={() => setIsFranchiseOpen(true)}
           currentCity={currentCity}
           allCities={allCities}
         />
@@ -651,16 +678,33 @@ export const MainAppContent: React.FC = () => {
         <AIAssistantModal
           isOpen={isAIOpen}
           onClose={() => setIsAIOpen(false)}
+          currentCity={currentCity}
         />
 
         {/* 5. 24x7 Emergency Services Modal */}
         <EmergencySection
           isOpen={isEmergencyOpen}
           onClose={() => setIsEmergencyOpen(false)}
+          currentCity={currentCity}
         />
 
         {/* 6. Floating AI Assistant Chatbot Widget */}
-        <FloatingChatbot />
+        <FloatingChatbot currentCity={currentCity} />
+
+        {/* 7. Transparent Pricing Modal */}
+        <PricingModal
+          isOpen={isPricingOpen}
+          onClose={() => setIsPricingOpen(false)}
+          onOpenPostAd={() => setIsPostAdOpen(true)}
+          currentCity={currentCity}
+        />
+
+        {/* 8. Franchise Opportunity Modal */}
+        <FranchiseModal
+          isOpen={isFranchiseOpen}
+          onClose={() => setIsFranchiseOpen(false)}
+          currentCity={currentCity}
+        />
       </div>
     </CityProvider>
   );

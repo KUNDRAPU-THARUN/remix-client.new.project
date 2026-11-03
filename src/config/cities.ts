@@ -369,11 +369,11 @@ export const CITIES: Record<CityId, CityConfig> = {
     heroBanners: VELLORE_HERO_BANNERS_CONFIG,
     contact: {
       address: 'Katpadi Main Road, Near VIT Junction, Vellore - 632014, Tamil Nadu',
-      phone: '+91 94402 18456',
-      email: 'vellore@chittoorads.com',
+      phone: '+91 81899 85559',
+      email: 'info@velloreads.com',
     },
     seo: {
-      title: 'Vellore Ads - Local Business Directory & Services (TN-23)',
+      title: 'Vellore Ads - Local Business Directory, CMC Healthcare & Services (TN-23)',
       description: 'Discover verified local businesses, CMC medical specialists, student PGs, hotels, and classifieds across Vellore.',
     },
     features: {
@@ -411,13 +411,13 @@ export const CITIES: Record<CityId, CityConfig> = {
     cityGrid: BENGALURU_CITIES_GRID_CONFIG,
     heroBanners: BENGALURU_HERO_BANNERS_CONFIG,
     contact: {
-      address: '100ft Road, Indiranagar, Bengaluru - 560038, Karnataka',
-      phone: '+91 94402 18456',
-      email: 'bengaluru@chittoorads.com',
+      address: 'Indiranagar Tech Corridor, Bengaluru - 560038, Karnataka',
+      phone: '', // Placeholder +91 80 4123 4567 removed; pending official client hotline onboarding
+      email: 'support@bengaluruads.com',
     },
     seo: {
-      title: 'Bengaluru Ads - Local Business Discovery & Services (KA-01)',
-      description: 'Discover verified local services, tech consultants, co-living PGs, restaurants, and classifieds across Bengaluru.',
+      title: 'Bengaluru Ads - Local Business Discovery, Tech & Services (KA-01)',
+      description: 'Discover verified local services, IT consultancies, co-working spaces, PGs, restaurants, and classifieds across Bengaluru.',
     },
     features: {
       hasKanipakamSpecial: false,

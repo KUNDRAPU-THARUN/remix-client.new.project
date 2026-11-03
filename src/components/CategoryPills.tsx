@@ -21,11 +21,13 @@ import {
   MapPin,
   HelpCircle
 } from 'lucide-react';
-import { CHITTOOR_CATEGORIES } from '../data/mockData';
+import { getCityCategories } from '../config/categories';
 import { useTranslation } from '../i18n/LanguageContext';
+import { CityConfig } from '../types';
 
 interface CategoryPillsProps {
   onSelectCategory: (category: string) => void;
+  currentCity?: CityConfig;
 }
 
 // Icon mapper for consistent rendering
@@ -67,8 +69,12 @@ const ACCENT_STYLES = [
 
 export const CategoryPills: React.FC<CategoryPillsProps> = ({
   onSelectCategory,
+  currentCity,
 }) => {
   const { t } = useTranslation();
+  const cityId = currentCity?.id || 'chittoor';
+  const categories = getCityCategories(cityId);
+  const stateName = currentCity?.state || 'Local';
 
   return (
     <section className="py-8" aria-label="Explore Categories Grid">
@@ -79,7 +85,7 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
             <span className="text-[11px] font-black text-[#176AC4] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded uppercase tracking-wider">
               Local Sectors
             </span>
-            <span className="text-xs text-slate-400 font-medium">Verified Andhra Directory</span>
+            <span className="text-xs text-slate-400 font-medium">Verified {stateName} Directory</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading">
             {t('exploreCategoriesTitle')}
@@ -100,7 +106,7 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
 
       {/* Modern Colorful Responsive Category Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
-        {CHITTOOR_CATEGORIES.slice(0, 16).map((cat, idx) => {
+        {categories.slice(0, 16).map((cat, idx) => {
           const IconComponent = getCategoryIcon(cat.icon);
           const accent = ACCENT_STYLES[idx % ACCENT_STYLES.length];
 

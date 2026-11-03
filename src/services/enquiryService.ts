@@ -26,9 +26,33 @@ export interface SubmitEnquiryParams {
   message: string;
 }
 
+export interface GeneralServiceRequest {
+  id: string;
+  cityId: CityId;
+  categoryId: string;
+  areaId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  message: string;
+  status: 'pending' | 'processed' | 'archived';
+  createdAt: string;
+}
+
+export interface SubmitGeneralLeadParams {
+  cityId: CityId;
+  categoryId: string;
+  areaId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  message: string;
+}
+
 const STORAGE_KEY = 'chittoorads_enquiries';
 
 function getStoredEnquiries(): CustomerEnquiry[] {
+  if (typeof localStorage === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -40,6 +64,7 @@ function getStoredEnquiries(): CustomerEnquiry[] {
 }
 
 function saveStoredEnquiries(enquiries: CustomerEnquiry[]): void {
+  if (typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(enquiries));
   } catch (err) {
@@ -135,6 +160,142 @@ export const enquiryService = {
       return { enquiry };
     } catch (err) {
       return { enquiry: null, error: err instanceof Error ? err.message : 'Could not submit enquiry.' };
+    }
+  },
+
+  async submitGeneralLead(params: SubmitGeneralLeadParams): Promise<{ success: boolean; leadId?: string; note?: string; error?: string }> {
+    if (!params.customerName.trim() || params.customerName.trim().length < 2) {
+      return { success: false, error: 'Please enter a valid customer name (at least 2 characters).' };
+    }
+
+    const cleanPhone = params.customerPhone.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+      return { success: false, error: 'Please enter a valid 10-digit mobile number.' };
+    }
+
+    if (!params.message.trim() || params.message.trim().length < 5) {
+      return { success: false, error: 'Please enter your requirement or question (at least 5 characters).' };
+    }
+
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('general_service_requests')
+          .insert({
+            city_id: params.cityId,
+            category_id: params.categoryId,
+            area_id: params.areaId,
+            customer_name: params.customerName.trim(),
+            customer_phone: params.customerPhone.trim(),
+            customer_email: params.customerEmail?.trim() || null,
+            message: params.message.trim(),
+            status: 'pending',
+          })
+          .select('id')
+          .single();
+
+        if (error) {
+          console.warn('Backend rejected general service request:', error);
+          if (error.code === '42P01') {
+            return {
+              success: false,
+              error: 'General enquiry routing is pending database migration. Please reach out via our verified city contact desk.',
+            };
+          }
+          return {
+            success: false,
+            error: error.message || 'The server could not record your service enquiry.',
+          };
+        }
+
+        if ((data as any)?.id) {
+          return { success: true, leadId: (data as any).id };
+        }
+      } catch (err) {
+        console.error('Backend general_service_requests failure:', err);
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : 'Network error submitting service request.',
+        };
+      }
+    }
+
+    // Offline / unconfigured development environment fallback
+    const localLead: GeneralServiceRequest = {
+      id: `lead-${Date.now()}`,
+      cityId: params.cityId,
+      categoryId: params.categoryId,
+      areaId: params.areaId,
+      customerName: params.customerName.trim(),
+      customerPhone: params.customerPhone.trim(),
+      customerEmail: params.customerEmail?.trim() || undefined,
+      message: params.message.trim(),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('chittoorads_general_leads');
+        const leads = raw ? JSON.parse(raw) : [];
+        localStorage.setItem('chittoorads_general_leads', JSON.stringify([localLead, ...leads]));
+      } catch (e) {
+        console.warn('Could not save general lead to localStorage:', e);
+      }
+    }
+
+    return {
+      success: true,
+      leadId: localLead.id,
+      note: 'Demo mode: service request saved locally.'
+    };
+  },
+
+  async getGeneralServiceRequests(cityId?: CityId): Promise<GeneralServiceRequest[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      if (typeof localStorage === 'undefined') return [];
+      try {
+        const raw = localStorage.getItem('chittoorads_general_leads');
+        const leads: GeneralServiceRequest[] = raw ? JSON.parse(raw) : [];
+        return cityId ? leads.filter((l) => l.cityId === cityId) : leads;
+      } catch {
+        return [];
+      }
+    }
+
+    try {
+      let query = (supabase as any)
+        .from('general_service_requests')
+        .select('id, city_id, category_id, area_id, customer_name, customer_phone, customer_email, message, status, created_at')
+        .order('created_at', { ascending: false });
+
+      if (cityId) {
+        query = query.eq('city_id', cityId);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.warn('Error fetching general service requests:', error.message);
+        return [];
+      }
+
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        cityId: row.city_id as CityId,
+        categoryId: row.category_id,
+        areaId: row.area_id,
+        customerName: row.customer_name,
+        customerPhone: row.customer_phone,
+        customerEmail: row.customer_email || undefined,
+        message: row.message,
+        status: row.status,
+        createdAt: row.created_at,
+      }));
+    } catch (err) {
+      console.warn('Unexpected error in getGeneralServiceRequests:', err);
+      return [];
     }
   },
 

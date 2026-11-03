@@ -17,7 +17,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { Listing, UserAccount, CityConfig } from '../../types';
-import { CHITTOOR_AREAS, CHITTOOR_CATEGORIES } from '../../data/mockData';
+import { getCityCategories } from '../../config/categories';
 import { generateAdCopy } from '../../services/aiService';
 import { storageService } from '../../services/storageService';
 
@@ -39,12 +39,14 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
   currentCity,
 }) => {
   const isEditing = Boolean(initialListing);
-  const localities = currentCity?.localities || CHITTOOR_AREAS;
+  const cityId = currentCity?.id || 'chittoor';
+  const cityCategories = getCityCategories(cityId);
+  const localities = currentCity?.localities || [];
   const cityName = currentCity?.name || 'Chittoor';
 
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(CHITTOOR_CATEGORIES[0].id);
-  const [area, setArea] = useState(localities[1]?.id || 'gandhi-road');
+  const [category, setCategory] = useState(cityCategories[0]?.id || 'restaurants');
+  const [area, setArea] = useState(localities[1]?.id || 'all');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('+91 ');
   const [whatsapp, setWhatsapp] = useState('');
@@ -66,8 +68,8 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
   useEffect(() => {
     if (initialListing) {
       setTitle(initialListing.title || '');
-      setCategory(initialListing.category || CHITTOOR_CATEGORIES[0].id);
-      setArea(initialListing.area || localities[1]?.id || 'gandhi-road');
+      setCategory(initialListing.category || cityCategories[0]?.id || 'restaurants');
+      setArea(initialListing.area || localities[1]?.id || 'all');
       setAddress(initialListing.address || '');
       setPhone(initialListing.phone || '+91 ');
       setWhatsapp(initialListing.whatsapp || '');
@@ -80,8 +82,8 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
     } else {
       // Reset form
       setTitle('');
-      setCategory(CHITTOOR_CATEGORIES[0].id);
-      setArea(localities[1]?.id || 'gandhi-road');
+      setCategory(cityCategories[0]?.id || 'restaurants');
+      setArea(localities[1]?.id || 'all');
       setAddress('');
       setPhone('+91 ');
       setWhatsapp('');
@@ -128,7 +130,7 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
     }
     setIsGeneratingAI(true);
     try {
-      const catObj = CHITTOOR_CATEGORIES.find((c) => c.id === category);
+      const catObj = cityCategories.find((c) => c.id === category);
       const areaObj = localities.find((a) => a.id === area);
       const generated = await generateAdCopy({
         title,
@@ -306,7 +308,7 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition bg-white"
                   >
-                    {CHITTOOR_CATEGORIES.map((c) => (
+                    {cityCategories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>

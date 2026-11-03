@@ -10,8 +10,8 @@ import {
   ExternalLink,
   Info
 } from 'lucide-react';
-import { CHITTOOR_CATEGORIES } from '../data/mockData';
 import { CityConfig } from '../types';
+import { getCityCategories } from '../config/categories';
 
 interface FooterProps {
   onSelectCategory: (catId: string) => void;
@@ -19,6 +19,8 @@ interface FooterProps {
   onOpenEmergency: () => void;
   onOpenPostAd: () => void;
   onOpenAI: () => void;
+  onOpenPricing?: () => void;
+  onOpenFranchise?: () => void;
   currentCity: CityConfig;
   allCities: CityConfig[];
 }
@@ -29,6 +31,8 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenEmergency,
   onOpenPostAd,
   onOpenAI,
+  onOpenPricing,
+  onOpenFranchise,
   currentCity,
   allCities,
 }) => {
@@ -126,7 +130,7 @@ export const Footer: React.FC<FooterProps> = ({
               <span>Top Categories</span>
             </h4>
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
-              {CHITTOOR_CATEGORIES.slice(0, 7).map((c) => (
+              {getCityCategories(currentCity.id).slice(0, 7).map((c) => (
                 <li key={c.id}>
                   <button
                     onClick={() => onSelectCategory(c.id)}
@@ -174,6 +178,16 @@ export const Footer: React.FC<FooterProps> = ({
                   <span>+ Post Free Classified Ad</span>
                 </button>
               </li>
+              {onOpenFranchise && (
+                <li>
+                  <button
+                    onClick={onOpenFranchise}
+                    className="text-slate-300 hover:text-white font-medium transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>City Franchise Opportunities</span>
+                  </button>
+                </li>
+              )}
               <li>
                 <button
                   onClick={onOpenAI}
@@ -194,7 +208,16 @@ export const Footer: React.FC<FooterProps> = ({
               </li>
               <li className="pt-2 text-slate-400 text-[11px] leading-relaxed border-t border-slate-900 space-y-1">
                 <p><strong className="text-slate-300">Office:</strong> {currentCity.contact.address}</p>
-                <p><strong className="text-slate-300">Helpline:</strong> {currentCity.contact.phone}</p>
+                <p>
+                  <strong className="text-slate-300">Helpline:</strong>{' '}
+                  {currentCity.contact.phone ? (
+                    <a href={`tel:${currentCity.contact.phone.replace(/[^0-9+]/g, '')}`} className="hover:text-white transition">
+                      {currentCity.contact.phone}
+                    </a>
+                  ) : (
+                    <span className="text-slate-400 italic">Online Portal Desk (Hotline Pending Setup)</span>
+                  )}
+                </p>
                 <p><strong className="text-slate-300">Email:</strong> {currentCity.contact.email}</p>
               </li>
             </ul>

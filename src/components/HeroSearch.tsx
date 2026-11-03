@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Search, 
   MapPin, 
@@ -11,7 +11,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { CityConfig } from '../types';
-import { CHITTOOR_CATEGORIES } from '../data/mockData';
+import { getCityCategories } from '../config/categories';
 import { useTranslation } from '../i18n/LanguageContext';
 
 interface HeroSearchProps {
@@ -27,15 +27,42 @@ interface HeroSearchProps {
   currentCity: CityConfig;
 }
 
-const POPULAR_SEARCH_TAGS = [
+interface QuickTag {
+  label: string;
+  catId?: string;
+}
+
+const CHITTOOR_TAGS: QuickTag[] = [
   { label: 'Restaurants', catId: 'restaurants' },
   { label: 'Hotels & Lodges', catId: 'hotels-lodges' },
   { label: 'Hospitals', catId: 'healthcare' },
-  { label: 'Schools', catId: 'education' },
+  { label: 'Kanipakam Cabs', catId: 'kanipakam-travels' },
+  { label: 'Mango Mandis', catId: 'mango-agro' },
   { label: 'Silk Sarees', catId: 'silks-textiles' },
   { label: 'Real Estate', catId: 'real-estate' },
-  { label: 'PG / Hostels', catId: 'pg-hostels' },
-  { label: 'Jobs', catId: 'jobs' },
+  { label: 'Schools', catId: 'education' },
+];
+
+const VELLORE_TAGS: QuickTag[] = [
+  { label: 'CMC Hospitals', catId: 'healthcare' },
+  { label: 'VIT Student PGs', catId: 'pg-hostels' },
+  { label: 'Ambur Biryani', catId: 'restaurants' },
+  { label: 'Pilgrim Lodges', catId: 'hotels-lodges' },
+  { label: 'Colleges & Universities', catId: 'education' },
+  { label: 'Theatres & Cinema', catId: 'theatres-entertainment' },
+  { label: 'Leather Industry', catId: 'leather-industry' },
+  { label: 'House Rentals', catId: 'real-estate' },
+];
+
+const BENGALURU_TAGS: QuickTag[] = [
+  { label: 'Coworking Spaces', catId: 'real-estate' },
+  { label: 'Managed PGs', catId: 'pg-hostels' },
+  { label: 'Filter Coffee & Cafes', catId: 'restaurants' },
+  { label: 'Multispeciality Hospitals', catId: 'healthcare' },
+  { label: 'Tech Consultancies', catId: 'jobs' },
+  { label: 'Schools & Academies', catId: 'education' },
+  { label: 'EV Services', catId: 'automobiles' },
+  { label: 'Home Services', catId: 'home-services' },
 ];
 
 export const HeroSearch: React.FC<HeroSearchProps> = ({
@@ -53,6 +80,19 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
   const { t } = useTranslation();
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+
+  const categories = getCityCategories(currentCity.id);
+  const popularTags = useMemo(() => {
+    switch (currentCity.id) {
+      case 'vellore':
+        return VELLORE_TAGS;
+      case 'bengaluru':
+        return BENGALURU_TAGS;
+      case 'chittoor':
+      default:
+        return CHITTOOR_TAGS;
+    }
+  }, [currentCity.id]);
 
   const banners = currentCity.heroBanners;
 
@@ -219,7 +259,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               className="w-full py-1 text-xs sm:text-sm font-semibold outline-hidden bg-transparent text-slate-700 cursor-pointer"
             >
               <option value="all">{t('allCategories')}</option>
-              {CHITTOOR_CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
@@ -267,7 +307,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           <span className="font-extrabold mr-1 text-slate-100 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
             Popular in {currentCity.name}:
           </span>
-          {POPULAR_SEARCH_TAGS.map((tag) => (
+          {popularTags.map((tag) => (
             <button
               key={tag.label}
               type="button"

@@ -13,7 +13,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Listing, UserAccount, CityConfig } from '../types';
-import { CHITTOOR_AREAS, CHITTOOR_CATEGORIES } from '../data/mockData';
+import { getCityCategories } from '../config/categories';
 import { generateAdCopy } from '../services/aiService';
 import { storageService } from '../services/storageService';
 
@@ -34,9 +34,11 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
   currentUser,
   currentCity,
 }) => {
-  const localities = currentCity?.localities || CHITTOOR_AREAS;
+  const cityId = currentCity?.id || 'chittoor';
+  const categories = getCityCategories(cityId);
+  const localities = currentCity?.localities || [];
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(CHITTOOR_CATEGORIES[0].id);
+  const [category, setCategory] = useState(categories[0]?.id || 'restaurants');
   const [area, setArea] = useState(localities[1]?.id || 'all');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('+91 ');
@@ -79,14 +81,14 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
     }
     setIsGeneratingAI(true);
     try {
-      const catObj = CHITTOOR_CATEGORIES.find((c) => c.id === category);
-      const areaObj = CHITTOOR_AREAS.find((a) => a.id === area);
+      const catObj = categories.find((c) => c.id === category);
+      const areaObj = localities.find((a) => a.id === area);
       const generated = await generateAdCopy({
         title,
         category: catObj?.name || category,
         area: areaObj?.name || area,
-        highlights: servicesInput || 'Prompt service, verified quality, affordable pricing in Chittoor',
-        phone: phone || '+91 94400 00000',
+        highlights: servicesInput || `Prompt service, verified quality, affordable pricing in ${currentCity?.name || 'the city'}`,
+        phone: phone || currentCity?.contact.phone || '+91 94400 00000',
       });
       setDescription(generated);
     } catch (e) {
@@ -233,9 +235,9 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-hidden bg-white"
                 >
-                  {CHITTOOR_CATEGORIES.map((cat) => (
+                  {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.name} ({cat.nameTe})
+                      {cat.name} {cat.nameTa ? `(${cat.nameTa})` : cat.nameKn ? `(${cat.nameKn})` : cat.nameTe ? `(${cat.nameTe})` : ''}
                     </option>
                   ))}
                 </select>

@@ -12,7 +12,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { Listing } from '../types';
-import { CHITTOOR_AREAS } from '../data/mockData';
+import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
 
 interface ListingCardProps {
   listing: Listing;
@@ -27,13 +27,14 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   onToggleSave,
   onSelect,
 }) => {
-  const areaName = CHITTOOR_AREAS.find((a) => a.id === listing.area)?.name || listing.area;
+  const cityConfig = CITIES[listing.cityId || DEFAULT_CITY_ID] || CITIES[DEFAULT_CITY_ID];
+  const areaName = cityConfig.localities.find((a) => a.id === listing.area)?.name || listing.area;
 
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     const phone = listing.whatsapp || listing.phone.replace(/[^0-9]/g, '');
     const message = encodeURIComponent(
-      `Hello! I found your listing "${listing.title}" on ChittoorAds (Search Local AP-03). I would like to inquire about your services.`
+      `Hello! I found your listing "${listing.title}" on ${cityConfig.brandName} (${cityConfig.code}). I would like to inquire about your services.`
     );
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };

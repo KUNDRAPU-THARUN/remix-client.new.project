@@ -15,7 +15,7 @@ import {
   Check
 } from 'lucide-react';
 import { UserAccount, CityConfig, CityId } from '../types';
-import { CHITTOOR_CATEGORIES } from '../data/mockData';
+import { getCityCategories } from '../config/categories';
 import { LanguageSelector } from './LanguageSelector';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -277,7 +277,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="text-[10px] text-[#15995F] font-bold">{currentCity.name} Directory</span>
                 </div>
                 <div className="max-h-84 overflow-y-auto px-1 space-y-0.5">
-                  {CHITTOOR_CATEGORIES.slice(0, 10).map((cat) => (
+                  {getCityCategories(currentCity.id).slice(0, 10).map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => {
