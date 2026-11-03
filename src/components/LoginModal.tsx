@@ -1,345 +1,817 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
-  User,
   Mail,
   Lock,
   Eye,
   EyeOff,
-  ShieldCheck,
-  CheckCircle2,
+  User,
   Building2,
-  Sparkles,
-  ArrowRight
+  CheckCircle2,
+  ShieldCheck,
+  Compass,
+  ArrowRight,
+  Shield,
+  KeyRound,
+  AlertCircle
 } from 'lucide-react';
-import { UserAccount } from '../types';
+import { UserAccount, CityConfig, CityId } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { useCity } from '../contexts/CityContext';
+import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
 
-interface LoginModalProps {
+export type DestinationTab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin';
+
+export interface AuthorizedDestination {
+  id: string;
+  title: string;
+  subtitle: string;
+  tab: DestinationTab;
+  cityId?: CityId;
+  badge: string;
+  badgeColor: string;
+}
+
+export interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: (user: UserAccount) => void;
+  onLoginSuccess: (user: UserAccount, targetTab?: DestinationTab, targetCityId?: CityId) => void;
+  currentCity?: CityConfig;
+  activeTab?: string;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
   isOpen,
   onClose,
   onLoginSuccess,
+  currentCity: propCity,
+  activeTab = 'home',
 }) => {
   const { signIn, signUp, resetPassword, isConfigured } = useAuth();
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const [role, setRole] = useState<'customer' | 'provider'>('customer');
-  const [username, setUsername] = useState('');
+
+  // Safe city resolution: propCity > contextCity > DEFAULT_CITY_ID
+  let contextCity: CityConfig | undefined;
+  try {
+    const cityContext = useCity();
+    contextCity = cityContext?.city;
+  } catch {
+    // Rendered outside CityProvider (e.g. isolated test harness)
+  }
+  const city = propCity || contextCity || CITIES[DEFAULT_CITY_ID];
+  const cityName = city.name;
+  const cityCode = city.code;
+  const cityTagline = city.tagline;
+  const cityBrandName = `${cityName}Ads`;
+
+  // Dynamic city initials for logo badge (CA = Chittoor, VA = Vellore, BA = Bengaluru)
+  const cityInitials = city.id === 'vellore' ? 'VA' : city.id === 'bengaluru' ? 'BA' : 'CA';
+
+  // Dynamic city gradients
+  const logoGradient =
+    city.id === 'vellore'
+      ? 'from-[#176AC4] via-[#15995F] to-[#E51E31]'
+      : city.id === 'bengaluru'
+      ? 'from-[#15995F] via-[#F5C325] to-[#176AC4]'
+      : 'from-[#E51E31] via-[#c91829] to-[#176AC4]';
+
+  const buttonGradient =
+    city.id === 'vellore'
+      ? 'from-[#176AC4] via-blue-700 to-indigo-800 shadow-blue-600/30'
+      : city.id === 'bengaluru'
+      ? 'from-[#15995F] via-emerald-700 to-teal-800 shadow-emerald-600/30'
+      : 'from-red-600 via-rose-600 to-red-700 shadow-red-600/30';
+
+  // Form states
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [signupRole, setSignupRole] = useState<'customer' | 'provider'>('customer');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Multi-role destination selector state
+  const [pendingUser, setPendingUser] = useState<UserAccount | null>(null);
+  const [availableDestinations, setAvailableDestinations] = useState<AuthorizedDestination[]>([]);
+
+  // Functional Remember Me: Restore remembered email on modal open
   useEffect(() => {
-    if (!isOpen) {
-      setIsLoading(false);
+    if (isOpen) {
+      try {
+        const rememberedEmail = localStorage.getItem('kaaryan_remembered_email');
+        if (rememberedEmail) {
+          setEmail(rememberedEmail);
+          setRememberMe(true);
+        }
+      } catch {}
       setErrorMessage('');
       setSuccessMessage('');
+      setPendingUser(null);
+      setAvailableDestinations([]);
+      setAuthMode('signin');
+      setShowPassword(false);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Build list of authorized destinations based on user's server-verified roles
+  const computeDestinations = (user: UserAccount): AuthorizedDestination[] => {
+    const destinations: AuthorizedDestination[] = [];
+
+    // 1. Super Admin Console
+    if (user.isSuperAdmin || user.roles?.some((r) => r.role === 'super_admin')) {
+      destinations.push({
+        id: 'admin',
+        title: 'Central Super Admin Console',
+        subtitle: 'Platform-wide controls, multi-territory governance & database health',
+        tab: 'admin',
+        badge: 'Super Admin',
+        badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+      });
+    }
+
+    // 2. City Franchise Command Center
+    const franchiseRole = user.roles?.find(
+      (r) => r.role === 'city_franchise' || r.role === 'data_entry_staff'
+    );
+    const userFranchiseCity = franchiseRole?.cityId || user.franchiseCityId;
+    if (user.isFranchise || userFranchiseCity) {
+      const assignedCityId = userFranchiseCity || city.id;
+      const assignedCityConfig = CITIES[assignedCityId] || city;
+      destinations.push({
+        id: `franchise-${assignedCityId}`,
+        title: `${assignedCityConfig.name} Franchise Command Center`,
+        subtitle: `Regional listing moderation, quote dispatch & local directory (${assignedCityConfig.code})`,
+        tab: 'franchise',
+        cityId: assignedCityId,
+        badge: `Franchise (${assignedCityConfig.code})`,
+        badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      });
+    }
+
+    // 3. Business Owner Dashboard
+    const isMerchant =
+      user.roles?.some((r) => r.role === 'business_owner') ||
+      (!user.isSuperAdmin && !user.isFranchise && user.role === 'provider');
+    if (isMerchant) {
+      destinations.push({
+        id: 'dashboard',
+        title: 'Business Owner Dashboard',
+        subtitle: 'Manage storefront advertisements, track customer leads & reviews',
+        tab: 'dashboard',
+        badge: 'Merchant Portal',
+        badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      });
+    }
+
+    // 4. Consumer Experience
+    destinations.push({
+      id: 'directory',
+      title: `Browse ${cityName} Directory`,
+      subtitle: `Explore verified businesses, attractions & classifieds in ${cityName} (${cityCode})`,
+      tab: 'home',
+      cityId: city.id,
+      badge: 'Public Directory',
+      badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
+    });
+
+    return destinations;
+  };
+
+  const handleDestinationSelect = (dest: AuthorizedDestination) => {
+    if (!pendingUser) return;
+    onLoginSuccess(pendingUser, dest.tab, dest.cityId);
+    onClose();
+  };
+
+  const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
     setErrorMessage('');
     setSuccessMessage('');
 
-    if (authMode === 'signup') {
-      if (!email.trim() || !password.trim() || !username.trim()) {
-        setErrorMessage('Full name, email address, and password are required.');
-        return;
-      }
-      if (password.length < 6) {
-        setErrorMessage('Password must be at least 6 characters long.');
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const res = await signUp({
-          email: email.trim(),
-          password,
-          fullName: username.trim(),
-          phone: username.replace(/[^0-9]/g, '') || undefined,
-          role,
-        });
-
-        if (res.error) {
-          setErrorMessage(res.error);
-        } else if (res.user) {
-          onLoginSuccess(res.user);
-          onClose();
-        }
-      } catch (err) {
-        setErrorMessage(err instanceof Error ? err.message : 'Registration failed.');
-      } finally {
-        setIsLoading(false);
-      }
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setErrorMessage('Please enter your registered email address.');
+      return;
+    }
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    if (!password.trim()) {
+      setErrorMessage('Please enter your password.');
       return;
     }
 
-    // SIGN IN MODE
-    if (!username.trim() && !email.trim()) {
-      setErrorMessage('Username or Registered Email / Mobile Number is required.');
-      return;
-    }
-
-    const loginEmail = email.trim() || (username.includes('@') ? username.trim() : `${username.trim().toLowerCase()}@chittoorads.com`);
+    // Functional Remember Me
+    try {
+      if (rememberMe) {
+        localStorage.setItem('kaaryan_remembered_email', cleanEmail);
+      } else {
+        localStorage.removeItem('kaaryan_remembered_email');
+      }
+    } catch {}
 
     setIsLoading(true);
     try {
       const res = await signIn({
-        email: loginEmail,
-        password: password || 'demo123',
+        email: cleanEmail,
+        password: password.trim(),
       });
 
       if (res.error) {
         setErrorMessage(res.error);
-      } else if (res.user) {
-        // Apply selected role if in demo mode
-        const updatedUser: UserAccount = {
-          ...res.user,
-          role: isConfigured ? res.user.role : role,
-          name: username.trim() || res.user.name,
-        };
-        onLoginSuccess(updatedUser);
-        onClose();
+        setIsLoading(false);
+        return;
       }
+
+      if (!res.user) {
+        setErrorMessage('User session could not be established. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      const authenticatedUser = res.user;
+
+      // Check context and destination requirements
+      // If user opened login while specifically on a protected route:
+      if (activeTab === 'franchise') {
+        // Keep user on the franchise route; gate will evaluate authorization or territory match
+        onLoginSuccess(authenticatedUser, 'franchise', city.id);
+        onClose();
+        return;
+      }
+      if (activeTab === 'admin') {
+        onLoginSuccess(authenticatedUser, 'admin');
+        onClose();
+        return;
+      }
+      if (activeTab === 'dashboard') {
+        onLoginSuccess(authenticatedUser, 'dashboard');
+        onClose();
+        return;
+      }
+
+      // If user logged in from public browsing, evaluate destinations
+      const destinations = computeDestinations(authenticatedUser);
+      const managementDestinations = destinations.filter((d) => d.id !== 'directory');
+
+      if (managementDestinations.length > 1) {
+        // Multiple legitimate roles: present authorized destination selection screen
+        setPendingUser(authenticatedUser);
+        setAvailableDestinations(destinations);
+        setIsLoading(false);
+        return;
+      }
+
+      // Single destination auto-routing
+      if (authenticatedUser.isSuperAdmin) {
+        onLoginSuccess(authenticatedUser, 'admin');
+      } else if (authenticatedUser.isFranchise && authenticatedUser.franchiseCityId) {
+        onLoginSuccess(authenticatedUser, 'franchise', authenticatedUser.franchiseCityId);
+      } else if (
+        authenticatedUser.roles?.some((r) => r.role === 'business_owner') ||
+        authenticatedUser.role === 'provider'
+      ) {
+        onLoginSuccess(authenticatedUser, 'dashboard');
+      } else {
+        // Customer account: remain on active city directory
+        onLoginSuccess(authenticatedUser, 'home', city.id);
+      }
+      onClose();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Sign in failed.');
+      setErrorMessage(err instanceof Error ? err.message : 'Sign in failed unexpectedly.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleForgotPassword = async () => {
-    const targetEmail = email.trim() || (username.includes('@') ? username.trim() : '');
-    if (!targetEmail) {
-      setErrorMessage('Please enter your email address above to receive a password reset link.');
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const cleanEmail = email.trim();
+    const cleanName = fullName.trim();
+    if (!cleanName || !cleanEmail || !password.trim()) {
+      setErrorMessage('Full name, email address, and password are required.');
       return;
     }
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+
     setIsLoading(true);
-    const res = await resetPassword(targetEmail);
-    setIsLoading(false);
-    if (res.success) {
-      setSuccessMessage(`Password recovery link sent to ${targetEmail}. Please check your inbox.`);
-    } else {
-      setErrorMessage(res.error || 'Failed to send reset link.');
+    try {
+      const res = await signUp({
+        email: cleanEmail,
+        password: password.trim(),
+        fullName: cleanName,
+        phone: phone.trim() || undefined,
+        role: signupRole,
+        cityId: city.id,
+      });
+
+      if (res.error) {
+        setErrorMessage(res.error);
+      } else if (res.user) {
+        if (signupRole === 'provider') {
+          onLoginSuccess(res.user, 'dashboard');
+        } else {
+          onLoginSuccess(res.user, 'home', city.id);
+        }
+        onClose();
+      } else {
+        // Supabase requires email verification
+        setSuccessMessage(
+          `Account created for ${cleanEmail}! Please check your email to confirm your account before signing in.`
+        );
+        setAuthMode('signin');
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Registration failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMessage('Please enter a valid email address to receive password reset instructions.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await resetPassword(cleanEmail);
+      if (res.success) {
+        setSuccessMessage(`Password recovery instructions have been sent to ${cleanEmail}. Please check your inbox.`);
+      } else {
+        setErrorMessage(res.error || 'Failed to send recovery link. Please try again.');
+      }
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to send reset link.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-
-        {/* Header */}
+        {/* Dynamic City Top Bar */}
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center text-white font-black shadow-xs">
-              CA
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${logoGradient} flex items-center justify-center text-white font-black text-sm shadow-md shadow-slate-950/40 shrink-0`}
+            >
+              {cityInitials}
             </div>
             <div>
-              <h3 className="font-bold text-base font-heading">
-                {authMode === 'signin' ? 'Sign In to ChittoorAds' : 'Create an Account'}
-              </h3>
-              <p className="text-[11px] text-slate-400">Discover Chittoor in One Click</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-base font-heading text-white">
+                  {authMode === 'signin'
+                    ? `Sign In to ${cityBrandName}`
+                    : authMode === 'signup'
+                    ? `Create ${cityBrandName} Account`
+                    : 'Reset Password'}
+                </h3>
+                <span className="text-[10px] bg-white/10 text-slate-300 font-extrabold px-1.5 py-0.5 rounded border border-white/15">
+                  {cityCode}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 truncate max-w-[220px]">
+                {authMode === 'signin'
+                  ? cityTagline
+                  : authMode === 'signup'
+                  ? `Join ${cityName}'s Verified Directory`
+                  : 'Enter your email for recovery instructions'}
+              </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+            aria-label="Close dialog"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Dual-role toggle switcher */}
-        <div className="p-6 pb-2">
-          <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-4 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setRole('customer')}
-              className={`py-2 rounded-lg transition cursor-pointer ${
-                role === 'customer'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Sign In as Customer
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('provider')}
-              className={`py-2 rounded-lg transition cursor-pointer ${
-                role === 'provider'
-                  ? 'bg-red-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Sign In as Provider
-            </button>
-          </div>
+        {/* Modal Body */}
+        <div className="p-6">
+          {/* MULTI-ROLE DESTINATION SELECTION SCREEN */}
+          {pendingUser && availableDestinations.length > 0 ? (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="text-center space-y-1">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <h4 className="text-base font-black text-slate-900 font-heading">
+                  Authentication Successful
+                </h4>
+                <p className="text-xs text-slate-600">
+                  Signed in as <strong className="text-slate-800">{pendingUser.name}</strong> ({pendingUser.email}).
+                  Select your destination:
+                </p>
+              </div>
 
-          {errorMessage && (
-            <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
-              {errorMessage}
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="mb-4 p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{successMessage}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 1. Username / Full Name */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                {authMode === 'signup' ? 'Full Name *' : 'Username / Registered Mobile *'}
-              </label>
-              <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
-                <User className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
-                <input
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder={authMode === 'signup' ? 'e.g. Ramesh Naidu' : 'e.g. RameshNaidu or 9440218456'}
-                  className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
-                />
+              <div className="space-y-2.5 pt-1">
+                {availableDestinations.map((dest) => (
+                  <button
+                    key={dest.id}
+                    onClick={() => handleDestinationSelect(dest)}
+                    className="w-full text-left p-3.5 rounded-2xl border border-slate-200 hover:border-slate-400 hover:bg-slate-50 transition cursor-pointer flex items-center justify-between gap-3 group"
+                  >
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-red-600 transition">
+                          {dest.title}
+                        </span>
+                        <span
+                          className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${dest.badgeColor}`}
+                        >
+                          {dest.badge}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-tight">
+                        {dest.subtitle}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-red-600 group-hover:translate-x-0.5 transition shrink-0" />
+                  </button>
+                ))}
               </div>
             </div>
-
-            {/* 2. Email Address */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                Email Address {authMode === 'signup' && '*'}
-              </label>
-              <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
-                <Mail className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
-                <input
-                  type="email"
-                  required={authMode === 'signup'}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. ramesh@example.com"
-                  className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
-                />
-              </div>
-            </div>
-
-            {/* 3. Password (with toggle show/hide) */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                Password *
-              </label>
-              <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
-                <Lock className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-slate-400 hover:text-slate-600 transition ml-2 cursor-pointer"
-                  title={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Remember Me & Forgot Password */}
-            {authMode === 'signin' && (
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded text-red-600 accent-red-600 cursor-pointer"
-                  />
-                  <span className="font-semibold text-slate-700">Remember Me</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="font-semibold text-red-600 hover:underline cursor-pointer"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-            )}
-
-            {/* Main Submit Button */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:to-rose-800 text-white font-extrabold text-sm shadow-md shadow-red-600/30 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-              >
-                {isLoading ? (
-                  <span>{authMode === 'signin' ? 'Signing In...' : 'Creating Account...'}</span>
-                ) : (
-                  <>
-                    <span>{authMode === 'signin' ? 'Sign In →' : 'Register Free →'}</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-
-          {/* Switch between Sign In and Sign Up */}
-          <div className="mt-3 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
-                setErrorMessage('');
-                setSuccessMessage('');
-              }}
-              className="text-xs font-bold text-slate-600 hover:text-red-600 transition cursor-pointer"
-            >
-              {authMode === 'signin' ? (
-                <>New to ChittoorAds? <span className="text-red-600 underline">Create an Account</span></>
-              ) : (
-                <>Already have an account? <span className="text-red-600 underline">Sign In</span></>
+          ) : (
+            <>
+              {/* Alert Feedback Messages */}
+              {errorMessage && (
+                <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{errorMessage}</span>
+                </div>
               )}
-            </button>
-          </div>
 
-          {/* Quick Demo Credentials Help */}
-          <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-center text-[11px] text-slate-500">
-            <span className="font-bold text-slate-700">
-              {isConfigured ? 'Live Supabase Auth Active:' : 'Instant Demo Login:'}
-            </span>{' '}
-            {isConfigured
-              ? 'Enter your registered email & password to authenticate.'
-              : 'Enter any username & password to sign in and test your provider dashboard.'}
-          </div>
+              {successMessage && (
+                <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>{successMessage}</span>
+                </div>
+              )}
+
+              {/* ------------------------------------------------------------- */}
+              {/* MODE 1: SIGN IN                                               */}
+              {/* ------------------------------------------------------------- */}
+              {authMode === 'signin' && (
+                <form onSubmit={handleSignInSubmit} noValidate className="space-y-4">
+                  {/* Email Address */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Email Address *
+                    </label>
+                    <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <Mail className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="e.g. name@example.com"
+                        className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password with Show/Hide Toggle */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Password *
+                    </label>
+                    <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <Lock className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your account password"
+                        className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-slate-400 hover:text-slate-600 transition ml-2 cursor-pointer"
+                        title={showPassword ? 'Hide password' : 'Show password'}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Functional Remember Me & Forgot Password */}
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-4 h-4 rounded text-red-600 accent-red-600 cursor-pointer"
+                      />
+                      <span className="font-semibold text-slate-700">Remember email</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('forgot');
+                        setErrorMessage('');
+                        setSuccessMessage('');
+                      }}
+                      className="font-semibold text-red-600 hover:underline cursor-pointer"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+
+                  {/* Sign In Submit Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className={`w-full py-3 px-4 rounded-xl bg-gradient-to-r ${buttonGradient} text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60`}
+                    >
+                      {isLoading ? (
+                        <span>Signing In...</span>
+                      ) : (
+                        <>
+                          <span>Sign In to {cityBrandName} →</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Link to Registration */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('signup');
+                        setErrorMessage('');
+                        setSuccessMessage('');
+                      }}
+                      className="text-xs font-bold text-slate-600 hover:text-red-600 transition cursor-pointer"
+                    >
+                      New to {cityBrandName}?{' '}
+                      <span className="text-red-600 underline">Create an Account</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* ------------------------------------------------------------- */}
+              {/* MODE 2: REGISTRATION (SIGN UP)                                 */}
+              {/* ------------------------------------------------------------- */}
+              {authMode === 'signup' && (
+                <form onSubmit={handleSignUpSubmit} noValidate className="space-y-4">
+                  {/* Account Type Selector */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                      Account Type *
+                    </label>
+                    <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl gap-1 text-xs font-bold">
+                      <button
+                        type="button"
+                        onClick={() => setSignupRole('customer')}
+                        className={`py-2 px-2 rounded-lg transition cursor-pointer text-center ${
+                          signupRole === 'customer'
+                            ? 'bg-white text-slate-900 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Customer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSignupRole('provider')}
+                        className={`py-2 px-2 rounded-lg transition cursor-pointer text-center ${
+                          signupRole === 'provider'
+                            ? 'bg-red-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Business Owner
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 px-1">
+                      {signupRole === 'customer'
+                        ? 'Explore directory, bookmark listings & submit verified reviews.'
+                        : 'Register your business & manage local storefront advertisements.'}
+                    </p>
+                  </div>
+
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Full Name *
+                    </label>
+                    <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <User className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type="text"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="e.g. Ramesh Naidu"
+                        className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
+                        autoComplete="name"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email Address */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Email Address *
+                    </label>
+                    <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <Mail className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="e.g. ramesh@example.com"
+                        className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Mobile Number (Optional) */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Mobile Number {signupRole === 'provider' ? '(for customer enquiries)' : '(optional)'}
+                    </label>
+                    <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <span className="text-xs font-bold text-slate-400 mr-2">+91</span>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="e.g. 9440218456"
+                        className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
+                        autoComplete="tel"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Create Password (min. 6 characters) *
+                    </label>
+                    <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <Lock className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Choose a strong password"
+                        className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-slate-400 hover:text-slate-600 transition ml-2 cursor-pointer"
+                        title={showPassword ? 'Hide password' : 'Show password'}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Registration Submit Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className={`w-full py-3 px-4 rounded-xl bg-gradient-to-r ${buttonGradient} text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60`}
+                    >
+                      {isLoading ? (
+                        <span>Creating Account...</span>
+                      ) : (
+                        <span>
+                          {signupRole === 'provider'
+                            ? `Register Business Account in ${cityName} →`
+                            : `Create Customer Account in ${cityName} →`}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Switch to Sign In */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('signin');
+                        setErrorMessage('');
+                        setSuccessMessage('');
+                      }}
+                      className="text-xs font-bold text-slate-600 hover:text-red-600 transition cursor-pointer"
+                    >
+                      Already have an account?{' '}
+                      <span className="text-red-600 underline">Sign In</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* ------------------------------------------------------------- */}
+              {/* MODE 3: FORGOT PASSWORD                                       */}
+              {/* ------------------------------------------------------------- */}
+              {authMode === 'forgot' && (
+                <form onSubmit={handleForgotPasswordSubmit} noValidate className="space-y-4">
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 leading-relaxed">
+                    Enter your registered email address below. We will send a secure link to reset your account password.
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Registered Email Address *
+                    </label>
+                    <div className="flex items-center px-3 py-2.5 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                      <Mail className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="e.g. name@example.com"
+                        className="w-full text-xs sm:text-sm outline-hidden font-medium text-slate-900 bg-transparent"
+                        autoComplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className={`w-full py-3 px-4 rounded-xl bg-gradient-to-r ${buttonGradient} text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60`}
+                    >
+                      {isLoading ? <span>Sending Link...</span> : <span>Send Recovery Link →</span>}
+                    </button>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('signin');
+                        setErrorMessage('');
+                        setSuccessMessage('');
+                      }}
+                      className="text-xs font-bold text-slate-600 hover:text-red-600 transition cursor-pointer"
+                    >
+                      Back to <span className="text-red-600 underline">Sign In</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </>
+          )}
         </div>
 
-        {/* Footer info */}
+        {/* Dynamic City Footer */}
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-center text-[11px] text-slate-400">
-          ChittoorAds Security • 100% Verified Local Portal
+          {cityBrandName} Security • 100% Verified Local Portal
         </div>
       </div>
     </div>

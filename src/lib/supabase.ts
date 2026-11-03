@@ -1,16 +1,23 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../types/database.types';
 
-const supabaseUrl = (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_URL : undefined) || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_URL : undefined);
-const supabaseAnonKey = (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY : undefined) || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_PUBLISHABLE_KEY : undefined);
+export const getSupabaseUrl = (): string | undefined =>
+  (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_URL : undefined) ||
+  (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_URL : undefined);
+
+export const getSupabaseAnonKey = (): string | undefined =>
+  (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY : undefined) ||
+  (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_PUBLISHABLE_KEY : undefined);
 
 export const isSupabaseConfigured = (): boolean => {
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
   return Boolean(
-    supabaseUrl &&
-    supabaseAnonKey &&
-    supabaseUrl !== 'https://your-project.supabase.co' &&
-    supabaseAnonKey !== 'your-supabase-publishable-key-here' &&
-    supabaseUrl.startsWith('https://')
+    url &&
+    key &&
+    url !== 'https://your-project.supabase.co' &&
+    key !== 'your-supabase-publishable-key-here' &&
+    url.startsWith('https://')
   );
 };
 
@@ -20,8 +27,10 @@ export const getSupabaseClient = (): SupabaseClient<Database> | null => {
   if (!isSupabaseConfigured()) {
     return null;
   }
-  if (!clientInstance && supabaseUrl && supabaseAnonKey) {
-    clientInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
+  if (!clientInstance && url && key) {
+    clientInstance = createClient<Database>(url, key, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,

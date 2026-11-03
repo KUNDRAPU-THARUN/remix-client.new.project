@@ -13,7 +13,8 @@ import {
   LayoutDashboard,
   Grid,
   Check,
-  ShieldCheck
+  ShieldCheck,
+  Shield
 } from 'lucide-react';
 import { UserAccount, CityConfig, CityId } from '../types';
 import { getCityCategories } from '../config/categories';
@@ -101,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       : 'text-[#E51E31]';
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs overflow-x-clip">
       {/* Top Civic Helpline & Location Strip */}
       <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-6 border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
@@ -372,6 +373,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Franchise</span>
             </button>
           )}
+
+          {/* Central Admin Portal (if Super Admin) */}
+          {currentUser && (currentUser.isSuperAdmin || (currentUser.roles && currentUser.roles.some((r) => r.role === 'super_admin'))) && (
+            <button
+              onClick={() => handleNavClick('admin')}
+              className={`px-3 py-2 rounded-xl relative transition cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'admin'
+                  ? 'text-red-700 font-bold bg-red-100/80'
+                  : 'hover:text-red-700 hover:bg-red-50 text-red-600 font-bold'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5 text-red-600" />
+              <span>Admin</span>
+            </button>
+          )}
         </nav>
 
         {/* Right Action Buttons */}
@@ -379,7 +395,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Saved Bookmarks */}
           <button
             onClick={onToggleSavedView}
-            className={`relative p-2 sm:p-2.5 rounded-xl border transition cursor-pointer ${
+            className={`hidden sm:flex relative p-2 sm:p-2.5 rounded-xl border transition cursor-pointer ${
               isSavedViewActive
                 ? 'bg-red-50 text-[#E51E31] border-red-300'
                 : 'text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -442,6 +458,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span>Franchise Command Center</span>
                     </button>
                   )}
+                  {(currentUser.isSuperAdmin || (currentUser.roles && currentUser.roles.some((r) => r.role === 'super_admin'))) && (
+                    <button
+                      onClick={() => {
+                        handleNavClick('admin');
+                        setUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 hover:bg-red-50 flex items-center gap-2 font-bold text-red-700 cursor-pointer border-t border-slate-100"
+                    >
+                      <Shield className="w-4 h-4 text-red-600" />
+                      <span>Super Admin Portal</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       onLogout();
@@ -458,6 +486,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : (
             <button
               onClick={onOpenLogin}
+              data-auth-trigger="login"
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
             >
               <User className="w-4 h-4 text-slate-500" />
@@ -570,6 +599,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Franchise Command Center</span>
+              </button>
+            )}
+
+            {currentUser && (currentUser.isSuperAdmin || (currentUser.roles && currentUser.roles.some((r) => r.role === 'super_admin'))) && (
+              <button
+                onClick={() => handleNavClick('admin')}
+                className="w-full text-left px-3 py-2.5 rounded-xl text-red-700 hover:bg-red-50 font-bold flex items-center gap-1.5"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Super Admin Portal</span>
               </button>
             )}
           </div>
