@@ -273,6 +273,7 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
                 activeCityFilter={activeCityFilter}
                 onSelectCityFilter={setActiveCityFilter}
                 onNavigateTab={handleSelectTab}
+                onRefreshData={loadPlatformData}
                 isLoading={isLoading}
               />
             )}
@@ -292,6 +293,7 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
                 users={usersList}
                 activeCityFilter={activeCityFilter}
                 onSelectCityFilter={setActiveCityFilter}
+                onRefreshData={loadPlatformData}
                 isLoading={isLoading}
               />
             )}
@@ -305,6 +307,7 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
                 onRejectListing={handleRejectListing}
                 onToggleVerified={handleToggleVerified}
                 onToggleFeatured={handleToggleFeatured}
+                onRefreshData={loadPlatformData}
                 isLoading={isLoading}
               />
             )}
@@ -315,6 +318,7 @@ export const AdminDashboardLayout: React.FC<AdminDashboardLayoutProps> = ({
                 directEnquiries={directEnquiries}
                 activeCityFilter={activeCityFilter}
                 onSelectCityFilter={setActiveCityFilter}
+                onRefreshData={loadPlatformData}
                 isLoading={isLoading}
               />
             )}

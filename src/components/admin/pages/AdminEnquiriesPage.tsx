@@ -16,9 +16,12 @@ import {
   ChevronRight,
   Eye,
   Sparkles,
+  Check,
+  Tag,
 } from 'lucide-react';
 import { CityId } from '../../../types';
 import { GeneralServiceRequest, CustomerEnquiry } from '../../../services/enquiryService';
+import { adminService } from '../../../services/adminService';
 import { CITIES } from '../../../config/cities';
 
 export interface AdminEnquiriesPageProps {
@@ -26,6 +29,7 @@ export interface AdminEnquiriesPageProps {
   directEnquiries: CustomerEnquiry[];
   activeCityFilter: CityId | 'all';
   onSelectCityFilter: (cityId: CityId | 'all') => void;
+  onRefreshData?: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -36,6 +40,7 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
   directEnquiries,
   activeCityFilter,
   onSelectCityFilter,
+  onRefreshData,
   isLoading,
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'direct'>('general');
@@ -45,6 +50,8 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
     type: 'general' | 'direct';
     data: GeneralServiceRequest | CustomerEnquiry;
   } | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   // Filter general requests
   const filteredGeneral = useMemo(() => {
@@ -86,6 +93,34 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  const handleUpdateStatus = async (newStatus: any) => {
+    if (!selectedLead || !selectedLead.data.id) return;
+    setIsUpdatingStatus(true);
+    setStatusMessage(null);
+
+    try {
+      if (selectedLead.type === 'general') {
+        const res = await adminService.updateGeneralRequestStatus(selectedLead.data.id, newStatus);
+        if (res.success) {
+          (selectedLead.data as any).status = newStatus;
+          setStatusMessage(`Lead status updated to ${newStatus}.`);
+          if (onRefreshData) await onRefreshData();
+        }
+      } else {
+        const res = await adminService.updateDirectEnquiryStatus(selectedLead.data.id, newStatus);
+        if (res.success) {
+          (selectedLead.data as any).status = newStatus;
+          setStatusMessage(`Enquiry status updated to ${newStatus}.`);
+          if (onRefreshData) await onRefreshData();
+        }
+      }
+    } catch (err: any) {
+      setStatusMessage(err.message || 'Status update failed.');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -180,6 +215,7 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
                 <th className="py-3.5 px-4">Territory</th>
                 <th className="py-3.5 px-4">Target / Category</th>
                 <th className="py-3.5 px-4">Requirement / Message</th>
+                <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4">Submitted</th>
                 <th className="py-3.5 px-4 sm:px-6 text-right">Action</th>
               </tr>
@@ -187,7 +223,7 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
               {paginatedList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     No inquiries match the current filter criteria.
                   </td>
                 </tr>
@@ -201,6 +237,7 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
                   const categoryOrTarget = isGeneral ? item.categoryId : (item.businessName || 'Direct Storefront');
                   const message = item.message || 'General enquiry request';
                   const dateStr = item.createdAt;
+                  const status = item.status || 'pending';
 
                   return (
                     <tr key={item.id || idx} className="hover:bg-slate-50/80 transition">
@@ -228,13 +265,28 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
                         <div className="truncate text-slate-600">{message}</div>
                       </td>
 
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
+                          status === 'resolved' || status === 'replied'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : status === 'contacted' || status === 'read'
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'bg-amber-50 text-amber-700'
+                        }`}>
+                          {status}
+                        </span>
+                      </td>
+
                       <td className="py-3.5 px-4 whitespace-nowrap text-slate-400 text-[11px]">
                         {dateStr ? new Date(dateStr).toLocaleDateString() : '—'}
                       </td>
 
                       <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
                         <button
-                          onClick={() => setSelectedLead({ type: activeTab, data: item })}
+                          onClick={() => {
+                            setSelectedLead({ type: activeTab, data: item });
+                            setStatusMessage(null);
+                          }}
                           className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition cursor-pointer"
                         >
                           View Lead
@@ -281,11 +333,11 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
         )}
       </div>
 
-      {/* Lead Detail Modal */}
+      {/* Lead Detail & Status Modal */}
       {selectedLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
                   <Inbox className="w-5 h-5" />
@@ -307,10 +359,10 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
-              <div className="p-4 rounded-2xl bg-slate-50 space-y-2 border border-slate-100">
+            <div className="space-y-3.5 text-xs">
+              <div className="p-3.5 rounded-2xl bg-slate-50 space-y-2 border border-slate-100">
                 <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                  Customer Contact
+                  Customer Contact Information
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-slate-700">
                   <div>
@@ -321,14 +373,14 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px]">Phone Number</span>
-                    <span className="font-bold">
+                    <span className="font-bold font-mono text-blue-700">
                       {selectedLead.data.customerPhone}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 space-y-1.5 border border-slate-100">
+              <div className="p-3.5 rounded-2xl bg-slate-50 space-y-1.5 border border-slate-100">
                 <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                   Requirement Details
                 </div>
@@ -339,7 +391,71 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-emerald-950 flex items-center gap-2">
+              {/* Lifecycle Status Management */}
+              <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-2">
+                <div className="font-bold text-slate-900 flex items-center justify-between">
+                  <span>Lead Lifecycle Status</span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    Current: {(selectedLead.data as any).status || 'pending'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {selectedLead.type === 'general' ? (
+                    (
+                      [
+                        { id: 'pending', label: 'Pending' },
+                        { id: 'routed', label: 'Routed to Merchant' },
+                        { id: 'contacted', label: 'Customer Contacted' },
+                        { id: 'resolved', label: 'Resolved' },
+                        { id: 'archived', label: 'Archived' },
+                      ] as const
+                    ).map((st) => (
+                      <button
+                        key={st.id}
+                        disabled={isUpdatingStatus}
+                        onClick={() => handleUpdateStatus(st.id)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                          (selectedLead.data as any).status === st.id
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {st.label}
+                      </button>
+                    ))
+                  ) : (
+                    (
+                      [
+                        { id: 'pending', label: 'Pending' },
+                        { id: 'read', label: 'Read' },
+                        { id: 'replied', label: 'Replied' },
+                        { id: 'archived', label: 'Archived' },
+                      ] as const
+                    ).map((st) => (
+                      <button
+                        key={st.id}
+                        disabled={isUpdatingStatus}
+                        onClick={() => handleUpdateStatus(st.id)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                          (selectedLead.data as any).status === st.id
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {st.label}
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {statusMessage && (
+                  <p className="text-[11px] text-emerald-700 font-bold mt-1">
+                    {statusMessage}
+                  </p>
+                )}
+              </div>
+
+              <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-emerald-950 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span className="text-[11px]">
                   Protected by privacy safeguards. Dispatched strictly to verified regional merchants.
@@ -347,7 +463,7 @@ export const AdminEnquiriesPage: React.FC<AdminEnquiriesPageProps> = ({
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setSelectedLead(null)}
                 className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"

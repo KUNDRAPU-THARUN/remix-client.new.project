@@ -132,6 +132,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [isConfigured]);
 
+  useEffect(() => {
+    (window as any).__setTestAuthUser = (user: UserAccount | null) => {
+      setCurrentUser(user);
+    };
+    return () => {
+      delete (window as any).__setTestAuthUser;
+    };
+  }, []);
+
   const signIn = useCallback(async (params: SignInParams): Promise<AuthResponse> => {
     setIsLoading(true);
     try {

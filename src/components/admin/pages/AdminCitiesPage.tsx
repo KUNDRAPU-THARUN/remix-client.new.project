@@ -14,9 +14,13 @@ import {
   FileCode2,
   Database,
   ArrowRight,
+  Clock,
+  AlertCircle,
+  Edit,
+  Save,
 } from 'lucide-react';
 import { CityId } from '../../../types';
-import { AdminCitySummary } from '../../../services/adminService';
+import { AdminCitySummary, adminService } from '../../../services/adminService';
 import { CITIES, SUPPORTED_CITY_IDS } from '../../../config/cities';
 
 export interface AdminCitiesPageProps {
@@ -24,6 +28,7 @@ export interface AdminCitiesPageProps {
   activeCityFilter: CityId | 'all';
   onSelectCityFilter: (cityId: CityId | 'all') => void;
   onNavigateTab: (tab: any) => void;
+  onRefreshData?: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -32,10 +37,40 @@ export const AdminCitiesPage: React.FC<AdminCitiesPageProps> = ({
   activeCityFilter,
   onSelectCityFilter,
   onNavigateTab,
+  onRefreshData,
   isLoading,
 }) => {
   const [selectedCityForLocalities, setSelectedCityForLocalities] = useState<CityId | null>(null);
   const [showExpansionGuide, setShowExpansionGuide] = useState(false);
+  const [editingCityId, setEditingCityId] = useState<CityId | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<'active' | 'coming_soon' | 'inactive'>('active');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
+
+  const handleStartEdit = (city: AdminCitySummary) => {
+    setEditingCityId(city.id);
+    setSelectedStatus(city.status);
+    setStatusFeedback(null);
+  };
+
+  const handleSaveCityStatus = async (cityId: CityId) => {
+    setIsUpdatingStatus(true);
+    setStatusFeedback(null);
+    try {
+      const res = await adminService.updateCityStatus(cityId, selectedStatus);
+      if (res.success) {
+        setStatusFeedback(`Territory status updated to ${selectedStatus}.`);
+        setEditingCityId(null);
+        if (onRefreshData) await onRefreshData();
+      } else {
+        setStatusFeedback(res.error || 'Failed to update territory status.');
+      }
+    } catch (err: any) {
+      setStatusFeedback(err.message || 'Error executing status update.');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -64,11 +99,21 @@ export const AdminCitiesPage: React.FC<AdminCitiesPageProps> = ({
         </div>
       </div>
 
+      {statusFeedback && (
+        <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold flex items-center justify-between">
+          <span>{statusFeedback}</span>
+          <button onClick={() => setStatusFeedback(null)} className="p-1 hover:bg-black/5 rounded">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Grid of City Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {cities.map((city) => {
           const config = CITIES[city.id];
           const isSelected = activeCityFilter === city.id;
+          const isEditing = editingCityId === city.id;
 
           return (
             <div
@@ -86,10 +131,22 @@ export const AdminCitiesPage: React.FC<AdminCitiesPageProps> = ({
                       <span className="text-xs font-black uppercase px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono">
                         {city.code}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Active</span>
-                      </span>
+                      {city.status === 'active' ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Active</span>
+                        </span>
+                      ) : city.status === 'coming_soon' ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                          <Clock className="w-3 h-3" />
+                          <span>Coming Soon</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                          <AlertCircle className="w-3 h-3" />
+                          <span>Inactive</span>
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-lg font-black text-slate-900 font-heading mt-2">
                       {city.name}
@@ -99,16 +156,53 @@ export const AdminCitiesPage: React.FC<AdminCitiesPageProps> = ({
                     </p>
                   </div>
 
-                  <a
-                    href={`/city/${city.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
-                    title={`Open live portal for ${city.name}`}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleStartEdit(city)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                      title="Edit territory status"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <a
+                      href={`/city/${city.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
+                      title={`Open live portal for ${city.name}`}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
                 </div>
+
+                {/* Status Editor Inline */}
+                {isEditing && (
+                  <div className="mt-3 p-3 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-2">
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Hub Status
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedStatus}
+                        onChange={(e) => setSelectedStatus(e.target.value as any)}
+                        className="flex-1 p-1.5 text-xs rounded-xl border border-slate-200 bg-white"
+                      >
+                        <option value="active">Active</option>
+                        <option value="coming_soon">Coming Soon</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                      <button
+                        onClick={() => handleSaveCityStatus(city.id)}
+                        disabled={isUpdatingStatus}
+                        className="px-3 py-1.5 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Save className="w-3 h-3" />
+                        <span>Save</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Metrics Breakdown */}
                 <div className="grid grid-cols-3 gap-2 my-5 py-3 border-y border-slate-100 text-center">
@@ -214,34 +308,33 @@ export const AdminCitiesPage: React.FC<AdminCitiesPageProps> = ({
               </div>
               <button
                 onClick={() => setSelectedCityForLocalities(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="py-2">
-              <p className="text-xs text-slate-600 mb-3">
-                Active municipal delivery zones and commercial clusters configured for {CITIES[selectedCityForLocalities].name}:
-              </p>
-              <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto pr-1">
-                {CITIES[selectedCityForLocalities].localities
-                  .filter((loc) => loc.id !== 'all')
-                  .map((loc) => (
-                    <span
-                      key={loc.id}
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-semibold"
-                    >
-                      {loc.name}
-                    </span>
-                  ))}
-              </div>
+            <p className="text-xs text-slate-600 mb-4">
+              Localities are used for precise territorial indexing and neighborhood filtering on public consumer search pages:
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-1">
+              {CITIES[selectedCityForLocalities].localities
+                .filter((l) => l.id !== 'all')
+                .map((loc) => (
+                  <div
+                    key={loc.id}
+                    className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs font-bold text-slate-800"
+                  >
+                    {loc.name}
+                  </div>
+                ))}
             </div>
 
             <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setSelectedCityForLocalities(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
               >
                 Close
               </button>
@@ -250,94 +343,77 @@ export const AdminCitiesPage: React.FC<AdminCitiesPageProps> = ({
         </div>
       )}
 
-      {/* Expansion Guide Drawer / Modal */}
+      {/* Expansion Architecture Guide Modal */}
       {showExpansionGuide && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                   <Database className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 font-heading text-lg">
-                    New City Expansion Architecture
+                  <h3 className="font-bold text-slate-900 font-heading">
+                    Territory Expansion Architecture
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Standard operating procedure for activating new city platforms
+                    Standard operating procedure for adding new regional hubs
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowExpansionGuide(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
-              <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 space-y-1.5 text-blue-900">
-                <div className="font-bold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-blue-600" />
-                  <span>Zero Code Duplication Architecture</span>
-                </div>
-                <p>
-                  The platform uses dynamic multi-tenant territory routing. Adding a city requires zero frontend scaffolding or new repositories.
+              <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 text-blue-950">
+                <p className="font-bold mb-1">Architecture Rules for Territory Expansion:</p>
+                <p className="text-[11px]">
+                  All KAARYAN LABS city expansions follow an automated 3-tier synchronization pattern without modifying existing client-approved layouts.
                 </p>
               </div>
 
-              <div className="space-y-3 pt-2">
-                <h4 className="font-bold text-slate-800 text-sm">Activation Steps:</h4>
-
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">1</span>
-                  <div>
-                    <span className="font-bold text-slate-900">Declare City Configuration in code</span>
-                    <p className="text-slate-500 mt-0.5">
-                      Add entry to <code className="bg-slate-200 px-1 py-0.5 rounded text-[11px]">src/config/cities.ts</code> with code, state, contact phone, email, and municipal localities.
-                    </p>
-                  </div>
+              <div className="space-y-2">
+                <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center">1</span>
+                  <span>PostgreSQL Database Registration</span>
                 </div>
+                <p className="pl-6 text-[11px]">
+                  Execute an additive <code className="bg-slate-100 px-1 py-0.5 rounded font-mono">INSERT INTO public.cities</code> row with the new city code (e.g. <code className="font-mono">KL-07</code>), slug, name, and brand name.
+                </p>
+              </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">2</span>
-                  <div>
-                    <span className="font-bold text-slate-900">Insert Database Record in `cities` table</span>
-                    <p className="text-slate-500 mt-0.5">
-                      Execute <code className="bg-slate-200 px-1 py-0.5 rounded text-[11px]">INSERT INTO cities (id, name, code, state, is_active)</code>. Foreign keys in <code className="text-slate-700">businesses</code> and <code className="text-slate-700">customer_enquiries</code> automatically validate.
-                    </p>
-                  </div>
+              <div className="space-y-2">
+                <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center">2</span>
+                  <span>Frontend Configuration Registry</span>
                 </div>
+                <p className="pl-6 text-[11px]">
+                  Add the city configuration entry in <code className="bg-slate-100 px-1 py-0.5 rounded font-mono">src/config/cities.ts</code> defining localities, official helpline contacts, and meta branding.
+                </p>
+              </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">3</span>
-                  <div>
-                    <span className="font-bold text-slate-900">Assign Regional Franchisee Account</span>
-                    <p className="text-slate-500 mt-0.5">
-                      Grant <code className="bg-slate-200 px-1 py-0.5 rounded text-[11px]">role: &apos;city_franchise&apos;, city_id: &apos;new_city&apos;</code> in <code className="text-slate-700">user_roles</code>. Row-Level Security automatically isolates listings and reviews to that city.
-                    </p>
-                  </div>
+              <div className="space-y-2">
+                <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center">3</span>
+                  <span>Franchise Provisioning & RLS Scoping</span>
                 </div>
-
-                <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                  <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">4</span>
-                  <div>
-                    <span className="font-bold text-slate-900">Live URL Automatic Provisioning</span>
-                    <p className="text-slate-500 mt-0.5">
-                      URL paths <code className="bg-slate-200 px-1 py-0.5 rounded text-[11px]">/city/new_city</code> and <code className="bg-slate-200 px-1 py-0.5 rounded text-[11px]">/city/new_city/franchise</code> instantly become active with dedicated branding.
-                    </p>
-                  </div>
-                </div>
+                <p className="pl-6 text-[11px]">
+                  Assign a regional operator in <code className="bg-slate-100 px-1 py-0.5 rounded font-mono">user_roles</code> with <code className="font-mono">city_franchise</code> and territory binding. RLS policies isolate data automatically.
+                </p>
               </div>
             </div>
 
             <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setShowExpansionGuide(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
               >
-                Got It
+                Understood
               </button>
             </div>
           </div>
@@ -346,4 +422,3 @@ export const AdminCitiesPage: React.FC<AdminCitiesPageProps> = ({
     </div>
   );
 };
-

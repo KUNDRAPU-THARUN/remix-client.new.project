@@ -19,15 +19,20 @@ import {
   Calendar,
   Lock,
   Sparkles,
+  AlertCircle,
+  Save,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 import { UserRoleType, CityId } from '../../../types';
-import { AdminUserRecord } from '../../../services/adminService';
+import { AdminUserRecord, adminService } from '../../../services/adminService';
 import { CITIES } from '../../../config/cities';
 
 export interface AdminUsersPageProps {
   users: AdminUserRecord[];
   activeCityFilter: CityId | 'all';
   onSelectCityFilter: (cityId: CityId | 'all') => void;
+  onRefreshData?: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -37,12 +42,19 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
   users,
   activeCityFilter,
   onSelectCityFilter,
+  onRefreshData,
   isLoading,
 }) => {
   const [roleFilter, setRoleFilter] = useState<UserRoleType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<AdminUserRecord | null>(null);
+
+  // Role Assignment State
+  const [editRole, setEditRole] = useState<UserRoleType>('customer');
+  const [editCity, setEditCity] = useState<CityId | 'global'>('global');
+  const [isSavingRole, setIsSavingRole] = useState(false);
+  const [roleFeedback, setRoleFeedback] = useState<string | null>(null);
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
@@ -72,6 +84,59 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  const handleOpenUserModal = (u: AdminUserRecord) => {
+    setSelectedUser(u);
+    setEditRole(u.role);
+    setEditCity(u.cityId || 'global');
+    setRoleFeedback(null);
+  };
+
+  const handleSaveRole = async () => {
+    if (!selectedUser) return;
+    setIsSavingRole(true);
+    setRoleFeedback(null);
+
+    const targetCityId = editCity === 'global' ? null : (editCity as CityId);
+    try {
+      const res = await adminService.assignUserRole(selectedUser.id, editRole, targetCityId);
+      if (res.success) {
+        setRoleFeedback('Role updated successfully in database.');
+        setSelectedUser({
+          ...selectedUser,
+          role: editRole,
+          cityId: targetCityId,
+        });
+        if (onRefreshData) await onRefreshData();
+      } else {
+        setRoleFeedback(res.error || 'Failed to update role.');
+      }
+    } catch (err: any) {
+      setRoleFeedback(err.message || 'Error executing role change.');
+    } finally {
+      setIsSavingRole(false);
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!selectedUser) return;
+    setIsSavingRole(true);
+    const newStatus = selectedUser.status === 'active' ? 'suspended' : 'active';
+    try {
+      const res = await adminService.updateUserStatus(selectedUser.id, newStatus);
+      if (res.success) {
+        setSelectedUser({ ...selectedUser, status: newStatus });
+        setRoleFeedback(`Account status changed to ${newStatus}.`);
+        if (onRefreshData) await onRefreshData();
+      } else {
+        setRoleFeedback(res.error || 'Failed to change status.');
+      }
+    } catch (err: any) {
+      setRoleFeedback(err.message || 'Error changing account status.');
+    } finally {
+      setIsSavingRole(false);
+    }
+  };
 
   const getRoleBadge = (role: UserRoleType) => {
     switch (role) {
@@ -239,10 +304,17 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                       </td>
 
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span className="capitalize">{user.status}</span>
-                        </span>
+                        {user.status === 'active' ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Active</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                            <AlertCircle className="w-3 h-3" />
+                            <span className="capitalize">{user.status}</span>
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 text-[11px]">
@@ -251,10 +323,10 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
 
                       <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
                         <button
-                          onClick={() => setSelectedUser(user)}
+                          onClick={() => handleOpenUserModal(user)}
                           className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition cursor-pointer"
                         >
-                          View Details
+                          Manage Access
                         </button>
                       </td>
                     </tr>
@@ -298,11 +370,11 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
         )}
       </div>
 
-      {/* User Details Modal */}
+      {/* User Details & Role Assignment Modal */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white font-bold flex items-center justify-center text-sm">
                   {(selectedUser.name || selectedUser.email)[0].toUpperCase()}
@@ -322,8 +394,9 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
-              <div className="p-4 rounded-2xl bg-slate-50 space-y-2 border border-slate-100">
+            <div className="space-y-3.5 text-xs">
+              {/* Credentials Summary */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 space-y-2 border border-slate-100">
                 <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
                   Profile Credentials
                 </div>
@@ -337,31 +410,107 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
                     <span className="font-bold">{selectedUser.mobile || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Primary Role</span>
+                    <span className="text-slate-400 block text-[11px]">Current Role</span>
                     <span className="mt-0.5 block">{getRoleBadge(selectedUser.role)}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Territory Bound</span>
-                    <span className="font-bold">{selectedUser.cityId ? CITIES[selectedUser.cityId]?.name : 'Global (Multi-City)'}</span>
+                    <span className="text-slate-400 block text-[11px]">Current Territory</span>
+                    <span className="font-bold">
+                      {selectedUser.cityId ? CITIES[selectedUser.cityId]?.name : 'Global (Multi-City)'}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 text-blue-950 space-y-1.5">
-                <div className="font-bold flex items-center gap-1.5 text-xs">
-                  <Lock className="w-4 h-4 text-blue-600" />
-                  <span>Database Row-Level Security Rules</span>
+              {/* Role Governance & Territory Assignment Form */}
+              <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <Shield className="w-4 h-4 text-blue-600" />
+                    <span>Role Assignment & Territory Binding</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 uppercase font-mono">user_roles table</span>
                 </div>
-                <p className="text-[11px] leading-relaxed">
-                  Role assignments are persisted in <code className="bg-blue-100 px-1 py-0.5 rounded font-mono">user_roles</code> with foreign key constraints. RLS policies evaluate <code className="bg-blue-100 px-1 py-0.5 rounded font-mono">auth.uid()</code> against active roles on every query.
-                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Assigned Role
+                    </label>
+                    <select
+                      value={editRole}
+                      onChange={(e) => setEditRole(e.target.value as UserRoleType)}
+                      className="w-full p-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="customer">Customer</option>
+                      <option value="business_owner">Business Owner (Merchant)</option>
+                      <option value="city_franchise">City Franchise Operator</option>
+                      <option value="super_admin">Super Administrator</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      City Territory
+                    </label>
+                    <select
+                      value={editCity}
+                      onChange={(e) => setEditCity(e.target.value as CityId | 'global')}
+                      className="w-full p-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="global">Global (Multi-City)</option>
+                      <option value="chittoor">Chittoor (AP-03)</option>
+                      <option value="vellore">Vellore (TN-23)</option>
+                      <option value="bengaluru">Bengaluru (KA-01)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    onClick={handleToggleStatus}
+                    disabled={isSavingRole}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                      selectedUser.status === 'active'
+                        ? 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                        : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                    }`}
+                  >
+                    {selectedUser.status === 'active' ? (
+                      <>
+                        <UserX className="w-3.5 h-3.5" />
+                        <span>Suspend Account</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Reactivate Account</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleSaveRole}
+                    disabled={isSavingRole}
+                    className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{isSavingRole ? 'Saving...' : 'Apply Role Update'}</span>
+                  </button>
+                </div>
+
+                {roleFeedback && (
+                  <p className="text-[11px] text-blue-700 font-bold bg-blue-50 p-2 rounded-xl">
+                    {roleFeedback}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setSelectedUser(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
               >
                 Close
               </button>
@@ -372,4 +521,3 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({
     </div>
   );
 };
-
