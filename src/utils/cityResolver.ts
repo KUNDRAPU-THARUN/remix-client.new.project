@@ -3,7 +3,7 @@ import { CITIES, DEFAULT_CITY_ID, isCityId } from '../config/cities';
 
 export interface ParsedCityRoute {
   cityId: CityId;
-  tab: 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise';
+  tab: 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin';
   categoryId: string;
   savedOnly: boolean;
   listingId: string | null;
@@ -96,6 +96,8 @@ export function parseCityRoute(
     tab = 'dashboard';
   } else if (effectiveSubpath === '/franchise' || effectiveSubpath.startsWith('/franchise/') || effectiveSubpath.startsWith('/franchise')) {
     tab = 'franchise';
+  } else if (effectiveSubpath === '/admin' || effectiveSubpath.startsWith('/admin/') || effectiveSubpath.startsWith('/admin')) {
+    tab = 'admin';
   } else if (effectiveSubpath === '/classifieds') {
     tab = 'classifieds';
   } else if (effectiveSubpath === '/kanipakam') {
@@ -165,6 +167,8 @@ export function buildCityRouteUrl(
     path = `${prefix}/dashboard/my-ads`;
   } else if (tab === 'franchise') {
     path = `${prefix}/franchise`;
+  } else if (tab === 'admin') {
+    path = '/admin';
   } else if (tab === 'classifieds') {
     path = `${prefix}/classifieds`;
   } else if (tab === 'kanipakam') {
