@@ -35,7 +35,7 @@ export interface GeneralServiceRequest {
   customerPhone: string;
   customerEmail?: string;
   message: string;
-  status: 'pending' | 'processed' | 'archived';
+  status: 'pending' | 'routed' | 'contacted' | 'resolved' | 'archived';
   createdAt: string;
 }
 
@@ -180,7 +180,7 @@ export const enquiryService = {
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        const { data, error } = await (supabase as any)
+        const { error } = await (supabase as any)
           .from('general_service_requests')
           .insert({
             city_id: params.cityId,
@@ -191,9 +191,7 @@ export const enquiryService = {
             customer_email: params.customerEmail?.trim() || null,
             message: params.message.trim(),
             status: 'pending',
-          })
-          .select('id')
-          .single();
+          });
 
         if (error) {
           console.warn('Backend rejected general service request:', error);
@@ -209,9 +207,7 @@ export const enquiryService = {
           };
         }
 
-        if ((data as any)?.id) {
-          return { success: true, leadId: (data as any).id };
-        }
+        return { success: true };
       } catch (err) {
         console.error('Backend general_service_requests failure:', err);
         return {

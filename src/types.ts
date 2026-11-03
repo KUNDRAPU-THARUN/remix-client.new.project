@@ -128,11 +128,22 @@ export interface Category {
   iconBg?: string;
 }
 
+export type UserRoleType = 'customer' | 'business_owner' | 'city_franchise' | 'data_entry_staff' | 'super_admin';
+
+export interface UserRoleRecord {
+  role: UserRoleType;
+  cityId: CityId | null; // null means global (e.g. super_admin)
+}
+
 export interface UserAccount {
   id: string;
   username: string;
   email: string;
   role: 'provider' | 'customer';
+  roles?: UserRoleRecord[];
+  franchiseCityId?: CityId | null;
+  isSuperAdmin?: boolean;
+  isFranchise?: boolean;
   name: string;
   mobile?: string;
   cityId?: CityId;

@@ -27,6 +27,7 @@ import { VelloreTheatresSection } from './components/VelloreTheatresSection';
 import { HomepageQuickEnquiry } from './components/HomepageQuickEnquiry';
 import { CategoryResultsPage, ResultsFilters } from './components/CategoryResultsPage';
 import { UserDashboard } from './components/UserDashboard';
+import { FranchiseDashboardLayout } from './components/franchise/FranchiseDashboardLayout';
 import { LoginModal } from './components/LoginModal';
 import { ListingDetailModal } from './components/ListingDetailModal';
 import { PostAdModal } from './components/PostAdModal';
@@ -43,7 +44,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { businessService } from './services/businessService';
 import { migrationService } from './services/migrationService';
 
-type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard';
+type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise';
 
 interface AppRouteState {
   cityId: CityId;
@@ -254,7 +255,9 @@ export const MainAppContent: React.FC = () => {
     }
     if (!found) return null;
     if (found.status === 'Pending Approval') {
-      if (currentUser && found.postedByUser === currentUser.id) return found;
+      const isOwner = currentUser && found.postedByUser === currentUser.id;
+      const isFranchiseForCity = currentUser && (currentUser.isSuperAdmin || (currentUser.isFranchise && (found.cityId || 'chittoor') === currentUser.franchiseCityId));
+      if (isOwner || isFranchiseForCity) return found;
       return null;
     }
     // Public non-owner preview requires matching active city
@@ -354,7 +357,7 @@ export const MainAppContent: React.FC = () => {
   };
 
   const handleNavigateTab = (tab: string) => {
-    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard'].includes(tab)) return;
+    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard', 'franchise'].includes(tab)) return;
     navigate({
       ...route,
       tab: tab as Tab,
@@ -487,7 +490,27 @@ export const MainAppContent: React.FC = () => {
       {/* Dynamic SEO Title, Description, Open Graph & Canonical Tags */}
       <SEOHead currentCity={currentCity} selectedListing={selectedListing} />
 
-      <div className="min-h-screen flex flex-col bg-white">
+      {activeTab === 'franchise' ? (
+        <FranchiseDashboardLayout
+          currentUser={currentUser}
+          currentCity={currentCity}
+          onBackToHome={handleBackToHome}
+          onOpenLogin={() => setIsLoginOpen(true)}
+          onSignOut={async () => {
+            await handleSignOut();
+            setCurrentUser(null);
+            handleBackToHome();
+          }}
+          onPreviewListing={selectListing}
+          onSelectCity={(targetCityId) => {
+            handleCityChange(targetCityId);
+          }}
+          onGoToOwnerDashboard={() => {
+            handleNavigateTab('dashboard');
+          }}
+        />
+      ) : (
+        <div className="min-h-screen flex flex-col bg-white">
         {/* Navigation Bar with Premium City Switcher */}
         <Navbar
           onOpenPostAd={() => setIsPostAdOpen(true)}
@@ -638,11 +661,14 @@ export const MainAppContent: React.FC = () => {
           onOpenPostAd={() => setIsPostAdOpen(true)}
           onOpenAI={() => setIsAIOpen(true)}
           onOpenFranchise={() => setIsFranchiseOpen(true)}
+          onNavigateFranchise={() => handleNavigateTab('franchise')}
           currentCity={currentCity}
           allCities={allCities}
         />
+      </div>
+    )}
 
-        {/* MODALS */}
+    {/* MODALS */}
         {/* 1. Business Details Modal */}
         <ListingDetailModal
           listing={selectedListing}
@@ -705,7 +731,6 @@ export const MainAppContent: React.FC = () => {
           onClose={() => setIsFranchiseOpen(false)}
           currentCity={currentCity}
         />
-      </div>
     </CityProvider>
   );
 };
