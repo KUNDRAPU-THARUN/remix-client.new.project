@@ -28,6 +28,7 @@ import { HomepageQuickEnquiry } from './components/HomepageQuickEnquiry';
 import { CategoryResultsPage, ResultsFilters } from './components/CategoryResultsPage';
 import { UserDashboard } from './components/UserDashboard';
 import { FranchiseDashboardLayout } from './components/franchise/FranchiseDashboardLayout';
+import { AdminDashboardLayout } from './components/admin/AdminDashboardLayout';
 import { LoginModal } from './components/LoginModal';
 import { ListingDetailModal } from './components/ListingDetailModal';
 import { PostAdModal } from './components/PostAdModal';
@@ -44,7 +45,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { businessService } from './services/businessService';
 import { migrationService } from './services/migrationService';
 
-type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise';
+type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin';
 
 interface AppRouteState {
   cityId: CityId;
@@ -357,7 +358,7 @@ export const MainAppContent: React.FC = () => {
   };
 
   const handleNavigateTab = (tab: string) => {
-    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard', 'franchise'].includes(tab)) return;
+    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard', 'franchise', 'admin'].includes(tab)) return;
     navigate({
       ...route,
       tab: tab as Tab,
@@ -366,6 +367,61 @@ export const MainAppContent: React.FC = () => {
       listingId: null,
       filters: defaultFilters
     });
+  };
+
+  // Role-Based Destination Routing after Successful Sign In
+  const handleLoginSuccess = (user: UserAccount, targetTab?: Tab, targetCityId?: CityId) => {
+    setCurrentUser(user);
+    setIsLoginOpen(false);
+
+    // 1. Explicit destination chosen via authorized multi-role selector:
+    if (targetTab) {
+      if (targetCityId && targetCityId !== route.cityId) {
+        navigate({
+          ...route,
+          cityId: targetCityId,
+          tab: targetTab,
+          categoryId: 'all',
+          savedOnly: false,
+          listingId: null,
+          filters: defaultFilters,
+        });
+      } else {
+        handleNavigateTab(targetTab);
+      }
+      return;
+    }
+
+    // 2. Protected route contextual preservation:
+    // If user opened login from a franchise, admin, or merchant dashboard route, remain on that route
+    if (route.tab === 'franchise' || route.tab === 'admin' || route.tab === 'dashboard') {
+      return;
+    }
+
+    // 3. Automatic role-based routing from general/public browsing:
+    if (user.isSuperAdmin) {
+      handleNavigateTab('admin');
+    } else if (user.isFranchise && user.franchiseCityId) {
+      if (user.franchiseCityId !== route.cityId) {
+        navigate({
+          ...route,
+          cityId: user.franchiseCityId,
+          tab: 'franchise',
+          categoryId: 'all',
+          savedOnly: false,
+          listingId: null,
+          filters: defaultFilters,
+        });
+      } else {
+        handleNavigateTab('franchise');
+      }
+    } else if (
+      user.roles?.some((r) => r.role === 'business_owner') ||
+      user.role === 'provider'
+    ) {
+      handleNavigateTab('dashboard');
+    }
+    // Customer accounts remain on the current city directory with authenticated session
   };
 
   const selectListing = (listing: Listing | null) => {
@@ -507,6 +563,19 @@ export const MainAppContent: React.FC = () => {
           }}
           onGoToOwnerDashboard={() => {
             handleNavigateTab('dashboard');
+          }}
+        />
+      ) : activeTab === 'admin' ? (
+        <AdminDashboardLayout
+          currentUser={currentUser}
+          onBackToHome={handleBackToHome}
+          onSignOut={async () => {
+            await handleSignOut();
+            setCurrentUser(null);
+            handleBackToHome();
+          }}
+          onSwitchAccount={() => {
+            setIsLoginOpen(true);
           }}
         />
       ) : (
@@ -690,14 +759,13 @@ export const MainAppContent: React.FC = () => {
           }}
         />
 
-        {/* 3. Login / Register Modal */}
+        {/* 3. Multi-City Dynamic Login / Register Modal */}
         <LoginModal
           isOpen={isLoginOpen}
           onClose={() => setIsLoginOpen(false)}
-          onLoginSuccess={(user) => {
-            setCurrentUser(user);
-            setIsLoginOpen(false);
-          }}
+          onLoginSuccess={handleLoginSuccess}
+          currentCity={currentCity}
+          activeTab={route.tab}
         />
 
         {/* 4. AI Assistant Modal */}
