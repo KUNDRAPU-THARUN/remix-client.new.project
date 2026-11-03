@@ -109,14 +109,34 @@ export const authService = {
     if (!supabase) {
       // In development fallback mode without Supabase credentials
       const username = params.email.split('@')[0];
+      const isFranchiseEmail = params.email.includes('franchise');
+      const isSuperAdminEmail = params.email.includes('admin');
+      let franchiseCityId: CityId | null = null;
+      if (params.email.includes('vellore')) franchiseCityId = 'vellore';
+      else if (params.email.includes('bengaluru')) franchiseCityId = 'bengaluru';
+      else if (params.email.includes('chittoor') || isFranchiseEmail) franchiseCityId = 'chittoor';
+
+      const isCustomer = params.email.includes('customer');
+      const roles: UserAccount['roles'] = isSuperAdminEmail
+        ? [{ role: 'super_admin', cityId: null }]
+        : isFranchiseEmail
+        ? [{ role: 'city_franchise', cityId: franchiseCityId }]
+        : isCustomer
+        ? [{ role: 'customer', cityId: franchiseCityId || 'chittoor' }]
+        : [{ role: 'business_owner', cityId: franchiseCityId || 'chittoor' }];
+
       const mockUser: UserAccount = {
         id: `user-${Date.now()}`,
         username,
         email: params.email,
-        role: 'provider',
-        name: username,
+        role: (isFranchiseEmail || isSuperAdminEmail || !isCustomer) ? 'provider' : 'customer',
+        roles,
+        franchiseCityId,
+        isSuperAdmin: isSuperAdminEmail,
+        isFranchise: Boolean(isFranchiseEmail || isSuperAdminEmail),
+        name: isSuperAdminEmail ? 'Super Administrator' : isFranchiseEmail ? `${franchiseCityId ? franchiseCityId.charAt(0).toUpperCase() + franchiseCityId.slice(1) : ''} Franchise Partner` : username,
         mobile: '9440218456',
-        cityId: 'chittoor',
+        cityId: franchiseCityId || 'chittoor',
       };
       return { user: mockUser };
     }
@@ -227,18 +247,28 @@ export const authService = {
       }
 
       // Query user roles - server-enforced role table
-      const { data: roles, error: rolesErr } = await supabase
+      const { data: rolesData, error: rolesErr } = await supabase
         .from('user_roles')
-        .select('role')
+        .select('role, city_id')
         .eq('user_id', userId);
 
       if (rolesErr) {
         console.warn('Error fetching user_roles via RLS:', rolesErr.message);
       }
 
-      const isProvider = roles?.some(
+      const roles: UserAccount['roles'] = (rolesData || []).map((r: any) => ({
+        role: r.role,
+        cityId: (r.city_id as CityId) || null,
+      }));
+
+      const isSuperAdmin = roles.some((r) => r.role === 'super_admin');
+      const franchiseRole = roles.find((r) => r.role === 'city_franchise');
+      const franchiseCityId = franchiseRole ? franchiseRole.cityId : (isSuperAdmin ? null : null);
+      const isFranchise = Boolean(franchiseRole || isSuperAdmin);
+
+      const isProvider = roles.some(
         (r) => r.role === 'business_owner' || r.role === 'city_franchise' || r.role === 'super_admin'
-      ) ?? false;
+      );
 
       const userAccount: UserAccount = {
         id: userId,
@@ -247,6 +277,10 @@ export const authService = {
         name: profile?.display_name || defaultEmail.split('@')[0],
         mobile: profile?.phone || undefined,
         role: isProvider ? 'provider' : 'customer',
+        roles,
+        franchiseCityId,
+        isSuperAdmin,
+        isFranchise,
         cityId: (profile?.city_id as CityId) || 'chittoor',
       };
 

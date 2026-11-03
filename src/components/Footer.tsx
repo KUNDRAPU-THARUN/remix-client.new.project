@@ -21,6 +21,7 @@ interface FooterProps {
   onOpenAI: () => void;
   onOpenPricing?: () => void;
   onOpenFranchise?: () => void;
+  onNavigateFranchise?: () => void;
   currentCity: CityConfig;
   allCities: CityConfig[];
 }
@@ -33,6 +34,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenAI,
   onOpenPricing,
   onOpenFranchise,
+  onNavigateFranchise,
   currentCity,
   allCities,
 }) => {
@@ -185,6 +187,17 @@ export const Footer: React.FC<FooterProps> = ({
                     className="text-slate-300 hover:text-white font-medium transition flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>City Franchise Opportunities</span>
+                  </button>
+                </li>
+              )}
+              {onNavigateFranchise && (
+                <li>
+                  <button
+                    onClick={onNavigateFranchise}
+                    className="text-slate-400 hover:text-red-400 font-bold transition flex items-center gap-1.5 cursor-pointer text-xs"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-red-500" />
+                    <span>Franchise Partner Portal ({currentCity.code})</span>
                   </button>
                 </li>
               )}

@@ -12,7 +12,8 @@ import {
   LogOut,
   LayoutDashboard,
   Grid,
-  Check
+  Check,
+  ShieldCheck
 } from 'lucide-react';
 import { UserAccount, CityConfig, CityId } from '../types';
 import { getCityCategories } from '../config/categories';
@@ -356,6 +357,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>{t('myAds')}</span>
             </button>
           )}
+
+          {/* Franchise Dashboard (if franchise or admin) */}
+          {currentUser && (currentUser.isFranchise || currentUser.isSuperAdmin) && (
+            <button
+              onClick={() => handleNavClick('franchise')}
+              className={`px-3 py-2 rounded-xl relative transition cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'franchise'
+                  ? 'text-red-600 font-bold bg-red-50/70'
+                  : 'hover:text-slate-900 hover:bg-slate-100/80 text-slate-700'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-red-500" />
+              <span>Franchise</span>
+            </button>
+          )}
         </nav>
 
         {/* Right Action Buttons */}
@@ -414,6 +430,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <LayoutDashboard className="w-4 h-4 text-slate-400" />
                     <span>My Ads Dashboard</span>
                   </button>
+                  {(currentUser.isFranchise || currentUser.isSuperAdmin) && (
+                    <button
+                      onClick={() => {
+                        handleNavClick('franchise');
+                        setUserMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 hover:bg-red-50 flex items-center gap-2 font-semibold text-red-700 cursor-pointer border-t border-slate-100"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-red-600" />
+                      <span>Franchise Command Center</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       onLogout();
@@ -532,6 +560,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="w-full text-left px-3 py-2.5 rounded-xl text-[#176AC4] hover:bg-blue-50 font-bold"
               >
                 My Ads Dashboard
+              </button>
+            )}
+
+            {currentUser && (currentUser.isFranchise || currentUser.isSuperAdmin) && (
+              <button
+                onClick={() => handleNavClick('franchise')}
+                className="w-full text-left px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-bold flex items-center gap-1.5"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Franchise Command Center</span>
               </button>
             )}
           </div>

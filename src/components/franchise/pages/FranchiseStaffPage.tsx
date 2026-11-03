@@ -139,63 +139,78 @@ export const FranchiseStaffPage: React.FC<FranchiseStaffPageProps> = ({
         </div>
       </div>
 
-      {/* Staff Directory Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredStaff.map((member) => (
-          <div
-            key={member.id}
-            className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-slate-300 transition flex flex-col justify-between space-y-4"
-          >
-            <div>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white flex items-center justify-center font-black text-sm shadow-xs">
-                    {member.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-black text-slate-900 font-heading">
-                      {member.name}
-                    </h3>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider">
-                      {member.role.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                </div>
-
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    member.status === 'active'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-amber-50 text-amber-700 border border-amber-200'
-                  }`}
-                >
-                  {member.status === 'active' ? 'Active On-Duty' : 'Pending Auth'}
-                </span>
-              </div>
-
-              <div className="mt-4 space-y-2 text-xs text-slate-600">
-                <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="truncate">{member.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>{member.phone}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>{member.assignedArea || 'Territory Wide'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Joined {member.joinedDate}</span>
-              <span className="font-medium text-slate-600">{member.lastActive || 'Active'}</span>
-            </div>
+      {/* Staff Directory Cards Grid or Empty State */}
+      {filteredStaff.length === 0 ? (
+        <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border border-slate-200/90 shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3.5">
+            <Users className="w-7 h-7" />
           </div>
-        ))}
-      </div>
+          <h3 className="text-base font-black text-slate-900 font-heading">
+            Zero Operational Staff Assigned in {currentCity.name}
+          </h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+            No field coordinators or data entry clerks are currently assigned to {currentCity.name} ({currentCity.code}) in the database.
+            Staff accounts and roles are provisioned via the Super Admin management console.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredStaff.map((member) => (
+            <div
+              key={member.id}
+              className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:border-slate-300 transition flex flex-col justify-between space-y-4"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white flex items-center justify-center font-black text-sm shadow-xs">
+                      {member.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-slate-900 font-heading">
+                        {member.name}
+                      </h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider">
+                        {member.role.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      member.status === 'active'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}
+                  >
+                    {member.status === 'active' ? 'Active On-Duty' : 'Pending Auth'}
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-2 text-xs text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{member.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>{member.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>{member.assignedArea || 'Territory Wide'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                <span>Joined {member.joinedDate}</span>
+                <span className="font-medium text-slate-600">{member.lastActive || 'Active'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Invite Modal */}
       {isInviteModalOpen && (
