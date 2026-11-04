@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { UserAccount, CityConfig } from '../../types';
 import { DashboardTab } from './DashboardSidebar';
-import { enquiryService } from '../../services/enquiryService';
+import { isSupabaseConfigured } from '../../lib/supabase';
 
 interface DashboardHeaderProps {
   activeTab: DashboardTab;
@@ -46,7 +46,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   const cityName = currentCity?.name || 'Chittoor';
   const cityCode = currentCity?.code || 'AP-03';
-  const isSupabase = enquiryService.isConfigured();
+  const isSupabase = isSupabaseConfigured();
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -244,8 +244,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 <div className="px-3 py-2 border-b border-slate-100">
                   <p className="font-bold text-slate-900 truncate">{currentUser.name}</p>
                   <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
-                  <span className="mt-1 inline-block text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-md">
-                    Verified Merchant
+                  <span className="mt-1 inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border bg-blue-50 text-blue-700 border-blue-200">
+                    {currentUser.isSuperAdmin ? 'Super Admin' : currentUser.isFranchise ? 'City Franchise' : 'Business Owner'}
                   </span>
                 </div>
 

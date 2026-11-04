@@ -202,6 +202,15 @@ export const Footer: React.FC<FooterProps> = ({
                 </li>
               )}
               <li>
+                <a
+                  href="/admin"
+                  className="text-slate-400 hover:text-white font-medium transition flex items-center gap-1.5 text-xs"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-red-500" />
+                  <span>Central Admin Console</span>
+                </a>
+              </li>
+              <li>
                 <button
                   onClick={onOpenAI}
                   className="text-[#F5C325] hover:text-amber-200 font-bold transition flex items-center gap-1.5 cursor-pointer"

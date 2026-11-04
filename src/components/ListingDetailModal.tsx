@@ -1394,7 +1394,7 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-400 text-center pt-1">
-                    Your contact information will only be shared with this verified merchant.
+                    Your contact information will only be shared with this {listing.isVerified ? 'verified ' : ''}merchant.
                   </p>
                 </form>
               )}

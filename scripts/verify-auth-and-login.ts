@@ -44,7 +44,12 @@ async function checkServerReady(port: number): Promise<boolean> {
     const res = await fetch(`http://127.0.0.1:${port}/`);
     return res.status >= 200 && res.status < 400;
   } catch {
-    return false;
+    try {
+      const res = await fetch(`http://localhost:${port}/`);
+      return res.status >= 200 && res.status < 400;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -310,8 +315,8 @@ async function runBrowserAcceptanceTests() {
 
   // Wait for preview server
   let ready = false;
-  for (let i = 0; i < 30; i++) {
-    await wait(400);
+  for (let i = 0; i < 50; i++) {
+    await wait(500);
     if (await checkServerReady(PREVIEW_PORT)) {
       ready = true;
       break;

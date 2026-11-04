@@ -112,7 +112,7 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
               Business Directory Listings ({userListings.length})
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Verified merchant ownership: Only listings posted by {currentUser.name} can be managed here.
+              Merchant listing ownership: Only listings posted by {currentUser.name} can be managed here.
             </p>
           </div>
 
