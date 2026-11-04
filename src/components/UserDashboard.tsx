@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { DashboardLayout } from './business-owner/DashboardLayout';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 export interface UserDashboardProps {
   currentUser: UserAccount | null;
@@ -42,8 +43,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   const cityName = currentCity?.name || 'Chittoor';
   const cityCode = currentCity?.code || 'AP-03';
 
-  // 1. Anonymous / Logged-out Visitor Gate
-  if (!currentUser) {
+  const isConfigured = isSupabaseConfigured();
+  const isDemoOrMockUser = Boolean(
+    currentUser && (currentUser.id === 'u-demo' || currentUser.id.startsWith('user-'))
+  );
+  // When a live Supabase backend is configured, unverified mock/demo accounts cannot bypass authentication
+  const isMockBypassBlocked = isConfigured && isDemoOrMockUser;
+
+  // 1. Anonymous / Logged-out Visitor Gate (or unverified demo user on live backend)
+  if (!currentUser || isMockBypassBlocked) {
     return (
       <div className="bg-slate-50 min-h-screen pb-16">
         {/* Banner */}
@@ -82,7 +90,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                 Merchant Authentication Required
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                You are currently viewing the Business Owner Dashboard as a guest. To protect merchant privacy, lead confidentiality, and listing ownership, please sign in with your verified Provider account.
+                {isMockBypassBlocked
+                  ? 'A live Supabase PostgreSQL backend is active. Unverified demo sessions cannot access merchant data. Please sign in with your verified merchant credentials.'
+                  : 'You are currently viewing the Business Owner Dashboard as a guest. To protect merchant privacy, lead confidentiality, and listing ownership, please sign in with your verified Provider account.'}
               </p>
             </div>
 
@@ -127,7 +137,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   }
 
   // 2. Customer Account Limitation Gate
-  if (currentUser.role === 'customer') {
+  // Enforce proper database role check: verify user possesses merchant role (provider, business_owner, franchise, super_admin)
+  const hasMerchantRole = Boolean(
+    currentUser.role === 'provider' ||
+    currentUser.isSuperAdmin ||
+    currentUser.isFranchise ||
+    currentUser.roles?.some((r) => r.role === 'business_owner' || r.role === 'city_franchise' || r.role === 'super_admin')
+  );
+
+  if (!hasMerchantRole || currentUser.role === 'customer') {
     return (
       <div className="bg-slate-50 min-h-screen pb-16">
         <div className="bg-slate-900 text-white py-10 px-4 sm:px-6 border-b border-slate-800">

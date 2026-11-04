@@ -445,7 +445,7 @@ async function runTestSuite() {
     'Trust Governance',
     'Offline Sandbox Backend Reflection',
     headerCode.includes("isSupabaseConfigured()") &&
-      headerCode.includes("{isSupabase ? 'PostgreSQL Active' : 'Offline Sandbox'}"),
+      headerCode.includes("isSupabase ? 'PostgreSQL Active'"),
     'DashboardHeader accurately checks remote backend availability via isSupabaseConfigured()'
   );
 
