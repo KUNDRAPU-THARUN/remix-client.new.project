@@ -44,6 +44,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
 }) => {
   const cityName = currentCity?.name || 'Chittoor';
   const cityCode = currentCity?.code || 'AP-03';
+  const isVerifiedMerchant = Boolean(userListings.some((l) => l.isVerified));
 
   const activeCount = userListings.filter((l) => (l.status || 'Active') === 'Active').length;
   const pendingCount = userListings.filter((l) => l.status === 'Pending Approval').length;
@@ -65,8 +66,17 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs text-xs font-bold text-blue-200 border border-white/10">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Verified Merchant Account • {cityName} ({cityCode})</span>
+              {isVerifiedMerchant ? (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Verified Merchant Account • {cityName} ({cityCode})</span>
+                </>
+              ) : (
+                <>
+                  <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Business Owner Account • {cityName} ({cityCode})</span>
+                </>
+              )}
             </div>
             <h2 className="text-2xl sm:text-3xl font-black font-heading tracking-tight">
               Namaste, {currentUser.name}!

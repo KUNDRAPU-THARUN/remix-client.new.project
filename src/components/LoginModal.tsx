@@ -21,6 +21,7 @@ import { useCity } from '../contexts/CityContext';
 import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
 
 export type DestinationTab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin';
+export type PortalType = 'customer' | 'business_owner' | 'city_franchise' | 'super_admin';
 
 export interface AuthorizedDestination {
   id: string;
@@ -94,6 +95,106 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Four-Portal Selection State
+  const [selectedPortal, setSelectedPortal] = useState<PortalType>(() => {
+    if (activeTab === 'admin') return 'super_admin';
+    if (activeTab === 'franchise') return 'city_franchise';
+    if (activeTab === 'dashboard') return 'business_owner';
+    return 'customer';
+  });
+
+  // Portal definitions for clear visual segmentation
+  const portalOptions: {
+    id: PortalType;
+    title: string;
+    badge: string;
+    desc: string;
+    icon: React.ComponentType<{ className?: string }>;
+    activeBorder: string;
+    activeBg: string;
+    iconActiveBg: string;
+    badgeColor: string;
+    textActive: string;
+  }[] = [
+    {
+      id: 'customer',
+      title: 'Customer',
+      badge: 'Public',
+      desc: 'Directory & Leads',
+      icon: User,
+      activeBorder: 'border-blue-600',
+      activeBg: 'bg-blue-50/70',
+      iconActiveBg: 'bg-blue-600 text-white',
+      badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
+      textActive: 'text-blue-900',
+    },
+    {
+      id: 'business_owner',
+      title: 'Business Owner',
+      badge: 'Merchant',
+      desc: 'Storefront Ads',
+      icon: Building2,
+      activeBorder: 'border-indigo-600',
+      activeBg: 'bg-indigo-50/70',
+      iconActiveBg: 'bg-indigo-600 text-white',
+      badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+      textActive: 'text-indigo-900',
+    },
+    {
+      id: 'city_franchise',
+      title: 'City Franchise',
+      badge: cityCode,
+      desc: `${cityName} Ops`,
+      icon: Compass,
+      activeBorder: 'border-rose-600',
+      activeBg: 'bg-rose-50/70',
+      iconActiveBg: 'bg-rose-600 text-white',
+      badgeColor: 'bg-rose-100 text-rose-700 border-rose-200',
+      textActive: 'text-rose-900',
+    },
+    {
+      id: 'super_admin',
+      title: 'Super Admin',
+      badge: 'Global',
+      desc: 'Platform Governance',
+      icon: ShieldCheck,
+      activeBorder: 'border-purple-600',
+      activeBg: 'bg-purple-50/70',
+      iconActiveBg: 'bg-purple-600 text-white',
+      badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
+      textActive: 'text-purple-900',
+    },
+  ];
+
+  const getPortalHelper = (portal: PortalType): string => {
+    switch (portal) {
+      case 'super_admin':
+        return 'Restricted to central platform administrators with multi-city governance privileges.';
+      case 'city_franchise':
+        return `Restricted to authorized ${cityName} (${cityCode}) franchise partners and territory staff.`;
+      case 'business_owner':
+        return `Sign in to manage storefront listings, track customer leads, and view insights in ${cityName}.`;
+      case 'customer':
+      default:
+        return `Sign in to bookmark businesses, submit enquiries, and review listings in ${cityName}.`;
+    }
+  };
+
+  const getSubmitButtonLabel = (): string => {
+    if (isLoading) return 'Signing In...';
+    switch (selectedPortal) {
+      case 'super_admin':
+        return 'Sign In to Super Admin Console →';
+      case 'city_franchise':
+        return `Sign In to ${cityName} Franchise →`;
+      case 'business_owner':
+        return `Sign In to Business Dashboard →`;
+      case 'customer':
+      default:
+        return `Sign In to ${cityBrandName} →`;
+    }
+  };
+
   // Multi-role destination selector state
   const [pendingUser, setPendingUser] = useState<UserAccount | null>(null);
   const [availableDestinations, setAvailableDestinations] = useState<AuthorizedDestination[]>([]);
@@ -114,8 +215,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setAvailableDestinations([]);
       setAuthMode('signin');
       setShowPassword(false);
+      // Contextual portal initialization based on active route
+      if (activeTab === 'admin') setSelectedPortal('super_admin');
+      else if (activeTab === 'franchise') setSelectedPortal('city_franchise');
+      else if (activeTab === 'dashboard') setSelectedPortal('business_owner');
+      else setSelectedPortal('customer');
     }
-  }, [isOpen]);
+  }, [isOpen, activeTab]);
 
   if (!isOpen) return null;
 
@@ -239,51 +345,78 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
       const authenticatedUser = res.user;
 
-      // Check context and destination requirements
-      // If user opened login while specifically on a protected route:
-      if (activeTab === 'franchise') {
-        // Keep user on the franchise route; gate will evaluate authorization or territory match
-        onLoginSuccess(authenticatedUser, 'franchise', city.id);
-        onClose();
-        return;
-      }
-      if (activeTab === 'admin') {
+      // -------------------------------------------------------------
+      // FOUR-PORTAL SECURITY & ROLE VERIFICATION
+      // -------------------------------------------------------------
+      if (selectedPortal === 'super_admin') {
+        const isSuperAdmin =
+          authenticatedUser.isSuperAdmin ||
+          authenticatedUser.roles?.some((r) => r.role === 'super_admin');
+
+        if (!isSuperAdmin) {
+          setErrorMessage(
+            'Access Denied: Your account does not have Super Administrator privileges. Please select your authorized portal.'
+          );
+          setIsLoading(false);
+          return;
+        }
+
         onLoginSuccess(authenticatedUser, 'admin');
         onClose();
         return;
       }
-      if (activeTab === 'dashboard') {
+
+      if (selectedPortal === 'city_franchise') {
+        const franchiseRole = authenticatedUser.roles?.find(
+          (r) => r.role === 'city_franchise' || r.role === 'data_entry_staff'
+        );
+        const isFranchiseAuthorized =
+          authenticatedUser.isSuperAdmin ||
+          authenticatedUser.isFranchise ||
+          Boolean(franchiseRole);
+
+        if (!isFranchiseAuthorized) {
+          setErrorMessage(
+            'Access Denied: Your account is not authorized as a City Franchise partner. Please select your authorized portal.'
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        // Territory validation: Route to assigned city if distinct from current city
+        const assignedCityId = franchiseRole?.cityId || authenticatedUser.franchiseCityId;
+        if (assignedCityId && assignedCityId !== city.id && !authenticatedUser.isSuperAdmin) {
+          onLoginSuccess(authenticatedUser, 'franchise', assignedCityId);
+          onClose();
+          return;
+        }
+
+        onLoginSuccess(authenticatedUser, 'franchise', assignedCityId || city.id);
+        onClose();
+        return;
+      }
+
+      if (selectedPortal === 'business_owner') {
+        const isMerchant =
+          authenticatedUser.isSuperAdmin ||
+          authenticatedUser.roles?.some((r) => r.role === 'business_owner') ||
+          authenticatedUser.role === 'provider';
+
+        if (!isMerchant) {
+          setErrorMessage(
+            'Access Denied: Your account is registered as a Customer. The Business Owner portal requires a registered business account.'
+          );
+          setIsLoading(false);
+          return;
+        }
+
         onLoginSuccess(authenticatedUser, 'dashboard');
         onClose();
         return;
       }
 
-      // If user logged in from public browsing, evaluate destinations
-      const destinations = computeDestinations(authenticatedUser);
-      const managementDestinations = destinations.filter((d) => d.id !== 'directory');
-
-      if (managementDestinations.length > 1) {
-        // Multiple legitimate roles: present authorized destination selection screen
-        setPendingUser(authenticatedUser);
-        setAvailableDestinations(destinations);
-        setIsLoading(false);
-        return;
-      }
-
-      // Single destination auto-routing
-      if (authenticatedUser.isSuperAdmin) {
-        onLoginSuccess(authenticatedUser, 'admin');
-      } else if (authenticatedUser.isFranchise && authenticatedUser.franchiseCityId) {
-        onLoginSuccess(authenticatedUser, 'franchise', authenticatedUser.franchiseCityId);
-      } else if (
-        authenticatedUser.roles?.some((r) => r.role === 'business_owner') ||
-        authenticatedUser.role === 'provider'
-      ) {
-        onLoginSuccess(authenticatedUser, 'dashboard');
-      } else {
-        // Customer account: remain on active city directory
-        onLoginSuccess(authenticatedUser, 'home', city.id);
-      }
+      // Customer portal (default): Accessible to all verified users
+      onLoginSuccess(authenticatedUser, 'home', city.id);
       onClose();
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Sign in failed unexpectedly.');
@@ -402,7 +535,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 {authMode === 'signin'
                   ? cityTagline
                   : authMode === 'signup'
-                  ? `Join ${cityName}'s Verified Directory`
+                  ? `Join ${cityName}'s Local Business Directory`
                   : 'Enter your email for recovery instructions'}
               </p>
             </div>
@@ -485,6 +618,75 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               {authMode === 'signin' && (
                 <form onSubmit={handleSignInSubmit} noValidate className="space-y-4">
                   {/* Email Address */}
+                  {/* Four-Portal Target Selector */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                        Target Portal *
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-semibold">
+                        Select your destination portal
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {portalOptions.map((portal) => {
+                        const isSelected = selectedPortal === portal.id;
+                        const Icon = portal.icon;
+                        return (
+                          <button
+                            key={portal.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedPortal(portal.id);
+                              setErrorMessage('');
+                            }}
+                            className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                              isSelected
+                                ? `${portal.activeBorder} ${portal.activeBg} ring-1 ring-slate-400/30 shadow-xs`
+                                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between w-full mb-1">
+                              <div
+                                className={`p-1.5 rounded-lg ${
+                                  isSelected ? portal.iconActiveBg : 'bg-slate-100 text-slate-500'
+                                }`}
+                              >
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <span
+                                className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${
+                                  isSelected ? portal.badgeColor : 'bg-slate-50 text-slate-500 border-slate-200'
+                                }`}
+                              >
+                                {portal.badge}
+                              </span>
+                            </div>
+                            <div>
+                              <span
+                                className={`text-xs font-bold block ${
+                                  isSelected ? portal.textActive : 'text-slate-800'
+                                }`}
+                              >
+                                {portal.title}
+                              </span>
+                              <span className="text-[10px] text-slate-500 leading-tight line-clamp-1">
+                                {portal.desc}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Portal Description Helper Callout */}
+                    <div className="mt-2 p-2 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-center gap-2">
+                      <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{getPortalHelper(selectedPortal)}</span>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
                       Email Address *
@@ -566,7 +768,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         <span>Signing In...</span>
                       ) : (
                         <>
-                          <span>Sign In to {cityBrandName} →</span>
+                          <span>{getSubmitButtonLabel()}</span>
                         </>
                       )}
                     </button>
@@ -629,6 +831,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         ? 'Explore directory, bookmark listings & submit verified reviews.'
                         : 'Register your business & manage local storefront advertisements.'}
                     </p>
+                    <div className="mt-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500 flex items-start gap-2 leading-relaxed">
+                      <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                      <span>
+                        Note: City Franchise and Super Admin accounts are provisioned via administrative governance and cannot be self-registered.
+                      </span>
+                    </div>
                   </div>
 
                   {/* Full Name */}
@@ -811,7 +1019,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Dynamic City Footer */}
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-center text-[11px] text-slate-400">
-          {cityBrandName} Security • 100% Verified Local Portal
+          {cityBrandName} Security • Multi-City Local Advertising Platform
         </div>
       </div>
     </div>

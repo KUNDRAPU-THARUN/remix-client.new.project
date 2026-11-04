@@ -55,6 +55,13 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const cityName = currentCity?.name || 'Chittoor';
   const cityCode = currentCity?.code || 'AP-03';
   const brandName = currentCity?.brandName || 'ChittoorAds';
+  const cityInitials = currentCity?.id === 'vellore' ? 'VA' : currentCity?.id === 'bengaluru' ? 'BA' : 'CA';
+  const logoGradient =
+    currentCity?.id === 'vellore'
+      ? 'from-[#176AC4] to-blue-700'
+      : currentCity?.id === 'bengaluru'
+      ? 'from-[#15995F] to-emerald-700'
+      : 'from-red-600 to-red-700';
 
   const navItems = [
     {
@@ -109,8 +116,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       {/* Brand Header */}
       <div className="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-xl bg-linear-to-br from-red-600 to-red-700 flex items-center justify-center font-black text-white shrink-0 shadow-xs">
-            CA
+          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${logoGradient} flex items-center justify-center font-black text-white shrink-0 shadow-xs`}>
+            {cityInitials}
           </div>
           {!isCollapsed && (
             <div className="overflow-hidden">

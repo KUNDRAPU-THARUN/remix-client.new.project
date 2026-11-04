@@ -65,7 +65,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
-              Sign in with your verified merchant credentials to manage storefront ads, track leads, and view performance metrics.
+              Sign in with your merchant credentials to manage storefront ads, track leads, and view performance metrics.
             </p>
           </div>
         </div>
@@ -159,7 +159,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
                 Customer Account Active
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                You are currently signed in with a <strong>Customer</strong> account. The Business Owner Dashboard is reserved for verified merchant profiles to publish commercial listings, manage customer leads, and view analytics.
+                You are currently signed in with a <strong>Customer</strong> account. The Business Owner Dashboard is reserved for registered merchant accounts to publish commercial listings, manage customer leads, and view analytics.
               </p>
             </div>
 
