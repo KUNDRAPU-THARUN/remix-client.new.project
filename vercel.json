@@ -1,18 +1,6 @@
 {
-  "cleanUrls": true,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    {
-      "source": "/city/chittoor",
-      "destination": "/city/chittoor/index.html"
-    },
-    {
-      "source": "/city/vellore",
-      "destination": "/city/vellore/index.html"
-    },
-    {
-      "source": "/city/bengaluru",
-      "destination": "/city/bengaluru/index.html"
-    },
     {
       "source": "/city/chittoor/(.*)",
       "destination": "/city/chittoor/index.html"
@@ -23,6 +11,18 @@
     },
     {
       "source": "/city/bengaluru/(.*)",
+      "destination": "/city/bengaluru/index.html"
+    },
+    {
+      "source": "/city/chittoor",
+      "destination": "/city/chittoor/index.html"
+    },
+    {
+      "source": "/city/vellore",
+      "destination": "/city/vellore/index.html"
+    },
+    {
+      "source": "/city/bengaluru",
       "destination": "/city/bengaluru/index.html"
     },
     {

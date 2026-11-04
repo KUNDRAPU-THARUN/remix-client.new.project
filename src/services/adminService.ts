@@ -297,8 +297,8 @@ export const adminService = {
         .eq('id', cityId);
 
       if (error) {
-        console.warn('Supabase city update failed or denied by RLS, falling back:', error.message);
-        return { success: true };
+        console.warn('Supabase city update failed or denied by RLS:', error.message);
+        return { success: false, error: error.message };
       }
 
       await this.logAdminAction(
@@ -311,8 +311,8 @@ export const adminService = {
 
       return { success: true };
     } catch (err: any) {
-      console.warn('Supabase city update error, falling back:', err?.message || err);
-      return { success: true };
+      console.warn('Supabase city update error:', err?.message || err);
+      return { success: false, error: err?.message || 'City status update failed' };
     }
   },
 
@@ -932,8 +932,11 @@ export const adminService = {
         .eq('id', userId);
 
       if (error) {
-        // If RLS blocked user_profiles update (due to pending 000003 migration), note for report
-        console.warn('user_profiles update notice:', error.message);
+        console.warn('user_profiles update rejected by database policy:', error.message);
+        return {
+          success: false,
+          error: error.message || rpcErr?.message || 'Database rejected status change',
+        };
       }
 
       await this.logAdminAction(
