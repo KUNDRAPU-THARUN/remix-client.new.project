@@ -19,6 +19,7 @@ import { CityProvider } from './contexts/CityContext';
 import { SEOHead } from './components/SEOHead';
 import { Navbar } from './components/Navbar';
 import { HeroSearch } from './components/HeroSearch';
+import { ServiceQuickLinks } from './components/ServiceQuickLinks';
 import { FeaturedShowcaseCarousel } from './components/FeaturedShowcaseCarousel';
 import { CategoryPills } from './components/CategoryPills';
 import { HomeSections } from './components/HomeSections';
@@ -629,6 +630,13 @@ export const MainAppContent: React.FC = () => {
                 onQuickTagClick={handleQuickTagClick}
                 onOpenAI={() => setIsAIOpen(true)}
                 currentCity={currentCity}
+              />
+
+              {/* NEW QUICK SERVICES ICON SECTION (Inspired by Quickix reference) */}
+              <ServiceQuickLinks
+                currentCity={currentCity}
+                onSelectCategory={handleNavigateToCategory}
+                onNavigateTab={handleNavigateTab}
               />
 
               <div className="max-w-7xl mx-auto px-4 sm:px-6">

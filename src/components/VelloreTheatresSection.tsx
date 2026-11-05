@@ -47,7 +47,7 @@ const VELLORE_THEATRES: Theatre[] = [
 
 export const VelloreTheatresSection: React.FC = () => {
   return (
-    <section className="py-8" aria-label="Vellore Theatres & Cinema Directory">
+    <section id="vellore-theatres-section" className="py-8 scroll-mt-24" aria-label="Vellore Theatres & Cinema Directory">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
