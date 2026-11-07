@@ -27,7 +27,12 @@ import {
   Check,
   AlertCircle,
   Wrench,
-  Info
+  Info,
+  Globe,
+  Navigation,
+  ExternalLink,
+  Flag,
+  HelpCircle,
 } from 'lucide-react';
 import { Listing, Review } from '../types';
 import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
@@ -123,7 +128,7 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
     const res = await enquiryService.submitEnquiry({
       businessId: listing.id,
       businessName: listing.title,
-      cityId: listing.cityId || 'chittoor',
+      cityId: listing.cityId || cityConfig.id,
       customerName: enquiryName,
       customerPhone: enquiryPhone,
       customerEmail: enquiryEmail || undefined,
@@ -138,6 +143,105 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
       setEnquiryPhone('');
       setEnquiryEmail('');
       setEnquiryMessage('');
+    }
+  };
+
+  const handleDirections = () => {
+    const query = encodeURIComponent(`${listing.title}, ${listing.address}, ${cityConfig.name}`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+  };
+
+  // Claim Business Dialog State
+  const [isClaimOpen, setIsClaimOpen] = useState(false);
+  const [claimName, setClaimName] = useState('');
+  const [claimPhone, setClaimPhone] = useState('');
+  const [claimEmail, setClaimEmail] = useState('');
+  const [claimRole, setClaimRole] = useState('Owner / Proprietor');
+  const [claimProof, setClaimProof] = useState('');
+  const [isClaimSubmitting, setIsClaimSubmitting] = useState(false);
+  const [claimSuccess, setClaimSuccess] = useState(false);
+  const [claimError, setClaimError] = useState('');
+
+  const handleClaimSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setClaimError('');
+    if (!claimName.trim() || claimName.trim().length < 2) {
+      setClaimError('Please enter your full name (at least 2 characters).');
+      return;
+    }
+    const cleanPhone = claimPhone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      setClaimError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    setIsClaimSubmitting(true);
+    const msg = `[CLAIM_BUSINESS_REQUEST]
+Role: ${claimRole}
+Business: ${listing.title} (${listing.id})
+Contact Email: ${claimEmail.trim() || 'N/A'}
+Verification Note / Proof: ${claimProof.trim() || 'Claimant requested ownership verification.'}`.trim();
+
+    const res = await enquiryService.submitEnquiry({
+      businessId: listing.id,
+      businessName: listing.title,
+      cityId: listing.cityId || cityConfig.id,
+      customerName: claimName.trim(),
+      customerPhone: claimPhone.trim(),
+      customerEmail: claimEmail.trim() || undefined,
+      message: msg,
+    });
+    setIsClaimSubmitting(false);
+    if (res.error) {
+      setClaimError(res.error);
+    } else {
+      setClaimSuccess(true);
+      setClaimName('');
+      setClaimPhone('');
+      setClaimEmail('');
+      setClaimProof('');
+    }
+  };
+
+  // Suggest an Edit Dialog State
+  const [isSuggestEditOpen, setIsSuggestEditOpen] = useState(false);
+  const [editType, setEditType] = useState('Incorrect Phone / WhatsApp');
+  const [editDetails, setEditDetails] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [editSuccess, setEditSuccess] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  const handleSuggestEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError('');
+    if (!editDetails.trim() || editDetails.trim().length < 5) {
+      setEditError('Please describe the correction needed (at least 5 characters).');
+      return;
+    }
+    setIsEditSubmitting(true);
+    const msg = `[SUGGEST_AN_EDIT]
+Category: ${editType}
+Listing: ${listing.title} (${listing.id})
+Proposed Corrections: ${editDetails.trim()}
+Submitted by: ${editName.trim() || 'Community Contributor'} (${editPhone.trim() || 'No phone provided'})`.trim();
+
+    const res = await enquiryService.submitEnquiry({
+      businessId: listing.id,
+      businessName: listing.title,
+      cityId: listing.cityId || cityConfig.id,
+      customerName: editName.trim() || 'Community Contributor',
+      customerPhone: editPhone.trim() || '9999999999',
+      message: msg,
+    });
+    setIsEditSubmitting(false);
+    if (res.error) {
+      setEditError(res.error);
+    } else {
+      setEditSuccess(true);
+      setEditDetails('');
+      setEditName('');
+      setEditPhone('');
     }
   };
 
@@ -308,11 +412,18 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
         {/* Modal Top Header */}
         <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/90 shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold text-red-600 uppercase tracking-wider bg-red-50 border border-red-200 px-2 py-0.5 rounded">
-              Chittoor Verified
+            <span
+              className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
+              style={{
+                color: cityConfig.theme.primaryColor,
+                backgroundColor: `${cityConfig.theme.primaryColor}14`,
+                borderColor: `${cityConfig.theme.primaryColor}30`,
+              }}
+            >
+              {cityConfig.name} Verified
             </span>
             <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-red-500" />
+              <MapPin className="w-3.5 h-3.5" style={{ color: cityConfig.theme.primaryColor }} />
               {areaName}
             </span>
             {listing.badge && (
@@ -368,16 +479,55 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                 )}
                 <span className="text-slate-500">{listing.address}</span>
               </div>
+
+              {/* Claim Business & Suggest Edit Quick Actions */}
+              <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsClaimOpen(true);
+                    setClaimSuccess(false);
+                    setClaimError('');
+                  }}
+                  className="font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                  style={{ color: cityConfig.theme.primaryColor }}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Claim this Business</span>
+                </button>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSuggestEditOpen(true);
+                    setEditSuccess(false);
+                    setEditError('');
+                  }}
+                  className="font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <Flag className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Suggest an Edit</span>
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <button
+                onClick={handleDirections}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm shadow-xs transition cursor-pointer"
+                title="Get Directions on Google Maps"
+              >
+                <Navigation className="w-4 h-4 text-blue-600" />
+                <span>Directions</span>
+              </button>
               <button
                 onClick={() => {
                   setIsEnquiryOpen(true);
                   setEnquirySuccess(false);
                   setEnquiryError('');
                 }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white font-semibold text-xs sm:text-sm shadow-xs transition cursor-pointer"
+                style={{ backgroundColor: cityConfig.theme.primaryColor }}
                 title="Send Enquiry to Business"
               >
                 <Send className="w-4 h-4" />
@@ -498,12 +648,15 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white">
                   <div>
                     <span className="text-xs bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-md">
-                      Verified AP-03 Listing
+                      Verified {cityConfig.code} Listing
                     </span>
                     <p className="text-sm font-semibold mt-1">{listing.timings}</p>
                   </div>
                   {listing.priceRange && (
-                    <span className="text-sm font-bold bg-red-600 px-3 py-1 rounded-xl">
+                    <span
+                      className="text-sm font-bold text-white px-3 py-1 rounded-xl shadow-xs"
+                      style={{ backgroundColor: cityConfig.theme.primaryColor }}
+                    >
                       {listing.priceRange}
                     </span>
                   )}
@@ -513,7 +666,7 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
               {/* Description */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
                 <h4 className="text-base font-bold text-slate-900 mb-2 font-heading flex items-center gap-2">
-                  <Info className="w-4 h-4 text-red-600" />
+                  <Info className="w-4 h-4" style={{ color: cityConfig.theme.primaryColor }} />
                   <span>Business Overview</span>
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line">
@@ -531,6 +684,18 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                     <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                     <span>{listing.address}</span>
                   </p>
+                  {listing.pincode && (
+                    <p className="text-xs text-slate-500 mt-1 font-medium">Pincode: {listing.pincode}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleDirections}
+                    className="mt-2 text-xs font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                    style={{ color: cityConfig.theme.primaryColor }}
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    <span>Open in Google Maps Directions</span>
+                  </button>
                 </div>
 
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
@@ -541,18 +706,64 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                     <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>{listing.timings}</span>
                   </p>
+                  {listing.subcategory && (
+                    <p className="text-xs text-slate-500 mt-2 font-medium">
+                      Specialty: <span className="text-slate-800 font-semibold">{listing.subcategory}</span>
+                    </p>
+                  )}
                 </div>
+
+                {listing.website && (
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                      Official Website
+                    </span>
+                    <p className="text-xs sm:text-sm font-semibold mt-1 flex items-center gap-2 truncate">
+                      <Globe className="w-4 h-4 text-blue-500 shrink-0" />
+                      <a
+                        href={listing.website.startsWith('http') ? listing.website : `https://${listing.website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-blue-600 truncate flex items-center gap-1"
+                      >
+                        <span>{listing.website.replace(/^https?:\/\//, '')}</span>
+                        <ExternalLink className="w-3 h-3 shrink-0" />
+                      </a>
+                    </p>
+                  </div>
+                )}
+
+                {listing.email && (
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                      Email Address
+                    </span>
+                    <p className="text-xs sm:text-sm font-semibold text-slate-800 mt-1 flex items-center gap-2 truncate">
+                      <Mail className="w-4 h-4 text-slate-500 shrink-0" />
+                      <a href={`mailto:${listing.email}`} className="hover:underline text-blue-600 truncate">
+                        {listing.email}
+                      </a>
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Action Prompt to write review */}
-              <div className="p-4 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-2xl flex items-center justify-between gap-3">
+              <div
+                className="p-4 border rounded-2xl flex items-center justify-between gap-3"
+                style={{
+                  backgroundColor: `${cityConfig.theme.primaryColor}08`,
+                  borderColor: `${cityConfig.theme.primaryColor}25`,
+                }}
+              >
                 <div>
-                  <h5 className="font-bold text-sm text-red-900">Have you visited this place?</h5>
-                  <p className="text-xs text-red-700">Share your experience to help fellow citizens in Chittoor.</p>
+                  <h5 className="font-bold text-sm text-slate-900">Have you visited this place?</h5>
+                  <p className="text-xs text-slate-600">Share your experience to help fellow citizens in {cityConfig.name}.</p>
                 </div>
                 <button
                   onClick={() => setActiveTab('write-review')}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer shrink-0"
+                  className="px-4 py-2 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer shrink-0"
+                  style={{ backgroundColor: cityConfig.theme.primaryColor }}
                 >
                   Write Review
                 </button>
@@ -568,7 +779,7 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                   Verified Services & Capabilities
                 </h4>
                 <p className="text-xs text-slate-500">
-                  Services offered with direct local booking and inquiry in Chittoor
+                  Services offered with direct local booking and inquiry in {cityConfig.name}
                 </p>
               </div>
 
@@ -710,7 +921,7 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                   Write Your Review for {listing.title}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Your feedback helps local residents of Chittoor make informed decisions.
+                  Your feedback helps local residents of {cityConfig.name} make informed decisions.
                 </p>
               </div>
 
@@ -884,7 +1095,7 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                       required
                       value={reviewTitle}
                       onChange={(e) => setReviewTitle(e.target.value)}
-                      placeholder="e.g. Great experience & prompt service in Chittoor!"
+                      placeholder={`e.g. Great experience & prompt service in ${cityConfig.name}!`}
                       className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-200 focus:border-red-500 outline-hidden font-medium bg-white"
                     />
                   </div>
@@ -983,7 +1194,7 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                     className="w-4 h-4 rounded text-red-600 accent-red-600 cursor-pointer"
                   />
                   <label htmlFor="certify" className="text-xs text-slate-700 cursor-pointer font-medium">
-                    ☑️ I certify that this review is based on my genuine local experience in Chittoor.
+                    ☑️ I certify that this review is based on my genuine local experience in {cityConfig.name}.
                   </label>
                 </div>
 
@@ -1396,6 +1607,283 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
                   <p className="text-[10px] text-slate-400 text-center pt-1">
                     Your contact information will only be shared with this {listing.isVerified ? 'verified ' : ''}merchant.
                   </p>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Claim Business Modal Dialog */}
+      {isClaimOpen && (
+        <div
+          onClick={() => setIsClaimOpen(false)}
+          className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150"
+          >
+            {/* Header */}
+            <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+                  style={{ backgroundColor: cityConfig.theme.primaryColor }}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm font-heading">Claim Business Ownership</h4>
+                  <p className="text-[11px] text-slate-400 line-clamp-1">{listing.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsClaimOpen(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              {claimSuccess ? (
+                <div className="py-6 text-center space-y-3">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <h5 className="font-bold text-base text-slate-900">Claim Request Submitted!</h5>
+                  <p className="text-xs text-slate-600 max-w-xs mx-auto leading-relaxed">
+                    Thank you! Our {cityConfig.name} franchise administration will verify your business details and reach out within 24 hours to connect your official owner dashboard.
+                  </p>
+                  <button
+                    onClick={() => setIsClaimOpen(false)}
+                    className="mt-2 px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleClaimSubmit} className="space-y-3">
+                  {claimError && (
+                    <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
+                      {claimError}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Your Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={claimName}
+                      onChange={(e) => setClaimName(e.target.value)}
+                      placeholder="e.g. Anand Kumar"
+                      className="w-full px-3 py-2 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-slate-50 focus:bg-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={claimPhone}
+                        onChange={(e) => setClaimPhone(e.target.value)}
+                        placeholder="10-digit mobile"
+                        className="w-full px-3 py-2 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                        Business Email
+                      </label>
+                      <input
+                        type="email"
+                        value={claimEmail}
+                        onChange={(e) => setClaimEmail(e.target.value)}
+                        placeholder="owner@domain.com"
+                        className="w-full px-3 py-2 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Your Role with this Business
+                    </label>
+                    <select
+                      value={claimRole}
+                      onChange={(e) => setClaimRole(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-white"
+                    >
+                      <option value="Owner / Proprietor">Owner / Proprietor</option>
+                      <option value="General Manager / Head">General Manager / Center Head</option>
+                      <option value="Marketing Partner">Marketing Partner</option>
+                      <option value="Authorized Representative">Authorized Representative</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Proof or Verification Note
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={claimProof}
+                      onChange={(e) => setClaimProof(e.target.value)}
+                      placeholder="e.g. GSTIN, registered phone number, electricity bill copy reference..."
+                      className="w-full p-2.5 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-slate-50 focus:bg-white resize-none"
+                    />
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="submit"
+                      disabled={isClaimSubmitting}
+                      className="w-full py-2.5 px-4 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                      style={{ backgroundColor: cityConfig.theme.primaryColor }}
+                    >
+                      {isClaimSubmitting ? <span>Submitting Claim...</span> : <span>Submit Ownership Claim</span>}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suggest an Edit Modal Dialog */}
+      {isSuggestEditOpen && (
+        <div
+          onClick={() => setIsSuggestEditOpen(false)}
+          className="fixed inset-0 z-60 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150"
+          >
+            {/* Header */}
+            <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-white">
+                  <Flag className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm font-heading">Suggest an Edit</h4>
+                  <p className="text-[11px] text-slate-400 line-clamp-1">{listing.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSuggestEditOpen(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              {editSuccess ? (
+                <div className="py-6 text-center space-y-3">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <h5 className="font-bold text-base text-slate-900">Suggestion Received!</h5>
+                  <p className="text-xs text-slate-600 max-w-xs mx-auto leading-relaxed">
+                    Thank you for helping keep {cityConfig.brandName} accurate. Our local verification team will review and update the listing.
+                  </p>
+                  <button
+                    onClick={() => setIsSuggestEditOpen(false)}
+                    className="mt-2 px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSuggestEditSubmit} className="space-y-3">
+                  {editError && (
+                    <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
+                      {editError}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      What needs updating?
+                    </label>
+                    <select
+                      value={editType}
+                      onChange={(e) => setEditType(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-white"
+                    >
+                      <option value="Incorrect Phone / WhatsApp">Incorrect Phone / WhatsApp Number</option>
+                      <option value="Wrong Address / Pin">Wrong Address / Landmark / Pincode</option>
+                      <option value="Timings Changed">Timings / Operating Hours Changed</option>
+                      <option value="Business Closed / Relocated">Business Permanently Closed or Relocated</option>
+                      <option value="Other Information">Other Detail Correction</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                      Correct Details *
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      value={editDetails}
+                      onChange={(e) => setEditDetails(e.target.value)}
+                      placeholder="Please enter the correct information..."
+                      className="w-full p-2.5 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-slate-50 focus:bg-white resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                        Your Name (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Your name"
+                        className="w-full px-3 py-2 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                        Your Mobile (Optional)
+                      </label>
+                      <input
+                        type="tel"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        placeholder="In case we need clarification"
+                        className="w-full px-3 py-2 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-slate-50 focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="submit"
+                      disabled={isEditSubmitting}
+                      className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    >
+                      {isEditSubmitting ? <span>Submitting Edit...</span> : <span>Submit Edit Suggestion</span>}
+                    </button>
+                  </div>
                 </form>
               )}
             </div>

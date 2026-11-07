@@ -44,6 +44,7 @@ const CHITTOOR_TAGS: QuickTag[] = [
 ];
 
 const VELLORE_TAGS: QuickTag[] = [
+  { label: '🚕 Book a Cab', catId: 'cab-booking' },
   { label: 'CMC Hospitals', catId: 'healthcare' },
   { label: 'VIT Student PGs', catId: 'pg-hostels' },
   { label: 'Ambur Biryani', catId: 'restaurants' },

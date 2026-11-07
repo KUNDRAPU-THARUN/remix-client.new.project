@@ -58,9 +58,35 @@ const VELLORE_ATTRACTIONS: Attraction[] = [
     highlights: ['Century-old Scudder memorial', 'World-class medical specialties', 'Historic chapel & archives'],
     directionsUrl: 'https://maps.google.com/?q=CMC+Hospital+Vellore',
   },
+  {
+    id: 'att-5',
+    name: 'Palamathi Hills & Otteri Viewpoint',
+    nameNative: 'பாலமதி மலை & ஒட்டேரி காட்சிமுனை',
+    tagline: 'Scenic Eastern Ghats hilltop overlooking Vellore valley with serene viewpoints',
+    distance: '12 km from Vellore (Otteri)',
+    timings: 'Daily: 6:00 AM - 6:00 PM',
+    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
+    highlights: ['Breathtaking panoramic city view', 'Cool breeze & sunset point', 'Surrounded by reserved forests'],
+    directionsUrl: 'https://maps.google.com/?q=Palamathi+Hills+Vellore',
+  },
+  {
+    id: 'att-6',
+    name: "St. John's Church (Fort Vellore)",
+    nameNative: 'புனித யோவான் தேவாலயம் (கோட்டை)',
+    tagline: 'Historic 1846 Anglican church built by the East India Company inside fort grounds',
+    distance: 'Inside Vellore Fort Complex',
+    timings: 'Daily: 9:00 AM - 5:00 PM',
+    image: 'https://images.unsplash.com/photo-1548625361-195fe5787e66?auto=format&fit=crop&w=800&q=80',
+    highlights: ['180+ years of colonial history', 'Historical memorial stones & bell tower', 'Quiet heritage sanctuary'],
+    directionsUrl: 'https://maps.google.com/?q=St+Johns+Church+Vellore+Fort',
+  },
 ];
 
-export const VelloreAttractionsSection: React.FC = () => {
+interface VelloreAttractionsProps {
+  onOpenCabBooking?: () => void;
+}
+
+export const VelloreAttractionsSection: React.FC<VelloreAttractionsProps> = ({ onOpenCabBooking }) => {
   return (
     <section className="py-8" aria-label="Historic Vellore Attractions & Places of Interest">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -78,9 +104,20 @@ export const VelloreAttractionsSection: React.FC = () => {
             Key historical landmarks, golden pilgrimage shrines, and heritage destinations across Vellore (TN-23)
           </p>
         </div>
+
+        {onOpenCabBooking && (
+          <button
+            type="button"
+            onClick={onOpenCabBooking}
+            className="px-4 py-2.5 rounded-xl bg-[#176AC4] hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto shrink-0"
+          >
+            <span>🚕</span>
+            <span>Book Cab for Sightseeing</span>
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {VELLORE_ATTRACTIONS.map((att) => (
           <div
             key={att.id}
