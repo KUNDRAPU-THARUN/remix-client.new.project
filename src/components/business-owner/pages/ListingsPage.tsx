@@ -53,18 +53,18 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
     if (cityFilter !== 'all' && (cityFilter === 'chittoor' || cityFilter === 'vellore' || cityFilter === 'bengaluru')) {
       return getCityCategories(cityFilter as CityId);
     }
-    return getCityCategories(currentCity?.id || 'chittoor');
-  }, [cityFilter, currentCity?.id]);
+    return currentCity ? getCityCategories(currentCity.id) : [];
+  }, [cityFilter, currentCity]);
 
   const resolveCategoryName = useCallback((item: Listing) => {
-    const cats = getCityCategories(item.cityId || 'chittoor');
+    const cats = item.cityId ? getCityCategories(item.cityId) : [];
     return cats.find((c) => c.id === item.category)?.name || item.category;
   }, []);
 
   const resolveAreaName = useCallback((item: Listing) => {
-    const city = CITIES[item.cityId || 'chittoor'] || CITIES.chittoor;
-    return city.localities.find((a) => a.id === item.area)?.name || item.area;
-  }, []);
+    const city = (item.cityId && CITIES[item.cityId]) ? CITIES[item.cityId] : currentCity;
+    return city?.localities.find((a) => a.id === item.area)?.name || item.area;
+  }, [currentCity]);
 
   const activeCount = userListings.filter((l) => (l.status || 'Active') === 'Active').length;
   const pendingCount = userListings.filter((l) => l.status === 'Pending Approval').length;
@@ -77,7 +77,7 @@ export const ListingsPage: React.FC<ListingsPageProps> = ({
       if (statusFilter !== 'all' && itemStatus !== statusFilter) return false;
 
       // City filter
-      if (cityFilter !== 'all' && (item.cityId || 'chittoor') !== cityFilter) return false;
+      if (cityFilter !== 'all' && item.cityId !== cityFilter) return false;
 
       // Category filter
       if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;

@@ -1,5 +1,6 @@
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { Listing, CityId, Review } from '../types';
+import { isCityId } from '../config/cities';
 import { INITIAL_LISTINGS } from '../data/mockData';
 import { Database } from '../types/database.types';
 
@@ -206,12 +207,20 @@ export const businessService = {
   },
 
   async createListing(newListing: Listing, userId: string): Promise<{ listing: Listing | null; error?: string }> {
+    // Verified Operating Territory Enforcement
+    if (!newListing.cityId || !isCityId(newListing.cityId)) {
+      return {
+        listing: null,
+        error: 'Operating Territory Error: Business listing creation requires a verified operational city_id. Operation blocked.',
+      };
+    }
+
     const supabase = getSupabaseClient();
     if (!supabase) {
       // Local fallback
       const safeListing: Listing = {
         ...newListing,
-        id: `${newListing.cityId || 'ch'}-local-${Date.now()}`,
+        id: `${newListing.cityId}-local-${Date.now()}`,
         status: 'Pending Approval',
         postedByUser: userId,
         rating: 0,
@@ -224,7 +233,7 @@ export const businessService = {
 
     try {
       const insertPayload = {
-        city_id: newListing.cityId || 'chittoor',
+        city_id: newListing.cityId,
         owner_id: userId,
         category_id: newListing.category,
         name: newListing.title.trim(),
@@ -297,7 +306,9 @@ export const businessService = {
         if (listings[idx].postedByUser && listings[idx].postedByUser !== userId) {
           return { listing: null, error: 'Unauthorized: You can only edit your own listings.' };
         }
-        listings[idx] = { ...listings[idx], ...updates, status: 'Pending Approval' };
+        // City territory is immutable; strip cityId from updates payload
+        const { cityId: _ignoredCityId, ...safeUpdates } = updates;
+        listings[idx] = { ...listings[idx], ...safeUpdates, status: 'Pending Approval' };
         safeSetStorage('chittoorads_listings', JSON.stringify(listings));
         return { listing: listings[idx] };
       }

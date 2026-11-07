@@ -109,36 +109,37 @@ export const authService = {
   async signIn(params: SignInParams): Promise<AuthResponse> {
     const supabase = getSupabaseClient();
     if (!supabase) {
-      // In development fallback mode without Supabase credentials
-      const username = params.email.split('@')[0];
-      const isFranchiseEmail = params.email.includes('franchise');
-      const isSuperAdminEmail = params.email.includes('admin');
-      let franchiseCityId: CityId | null = null;
-      if (params.email.includes('vellore')) franchiseCityId = 'vellore';
-      else if (params.email.includes('bengaluru')) franchiseCityId = 'bengaluru';
-      else if (params.email.includes('chittoor') || isFranchiseEmail) franchiseCityId = 'chittoor';
+      // In production or preview, never simulate mock users; fail closed
+      if (typeof import.meta !== 'undefined' && import.meta.env && !import.meta.env.DEV) {
+        return { user: null, error: 'Authentication backend is not configured. Please contact administrator.' };
+      }
 
+      // In local development mock sandbox mode without Supabase credentials:
+      // Strictly customer or provider; never grant super_admin or city_franchise from an email string
+      const username = params.email.split('@')[0];
       const isCustomer = params.email.includes('customer');
-      const roles: UserAccount['roles'] = isSuperAdminEmail
-        ? [{ role: 'super_admin', cityId: null }]
-        : isFranchiseEmail
-        ? [{ role: 'city_franchise', cityId: franchiseCityId }]
-        : isCustomer
-        ? [{ role: 'customer', cityId: franchiseCityId || 'chittoor' }]
-        : [{ role: 'business_owner', cityId: franchiseCityId || 'chittoor' }];
+      const targetCityId: CityId = params.email.includes('vellore')
+        ? 'vellore'
+        : params.email.includes('bengaluru')
+        ? 'bengaluru'
+        : 'chittoor';
+
+      const roles: UserAccount['roles'] = isCustomer
+        ? [{ role: 'customer', cityId: targetCityId }]
+        : [{ role: 'business_owner', cityId: targetCityId }];
 
       const mockUser: UserAccount = {
         id: `user-${Date.now()}`,
         username,
         email: params.email,
-        role: (isFranchiseEmail || isSuperAdminEmail || !isCustomer) ? 'provider' : 'customer',
+        role: isCustomer ? 'customer' : 'provider',
         roles,
-        franchiseCityId,
-        isSuperAdmin: isSuperAdminEmail,
-        isFranchise: Boolean(isFranchiseEmail || isSuperAdminEmail),
-        name: isSuperAdminEmail ? 'Super Administrator' : isFranchiseEmail ? `${franchiseCityId ? franchiseCityId.charAt(0).toUpperCase() + franchiseCityId.slice(1) : ''} Franchise Partner` : username,
+        franchiseCityId: null,
+        isSuperAdmin: false,
+        isFranchise: false,
+        name: username,
         mobile: '9440218456',
-        cityId: franchiseCityId || 'chittoor',
+        cityId: targetCityId,
       };
       return { user: mockUser };
     }
@@ -272,6 +273,13 @@ export const authService = {
         (r) => r.role === 'business_owner' || r.role === 'city_franchise' || r.role === 'super_admin'
       );
 
+      // Authoritative assigned city resolution:
+      // Priority 1: user_profiles.city_id
+      // Priority 2: first role with an assigned non-null cityId
+      const profileCityId = (profile?.city_id as CityId) || null;
+      const roleCityId = roles.find((r) => r.cityId)?.cityId || null;
+      const resolvedCityId: CityId | undefined = (profileCityId || roleCityId || undefined);
+
       const userAccount: UserAccount = {
         id: userId,
         username: profile?.display_name || defaultEmail.split('@')[0],
@@ -283,21 +291,14 @@ export const authService = {
         franchiseCityId,
         isSuperAdmin,
         isFranchise,
-        cityId: (profile?.city_id as CityId) || 'chittoor',
+        cityId: resolvedCityId,
       };
 
       return { user: userAccount };
     } catch (err) {
       console.warn('Could not fetch user account profile:', err);
-      return {
-        user: {
-          id: userId,
-          username: defaultEmail.split('@')[0],
-          email: defaultEmail,
-          name: defaultEmail.split('@')[0],
-          role: 'customer',
-        },
-      };
+      const msg = err instanceof Error ? err.message : 'Failed to load user account profile.';
+      return { user: null, error: msg };
     }
   },
 

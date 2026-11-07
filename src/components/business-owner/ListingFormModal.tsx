@@ -16,8 +16,9 @@ import {
   Mail,
   Tag,
 } from 'lucide-react';
-import { Listing, UserAccount, CityConfig } from '../../types';
+import { Listing, UserAccount, CityConfig, CityId } from '../../types';
 import { getCityCategories } from '../../config/categories';
+import { CITIES } from '../../config/cities';
 import { generateAdCopy } from '../../services/aiService';
 import { storageService } from '../../services/storageService';
 
@@ -39,10 +40,22 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
   currentCity,
 }) => {
   const isEditing = Boolean(initialListing);
-  const cityId = currentCity?.id || 'chittoor';
-  const cityCategories = getCityCategories(cityId);
-  const localities = currentCity?.localities || [];
-  const cityName = currentCity?.name || 'Chittoor';
+
+  // Authoritative operating city resolution: must be verified from listing or account permissions
+  const targetCityId: CityId | null =
+    initialListing?.cityId ||
+    currentUser.cityId ||
+    currentUser.roles?.find((r) => r.role === 'business_owner')?.cityId ||
+    null;
+
+  const activeCityConfig = targetCityId ? CITIES[targetCityId] : currentCity;
+  const cityCategories = targetCityId
+    ? getCityCategories(targetCityId)
+    : currentCity
+    ? getCityCategories(currentCity.id)
+    : [];
+  const localities = activeCityConfig?.localities || [];
+  const cityName = activeCityConfig?.name || 'Assigned Region';
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(cityCategories[0]?.id || 'restaurants');
@@ -103,12 +116,18 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
   const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!targetCityId) {
+      setUploadError('Operating Territory Error: Your merchant account does not have a verified operational city assignment. Image upload blocked.');
+      return;
+    }
+
     setIsUploadingImage(true);
     setUploadError('');
     try {
       const res = await storageService.uploadBusinessImage(
         file,
-        initialListing?.cityId || currentCity?.id || 'chittoor',
+        targetCityId,
         initialListing?.id || 'new'
       );
       if (res.error) {
@@ -177,6 +196,11 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
       ? servicesInput.split(',').map((s) => s.trim()).filter(Boolean)
       : [];
 
+    if (!targetCityId) {
+      setFormError('Operating Territory Error: Your merchant account does not have a verified operational city assignment. Operation blocked.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const payload: Partial<Listing> = {
@@ -191,7 +215,7 @@ export const ListingFormModal: React.FC<ListingFormModalProps> = ({
       services,
       timings: timings.trim() || 'Daily: 9:00 AM - 8:00 PM',
       description: description.trim(),
-      cityId: initialListing?.cityId || currentCity?.id || 'chittoor',
+      cityId: targetCityId,
       images: imageUrl
         ? [imageUrl]
         : ['https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80'],

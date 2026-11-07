@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Clock
 } from 'lucide-react';
-import { Listing, UserAccount, CityConfig } from '../types';
+import { Listing, UserAccount, CityConfig, CityId } from '../types';
 import { getCityCategories } from '../config/categories';
 import { generateAdCopy } from '../services/aiService';
 import { storageService } from '../services/storageService';
@@ -34,7 +34,19 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
   currentUser,
   currentCity,
 }) => {
-  const cityId = currentCity?.id || 'chittoor';
+  // Operating Territory Resolution:
+  // If user is a verified signed-in merchant, use their authorized territory;
+  // never allow a browsing city to override verified merchant credentials.
+  const isMerchant = Boolean(
+    currentUser &&
+    (currentUser.role === 'provider' || currentUser.roles?.some((r) => r.role === 'business_owner'))
+  );
+
+  const effectiveCityId: CityId = (isMerchant && !currentUser?.isSuperAdmin && currentUser?.cityId)
+    ? currentUser.cityId
+    : (currentCity?.id || 'chittoor');
+
+  const cityId = effectiveCityId;
   const categories = getCityCategories(cityId);
   const localities = currentCity?.localities || [];
   const [title, setTitle] = useState('');
@@ -59,7 +71,7 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
     setIsUploadingImage(true);
     setUploadError('');
     try {
-      const res = await storageService.uploadBusinessImage(file, currentCity?.id || 'chittoor');
+      const res = await storageService.uploadBusinessImage(file, effectiveCityId);
       if (res.error) {
         setUploadError(res.error);
       } else if (res.url) {
@@ -113,8 +125,8 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
       : ['Verified Service', 'Customer Support'];
 
     const newListing: Listing = {
-      id: `${currentCity?.id || 'ch'}-user-${Date.now()}`,
-      cityId: currentCity?.id || 'chittoor',
+      id: `${effectiveCityId}-user-${Date.now()}`,
+      cityId: effectiveCityId,
       title: title.trim(),
       category,
       area,

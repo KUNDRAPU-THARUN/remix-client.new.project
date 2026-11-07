@@ -46,6 +46,7 @@ import { LanguageProvider } from './i18n/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { businessService } from './services/businessService';
 import { migrationService } from './services/migrationService';
+import { getEffectiveDashboardCity, isSuperAdmin } from './utils/regionAuthorization';
 
 type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin';
 
@@ -238,10 +239,15 @@ export const MainAppContent: React.FC = () => {
     return cityListings.filter((l) => (l.status || 'Active') === 'Active');
   }, [cityListings]);
 
-  // Owner dashboard listings for current logged-in account (all cities owned by merchant)
+  // Owner dashboard listings for current logged-in account (strictly isolated to authorized operating territory)
   const userOwnedListings = useMemo(() => {
     if (!currentUser) return [];
-    return listings.filter((l) => l.postedByUser === currentUser.id);
+    const merchantCity = (!currentUser.isSuperAdmin && currentUser.cityId) ? currentUser.cityId : null;
+    return listings.filter((l) => {
+      if (l.postedByUser !== currentUser.id) return false;
+      if (merchantCity && l.cityId !== merchantCity) return false;
+      return true;
+    });
   }, [listings, currentUser]);
 
   // Classifieds for active city
@@ -342,7 +348,7 @@ export const MainAppContent: React.FC = () => {
     if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // City switching handler
+  // City switching handler with Region Security enforcement
   const handleCityChange = (newCityId: CityId) => {
     if (newCityId === route.cityId) return;
 
@@ -351,9 +357,21 @@ export const MainAppContent: React.FC = () => {
     setSelectedArea('all');
     setSelectedCategory('all');
 
+    // REGION LOCK & TERRITORIAL AUTHORIZATION:
+    // If user is currently on a protected dashboard tab, evaluate if newCityId is authorized for them.
+    let targetTab = route.tab;
+    if (route.tab === 'franchise' || route.tab === 'dashboard' || route.tab === 'admin') {
+      const resolution = getEffectiveDashboardCity(currentUser, newCityId, route.tab);
+      if (!resolution.isPermitted) {
+        // When unauthorized for the new city's private dashboard, safely navigate to that city's PUBLIC homepage
+        targetTab = 'home';
+      }
+    }
+
     const nextRoute: AppRouteState = {
       ...route,
       cityId: newCityId,
+      tab: targetTab,
       listingId: null, // close any active modal from previous city
       filters: { ...defaultFilters, selectedArea: 'all' },
     };
@@ -717,6 +735,10 @@ export const MainAppContent: React.FC = () => {
               onOpenLogin={() => setIsLoginOpen(true)}
               currentCity={currentCity}
               onListingCreatedOrUpdated={refreshOwnerListings}
+              onSwitchToAssignedCity={(targetCityId) => {
+                handleCityChange(targetCityId);
+                handleNavigateTab('dashboard');
+              }}
             />
           )}
 
