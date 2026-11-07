@@ -210,7 +210,7 @@ Open the Supabase SQL Editor on project `tbwtxnszyddvpgqvxwow` and execute the f
 
 DO $$
 DECLARE
-    _target_email TEXT := 'staging.superadmin@kaaryanlabs.com';
+    _target_email TEXT := 'tharunsuperadmin@gmail.com';
     _user_id UUID;
 BEGIN
     -- 1. Locate the GoTrue-managed user identity
