@@ -37,6 +37,22 @@ function mapDbBusinessToListing(row: any, images: string[] = []): Listing {
   };
 }
 
+function safeGetStorage(key: string): string | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetStorage(key: string, value: string): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(key, value);
+  } catch {}
+}
+
 export const businessService = {
   isConfigured(): boolean {
     return isSupabaseConfigured();
@@ -46,7 +62,7 @@ export const businessService = {
     const supabase = getSupabaseClient();
     if (!supabase) {
       // Local fallback from localStorage or INITIAL_LISTINGS
-      const raw = localStorage.getItem('chittoorads_listings');
+      const raw = safeGetStorage('chittoorads_listings');
       let listings: Listing[] = INITIAL_LISTINGS;
       if (raw) {
         try {
@@ -117,7 +133,7 @@ export const businessService = {
     const supabase = getSupabaseClient();
     if (!supabase) {
       // Local fallback
-      const raw = localStorage.getItem('chittoorads_listings');
+      const raw = safeGetStorage('chittoorads_listings');
       let listings: Listing[] = INITIAL_LISTINGS;
       if (raw) {
         try {
@@ -266,7 +282,7 @@ export const businessService = {
     const supabase = getSupabaseClient();
     if (!supabase) {
       // Local fallback
-      const raw = localStorage.getItem('chittoorads_listings');
+      const raw = safeGetStorage('chittoorads_listings');
       let listings: Listing[] = INITIAL_LISTINGS;
       if (raw) {
         try {
@@ -278,8 +294,11 @@ export const businessService = {
       }
       const idx = listings.findIndex((l) => l.id === listingId);
       if (idx !== -1) {
+        if (listings[idx].postedByUser && listings[idx].postedByUser !== userId) {
+          return { listing: null, error: 'Unauthorized: You can only edit your own listings.' };
+        }
         listings[idx] = { ...listings[idx], ...updates, status: 'Pending Approval' };
-        localStorage.setItem('chittoorads_listings', JSON.stringify(listings));
+        safeSetStorage('chittoorads_listings', JSON.stringify(listings));
         return { listing: listings[idx] };
       }
       return { listing: null, error: 'Listing not found.' };
@@ -347,6 +366,21 @@ export const businessService = {
   async deleteListing(listingId: string, userId: string): Promise<{ success: boolean; error?: string }> {
     const supabase = getSupabaseClient();
     if (!supabase) {
+      const raw = safeGetStorage('chittoorads_listings');
+      let listings: Listing[] = INITIAL_LISTINGS;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) listings = parsed;
+        } catch {}
+      }
+      const target = listings.find((l) => l.id === listingId);
+      if (!target) return { success: false, error: 'Listing not found.' };
+      if (target.postedByUser && target.postedByUser !== userId) {
+        return { success: false, error: 'Unauthorized: You can only delete your own listings.' };
+      }
+      listings = listings.filter((l) => l.id !== listingId);
+      safeSetStorage('chittoorads_listings', JSON.stringify(listings));
       return { success: true };
     }
 
