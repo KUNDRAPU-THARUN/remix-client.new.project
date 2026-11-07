@@ -120,7 +120,11 @@ export const FranchiseHeader: React.FC<FranchiseHeaderProps> = ({
         {/* Territory Status Tag */}
         <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-bold">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>{currentCity.name} Operations Active</span>
+          <span>
+            {isSuperAdmin
+              ? `${currentCity.name} (${currentCity.code}) Administrative View`
+              : `Assigned Franchise Territory: ${currentCity.name} (${currentCity.code})`}
+          </span>
         </div>
 
         {/* Notification Bell with Badges */}

@@ -133,9 +133,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [isConfigured]);
 
   useEffect(() => {
-    (window as any).__setTestAuthUser = (user: UserAccount | null) => {
-      setCurrentUser(user);
-    };
+    // Development-only test setter: strictly prohibited and disabled in Preview/Production builds
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      (window as any).__setTestAuthUser = (user: UserAccount | null) => {
+        setCurrentUser(user);
+      };
+    }
     return () => {
       delete (window as any).__setTestAuthUser;
     };

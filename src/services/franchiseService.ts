@@ -350,7 +350,7 @@ export const franchiseService = {
         return { success: false, error: 'Listing not found.' };
       }
       const item = listings[idx];
-      if ((item.cityId || 'chittoor') !== cityId) {
+      if (!item.cityId || item.cityId !== cityId) {
         return { success: false, error: 'Security Violation: Cannot moderate out-of-territory business.' };
       }
       if (options?.operatorId && item.postedByUser === options.operatorId) {
@@ -396,7 +396,7 @@ export const franchiseService = {
             const idx = listings.findIndex((l) => l.id === listingId);
             if (idx !== -1) {
               const item = listings[idx];
-              if ((item.cityId || 'chittoor') !== cityId) {
+              if (!item.cityId || item.cityId !== cityId) {
                 return { success: false, error: 'Security Violation: Cannot moderate out-of-territory business.' };
               }
               if (options?.operatorId && item.postedByUser === options.operatorId) {
@@ -514,7 +514,7 @@ export const franchiseService = {
         return { success: false, error: 'Listing not found.' };
       }
       const item = listings[idx];
-      if ((item.cityId || 'chittoor') !== cityId) {
+      if (!item.cityId || item.cityId !== cityId) {
         return { success: false, error: 'Security Violation: Cannot moderate out-of-territory business.' };
       }
       listings[idx] = {
@@ -554,7 +554,7 @@ export const franchiseService = {
             const idx = listings.findIndex((l) => l.id === listingId);
             if (idx !== -1) {
               const item = listings[idx];
-              if ((item.cityId || 'chittoor') !== cityId) {
+              if (!item.cityId || item.cityId !== cityId) {
                 return { success: false, error: 'Security Violation: Cannot moderate out-of-territory business.' };
               }
               listings[idx] = {

@@ -137,10 +137,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       loadEnquiries();
       return { success: true };
     } else {
-      // Create new listing
+      // Create new listing bound strictly to verified authorized merchant city
+      const authorizedCityId = currentUser.cityId || currentUser.roles?.find((r) => r.role === 'business_owner')?.cityId;
+      if (!authorizedCityId) {
+        return {
+          success: false,
+          error: 'Operating Territory Error: Your merchant account does not have a verified operational city assignment. Operation blocked.'
+        };
+      }
       const newListing: Listing = {
         id: `temp-${Date.now()}`,
-        cityId: currentCity?.id || 'chittoor',
+        cityId: authorizedCityId,
         title: listingData.title || '',
         category: listingData.category || 'restaurants',
         area: listingData.area || 'gandhi-road',

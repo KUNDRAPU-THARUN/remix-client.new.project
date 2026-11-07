@@ -201,9 +201,13 @@ export const AdminBusinessesPage: React.FC<AdminBusinessesPageProps> = ({
   };
 
   const handleApprove = async (listing: Listing) => {
+    if (!listing.cityId) {
+      console.error('Cannot approve listing without a verified cityId');
+      return;
+    }
     try {
       setActionLoadingId(listing.id);
-      await onApproveListing(listing.id, listing.cityId || 'chittoor');
+      await onApproveListing(listing.id, listing.cityId);
     } catch (err) {
       console.error('Approval failed:', err);
     } finally {
@@ -212,7 +216,7 @@ export const AdminBusinessesPage: React.FC<AdminBusinessesPageProps> = ({
   };
 
   const handleConfirmReject = async () => {
-    if (!rejectingListing) return;
+    if (!rejectingListing || !rejectingListing.cityId) return;
     if (!rejectionReason.trim() || rejectionReason.trim().length < 3) {
       setRejectError('Please provide a specific reason for rejection (at least 3 characters).');
       return;
@@ -220,7 +224,7 @@ export const AdminBusinessesPage: React.FC<AdminBusinessesPageProps> = ({
 
     try {
       setActionLoadingId(rejectingListing.id);
-      await onRejectListing(rejectingListing.id, rejectingListing.cityId || 'chittoor', rejectionReason.trim());
+      await onRejectListing(rejectingListing.id, rejectingListing.cityId, rejectionReason.trim());
       setRejectingListing(null);
       setRejectionReason('');
       setRejectError(null);
@@ -232,9 +236,10 @@ export const AdminBusinessesPage: React.FC<AdminBusinessesPageProps> = ({
   };
 
   const handleToggleVerified = async (listing: Listing) => {
+    if (!listing.cityId) return;
     try {
       setActionLoadingId(listing.id);
-      await onToggleVerified(listing.id, listing.cityId || 'chittoor', Boolean(listing.isVerified));
+      await onToggleVerified(listing.id, listing.cityId, Boolean(listing.isVerified));
     } catch (err) {
       console.error('Toggle verified failed:', err);
     } finally {
@@ -243,9 +248,10 @@ export const AdminBusinessesPage: React.FC<AdminBusinessesPageProps> = ({
   };
 
   const handleToggleFeatured = async (listing: Listing) => {
+    if (!listing.cityId) return;
     try {
       setActionLoadingId(listing.id);
-      await onToggleFeatured(listing.id, listing.cityId || 'chittoor', Boolean(listing.isFeatured));
+      await onToggleFeatured(listing.id, listing.cityId, Boolean(listing.isFeatured));
     } catch (err) {
       console.error('Toggle featured failed:', err);
     } finally {

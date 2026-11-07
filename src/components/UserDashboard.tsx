@@ -3,6 +3,7 @@ import {
   Listing,
   UserAccount,
   CityConfig,
+  CityId,
 } from '../types';
 import {
   LogIn,
@@ -11,10 +12,14 @@ import {
   Building2,
   ShieldCheck,
   CheckCircle2,
+  ShieldAlert,
+  Compass,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { DashboardLayout } from './business-owner/DashboardLayout';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { isSuperAdmin } from '../utils/regionAuthorization';
+import { CITIES } from '../config/cities';
 
 export interface UserDashboardProps {
   currentUser: UserAccount | null;
@@ -26,6 +31,7 @@ export interface UserDashboardProps {
   onOpenLogin?: () => void;
   currentCity?: CityConfig;
   onListingCreatedOrUpdated?: () => void;
+  onSwitchToAssignedCity?: (cityId: CityId) => void;
 }
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({
@@ -38,6 +44,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onOpenLogin,
   currentCity,
   onListingCreatedOrUpdated,
+  onSwitchToAssignedCity,
 }) => {
   const { signOut } = useAuth();
   const cityName = currentCity?.name || 'Chittoor';
@@ -203,12 +210,155 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     );
   }
 
-  // 3. Authenticated Business Owner / Provider Dashboard
+  const isGlobalAdmin = isSuperAdmin(currentUser);
+  const merchantCityId = currentUser.cityId || currentUser.roles?.find((r) => r.role === 'business_owner')?.cityId;
+
+  // 2.5 Unverified Operating Territory Gate
+  // When an account has merchant role but has no database-assigned cityId
+  if (currentUser && hasMerchantRole && !isGlobalAdmin && !merchantCityId) {
+    return (
+      <div className="bg-slate-50 min-h-screen pb-16">
+        <div className="bg-slate-900 text-white py-10 px-4 sm:px-6 border-b border-slate-800">
+          <div className="max-w-4xl mx-auto">
+            <button
+              onClick={onBackToHome}
+              className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 mb-3 transition cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Public Directory</span>
+            </button>
+            <h1 className="text-2xl sm:text-3xl font-black font-heading tracking-tight">
+              Business Owner Dashboard
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Signed in as <strong className="text-white">{currentUser.name}</strong> ({currentUser.email})
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-xl mx-auto px-4 pt-12 text-center">
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-12 shadow-sm space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-xs">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 font-heading">
+                Operating Territory Unverified
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                Your merchant account does not currently have an authorized regional city assignment in the database. To preserve territory isolation and database security, dashboard operations are locked. Please contact KAARYAN LABS support to assign your business territory.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={onBackToHome}
+                className="w-full sm:w-auto px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer"
+              >
+                Back to Public Directory
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Operating Region Limitation Gate (Territory Mismatch)
+  // When a verified merchant account attempts to access a dashboard outside their assigned operational territory
+  const isTerritoryMismatch = Boolean(
+    !isGlobalAdmin &&
+    merchantCityId &&
+    currentCity &&
+    merchantCityId !== currentCity.id
+  );
+
+  if (isTerritoryMismatch && merchantCityId) {
+    const assignedCity = CITIES[merchantCityId];
+    return (
+      <div className="bg-slate-50 min-h-screen pb-16">
+        <div className="bg-slate-900 text-white py-10 px-4 sm:px-6 border-b border-slate-800">
+          <div className="max-w-4xl mx-auto">
+            <button
+              onClick={onBackToHome}
+              className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 mb-3 transition cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to {cityName} Directory</span>
+            </button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-black font-heading tracking-tight">
+                Business Owner Portal
+              </h1>
+              <span className="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-3 py-0.5 rounded-full font-bold">
+                {cityName} ({cityCode})
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Signed in as <strong className="text-white">{currentUser.name}</strong> ({currentUser.email})
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-xl mx-auto px-4 pt-12 text-center">
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-12 shadow-sm space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shadow-xs">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 font-heading">
+                Operating Region Restriction
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                Your merchant account is authorized for <strong className="text-slate-900 capitalize">{assignedCity?.name || merchantCityId} ({assignedCity?.code || ''})</strong>.
+                Under Kaaryan Labs Region Security and Supabase RLS, you cannot manage listings or access customer leads for <strong>{cityName} ({cityCode})</strong>.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-100 text-left text-xs text-rose-800 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <Compass className="w-4 h-4 text-rose-600" />
+                <span>Assigned Business Region:</span>
+              </p>
+              <p className="text-[11px] text-slate-700">
+                Commercial ad management, lead responses, and store analytics are strictly isolated to your registered region: <span className="font-bold capitalize">{assignedCity?.name || merchantCityId}</span>.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              {onSwitchToAssignedCity && (
+                <button
+                  onClick={() => onSwitchToAssignedCity(merchantCityId)}
+                  className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition cursor-pointer"
+                >
+                  Go to {assignedCity?.name || merchantCityId.toUpperCase()} Merchant Dashboard →
+                </button>
+              )}
+              <button
+                onClick={onBackToHome}
+                className="w-full sm:w-auto px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer"
+              >
+                Back to Public Directory
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Authenticated Business Owner / Provider Dashboard
+  const authorizedCityConfig = (!isGlobalAdmin && merchantCityId && CITIES[merchantCityId])
+    ? CITIES[merchantCityId]
+    : currentCity;
+
   return (
     <DashboardLayout
       currentUser={currentUser}
       userListings={userListings}
-      currentCity={currentCity}
+      currentCity={authorizedCityConfig}
       onOpenPostAd={onOpenPostAd}
       onPreviewListing={onPreviewListing}
       onDeleteListing={onDeleteListing}
