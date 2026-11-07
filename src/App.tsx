@@ -47,6 +47,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { businessService } from './services/businessService';
 import { migrationService } from './services/migrationService';
 import { getEffectiveDashboardCity, isSuperAdmin } from './utils/regionAuthorization';
+import { Lock } from 'lucide-react';
 
 type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin';
 
@@ -153,6 +154,7 @@ function readStored<T>(key: string, fallback: T, valid: (value: unknown) => valu
 export const MainAppContent: React.FC = () => {
   // Navigation & Multi-City Routing State
   const [route, setRoute] = useState<AppRouteState>(readAppRoute);
+  const [regionNotice, setRegionNotice] = useState<string | null>(null);
   const activeTab = route.tab;
   const activeCategoryId = route.categoryId;
   const isSavedViewActive = route.savedOnly;
@@ -329,6 +331,24 @@ export const MainAppContent: React.FC = () => {
   useEffect(() => {
     const handleLocationChange = () => {
       const next = readAppRoute();
+
+      // STRICT CITY LOCK: If user is authenticated and city-scoped, confine to authorized city
+      if (currentUser && !isSuperAdmin(currentUser)) {
+        const authorizedCity =
+          currentUser.cityId ||
+          currentUser.franchiseCityId ||
+          currentUser.roles?.find((r) => r.cityId)?.cityId;
+
+        if (authorizedCity && next.cityId !== authorizedCity) {
+          next.cityId = authorizedCity;
+          next.listingId = null;
+          const cityName = CITIES[authorizedCity]?.name || authorizedCity;
+          setRegionNotice(
+            `Your account is registered in ${cityName}. Please sign out to access another city's website.`
+          );
+        }
+      }
+
       window.history.replaceState(window.history.state, '', appRouteUrl(next));
       setRoute(next);
     };
@@ -336,7 +356,24 @@ export const MainAppContent: React.FC = () => {
     handleLocationChange();
     window.addEventListener('popstate', handleLocationChange);
     return () => window.removeEventListener('popstate', handleLocationChange);
-  }, []);
+  }, [currentUser]);
+
+  // Reactive URL confinement when currentUser or route.cityId changes
+  useEffect(() => {
+    if (!currentUser || isSuperAdmin(currentUser)) return;
+    const authorizedCity =
+      currentUser.cityId ||
+      currentUser.franchiseCityId ||
+      currentUser.roles?.find((r) => r.cityId)?.cityId;
+
+    if (authorizedCity && route.cityId !== authorizedCity) {
+      const cityName = CITIES[authorizedCity]?.name || authorizedCity;
+      setRegionNotice(
+        `Your account is registered in ${cityName}. Please sign out to access another city's website.`
+      );
+      navigate({ ...route, cityId: authorizedCity, listingId: null }, true);
+    }
+  }, [currentUser, route.cityId]);
 
   const navigate = (next: AppRouteState, replace = false, scroll = true) => {
     const url = appRouteUrl(next);
@@ -348,14 +385,31 @@ export const MainAppContent: React.FC = () => {
     if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // City switching handler with Region Security enforcement
+  // City switching handler with Strict Region Security enforcement
   const handleCityChange = (newCityId: CityId) => {
     if (newCityId === route.cityId) return;
+
+    // STRICT CITY LOCK: If user is authenticated and city-scoped, reject city changes
+    if (currentUser && !isSuperAdmin(currentUser)) {
+      const authorizedCity =
+        currentUser.cityId ||
+        currentUser.franchiseCityId ||
+        currentUser.roles?.find((r) => r.cityId)?.cityId;
+
+      if (authorizedCity && newCityId !== authorizedCity) {
+        const cityName = CITIES[authorizedCity]?.name || authorizedCity;
+        setRegionNotice(
+          `Your account is registered in ${cityName}. Please sign out to access another city's website.`
+        );
+        return;
+      }
+    }
 
     // Incompatible filters reset
     setSearchQuery('');
     setSelectedArea('all');
     setSelectedCategory('all');
+    setRegionNotice(null);
 
     // REGION LOCK & TERRITORIAL AUTHORIZATION:
     // If user is currently on a protected dashboard tab, evaluate if newCityId is authorized for them.
@@ -571,6 +625,26 @@ export const MainAppContent: React.FC = () => {
       {/* Dynamic SEO Title, Description, Open Graph & Canonical Tags */}
       <SEOHead currentCity={currentCity} selectedListing={selectedListing} />
 
+      {/* Strict Region Lock Notification Banner */}
+      {regionNotice && (
+        <div
+          role="alert"
+          className="bg-amber-600 text-white text-xs sm:text-sm py-2.5 px-4 shadow-md flex items-center justify-between sticky top-0 z-50 border-b border-amber-700 animate-in fade-in duration-200"
+        >
+          <div className="flex items-center gap-2.5 max-w-7xl mx-auto flex-1">
+            <Lock className="w-4 h-4 shrink-0 text-amber-200" />
+            <span className="font-semibold">{regionNotice}</span>
+          </div>
+          <button
+            onClick={() => setRegionNotice(null)}
+            className="p-1 hover:bg-amber-700 rounded-md transition text-amber-100 hover:text-white cursor-pointer ml-3 font-bold text-xs"
+            aria-label="Dismiss notice"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {activeTab === 'franchise' ? (
         <FranchiseDashboardLayout
           currentUser={currentUser}
@@ -580,6 +654,7 @@ export const MainAppContent: React.FC = () => {
           onSignOut={async () => {
             await handleSignOut();
             setCurrentUser(null);
+            setRegionNotice(null);
             handleBackToHome();
           }}
           onPreviewListing={selectListing}
@@ -597,6 +672,7 @@ export const MainAppContent: React.FC = () => {
           onSignOut={async () => {
             await handleSignOut();
             setCurrentUser(null);
+            setRegionNotice(null);
             handleBackToHome();
           }}
           onSwitchAccount={() => {
@@ -615,6 +691,7 @@ export const MainAppContent: React.FC = () => {
           onLogout={async () => {
             await handleSignOut();
             setCurrentUser(null);
+            setRegionNotice(null);
           }}
           savedCount={savedIds.length}
           onToggleSavedView={() => {

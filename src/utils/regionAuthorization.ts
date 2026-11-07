@@ -204,6 +204,12 @@ export interface RegionLockBadgeInfo {
 
 /**
  * Calculates region lock UI badge state for Navbar and headers.
+ * Under Strict City Lock:
+ * - Anonymous: can switch public cities freely.
+ * - Super Admin: global access, can switch cities freely across all views.
+ * - City-scoped authenticated accounts (Customer, Business Owner, City Franchise):
+ *   Strictly locked to their database-authorized city across ALL tabs and pages.
+ *   They cannot switch cities while logged in; they must sign out first.
  */
 export function getRegionLockBadge(
   user: UserAccount | null,
@@ -232,41 +238,54 @@ export function getRegionLockBadge(
     };
   }
 
-  // City Franchise on franchise tab: strictly locked
-  if (activeTab === 'franchise') {
-    const allowed = user.franchiseCityId || user.roles?.find((r) => r.role === 'city_franchise')?.cityId || null;
-    return {
-      isLocked: true,
-      lockLabel: allowed ? 'Assigned Franchise Territory' : 'Territory Unverified',
-      allowedCityId: allowed,
-      statusText: allowed ? 'Assigned Franchise Territory' : 'Territory Unverified',
-      isSuperAdmin: false,
-      canSwitchCity: false,
-    };
+  // Determine authorized territory from authentic account data
+  const franchiseCity =
+    user.franchiseCityId ||
+    user.roles?.find((r) => r.role === 'city_franchise')?.cityId ||
+    null;
+  const merchantCity =
+    user.cityId ||
+    user.roles?.find((r) => r.role === 'business_owner')?.cityId ||
+    null;
+  const customerCity =
+    user.cityId ||
+    user.roles?.find((r) => r.role === 'customer')?.cityId ||
+    null;
+
+  const isFranchiseRole = Boolean(
+    user.isFranchise || user.roles?.some((r) => r.role === 'city_franchise')
+  );
+  const isOwnerRole = Boolean(
+    user.role === 'provider' || user.roles?.some((r) => r.role === 'business_owner')
+  );
+
+  const allowedCityId = isFranchiseRole
+    ? franchiseCity
+    : isOwnerRole
+    ? merchantCity
+    : customerCity;
+
+  let lockLabel = 'Registered City';
+  let statusText = 'Account City';
+
+  if (isFranchiseRole) {
+    lockLabel = allowedCityId ? 'Assigned Franchise Territory' : 'Territory Unverified';
+    statusText = allowedCityId ? 'Franchise Territory' : 'Territory Unverified';
+  } else if (isOwnerRole) {
+    lockLabel = allowedCityId ? 'Assigned Business Region' : 'Territory Unverified';
+    statusText = allowedCityId ? 'Business Region' : 'Territory Unverified';
+  } else {
+    lockLabel = allowedCityId ? 'Registered City' : 'Territory Unverified';
+    statusText = allowedCityId ? 'Account City' : 'Territory Unverified';
   }
 
-  // Business Owner on dashboard tab: strictly locked
-  if (activeTab === 'dashboard') {
-    const allowed = user.cityId || user.roles?.find((r) => r.role === 'business_owner')?.cityId || null;
-    return {
-      isLocked: true,
-      lockLabel: allowed ? 'Assigned Business Region' : 'Territory Unverified',
-      allowedCityId: allowed,
-      statusText: allowed ? 'Assigned Business Region' : 'Territory Unverified',
-      isSuperAdmin: false,
-      canSwitchCity: false,
-    };
-  }
-
-  // Signed-in user on public browsing routes (home, category, classifieds, kanipakam)
-  // They are free to browse all public directories, but public browsing does NOT alter their assigned account city
   return {
-    isLocked: false,
-    lockLabel: user.role === 'customer' ? 'Registered Region' : 'Assigned Territory',
-    allowedCityId: user.cityId || null,
-    statusText: 'Public Browsing',
+    isLocked: true,
+    lockLabel,
+    allowedCityId,
+    statusText,
     isSuperAdmin: false,
-    canSwitchCity: true,
+    canSwitchCity: false,
   };
 }
 

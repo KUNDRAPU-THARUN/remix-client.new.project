@@ -184,73 +184,45 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Premium Desktop City Switcher / Region Indicator */}
-          <div className="relative" ref={citySwitcherRef}>
-            <button
-              onClick={() => setCitySwitcherOpen(!citySwitcherOpen)}
-              className={`flex items-center gap-1.5 text-xs font-extrabold px-2.5 sm:px-3 py-1.5 rounded-full transition cursor-pointer select-none border ${
-                badgeInfo.isLocked
-                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 shadow-2xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
-              }`}
-              aria-label="Select City or View Region"
-              aria-expanded={citySwitcherOpen}
-              aria-haspopup="listbox"
+          {/* Desktop City Switcher / Locked Region Indicator */}
+          {badgeInfo.isLocked ? (
+            <div
+              className="flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-full bg-slate-100 text-slate-800 border border-slate-200 select-none shadow-2xs"
+              title={`Account locked to ${currentCity.name} (${currentCity.code}). Sign out to switch cities.`}
             >
-              {badgeInfo.isLocked ? (
-                <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-              ) : (
-                <span className="w-2 h-2 rounded-full bg-[#15995F] shrink-0" />
-              )}
-              <span className="hidden sm:inline">
-                {badgeInfo.isLocked ? `${badgeInfo.lockLabel}: ` : ''}{currentCity.name}
-              </span>
-              <span className="sm:hidden">{currentCity.name}</span>
-              <span className="text-[10px] text-slate-500 font-semibold">{currentCity.code}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            {citySwitcherOpen && (
-              <div
-                className="absolute top-10 left-0 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
-                role="listbox"
-                aria-label="Cities list"
+              <span>{currentCity.name}</span>
+              <span className="text-[10px] text-slate-500 font-bold">({currentCity.code})</span>
+              <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0 ml-0.5" />
+            </div>
+          ) : (
+            <div className="relative" ref={citySwitcherRef}>
+              <button
+                onClick={() => setCitySwitcherOpen(!citySwitcherOpen)}
+                className="flex items-center gap-1.5 text-xs font-extrabold px-2.5 sm:px-3 py-1.5 rounded-full transition cursor-pointer select-none border bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200"
+                aria-label="Select City Platform"
+                aria-expanded={citySwitcherOpen}
+                aria-haspopup="listbox"
               >
-                <div className="px-3.5 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1 flex items-center justify-between">
-                  <span>{badgeInfo.isLocked ? badgeInfo.lockLabel : 'Select City Platform'}</span>
-                  <span className={`font-bold ${badgeInfo.isLocked ? 'text-amber-700' : 'text-[#15995F]'}`}>
-                    {badgeInfo.statusText}
-                  </span>
-                </div>
+                <span className="w-2 h-2 rounded-full bg-[#15995F] shrink-0" />
+                <span className="hidden sm:inline">{currentCity.name}</span>
+                <span className="sm:hidden">{currentCity.name}</span>
+                <span className="text-[10px] text-slate-500 font-semibold">{currentCity.code}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
 
-                {badgeInfo.isLocked ? (
-                  <div className="p-3 text-xs space-y-2.5">
-                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
-                      <div className="flex items-center gap-1.5 font-bold mb-1">
-                        <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                        <span>Territory Lock Enforced</span>
-                      </div>
-                      <p className="text-[11px] text-amber-800 leading-relaxed">
-                        Under Kaaryan Labs Region Security, your active operations are bound to <strong>{currentCity.name} ({currentCity.code})</strong>. Cross-city switching is disabled during private dashboard sessions.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-red-50 text-[#E51E31] font-black border border-red-100">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-[#E51E31]" />
-                        <div>
-                          <span>{currentCity.name}</span>
-                          <span className="text-[10px] text-slate-500 font-medium block">
-                            {currentCity.state} • {currentCity.code}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] uppercase font-extrabold bg-[#E51E31] text-white px-2 py-0.5 rounded">
-                        Active
-                      </span>
-                    </div>
+              {citySwitcherOpen && (
+                <div
+                  className="absolute top-10 left-0 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+                  role="listbox"
+                  aria-label="Cities list"
+                >
+                  <div className="px-3.5 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1 flex items-center justify-between">
+                    <span>Select City Platform</span>
+                    <span className="font-bold text-[#15995F]">
+                      {badgeInfo.statusText}
+                    </span>
                   </div>
-                ) : (
+
                   <div className="p-1 space-y-1">
                     {allCities.map((c) => {
                       const isSelected = c.id === currentCity.id;
@@ -288,18 +260,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                       );
                     })}
                   </div>
-                )}
 
-                <div className="px-3.5 py-2 border-t border-slate-100 text-[10px] text-slate-400">
-                  {badgeInfo.isLocked
-                    ? 'Return to the public home directory to browse other city directories.'
-                    : currentUser && currentUser.cityId
-                    ? `Public directory view. Registered account region: ${currentUser.cityId.toUpperCase()}.`
-                    : 'Switching cities updates search, localities & ads.'}
+                  <div className="px-3.5 py-2 border-t border-slate-100 text-[10px] text-slate-400">
+                    Switching cities updates search, localities & ads.
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Center Navigation Links */}
@@ -614,10 +582,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold">
                   <Lock className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>{currentCity.name} ({currentCity.code}) — Territory Locked</span>
+                  <span>{currentCity.name} ({currentCity.code}) — {badgeInfo.statusText}</span>
                 </div>
                 <span className="text-[10px] uppercase font-extrabold bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded">
-                  Assigned
+                  Locked
                 </span>
               </div>
             ) : (
@@ -706,6 +674,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Shield className="w-4 h-4" />
                 <span>Super Admin Portal</span>
+              </button>
+            )}
+
+            {currentUser && (
+              <button
+                onClick={() => {
+                  onLogout();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 font-bold flex items-center gap-2 border-t border-slate-100 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out ({currentCity.name})</span>
               </button>
             )}
           </div>
