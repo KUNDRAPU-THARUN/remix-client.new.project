@@ -172,6 +172,12 @@ export const FranchiseEnquiriesPage: React.FC<FranchiseEnquiriesPageProps> = ({
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
                           {lead.categoryId || 'General Service'}
                         </span>
+                        {lead.message.includes('[CAB_BOOKING_ENQUIRY]') && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                            <span>🚕</span>
+                            <span>Cab Booking</span>
+                          </span>
+                        )}
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
                           Area: {lead.areaId}
                         </span>
@@ -292,6 +298,18 @@ export const FranchiseEnquiriesPage: React.FC<FranchiseEnquiriesPageProps> = ({
                       <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
                         {enq.businessName || 'Local Business'}
                       </span>
+                      {enq.message.includes('[CLAIM_BUSINESS_REQUEST]') && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
+                          <span>🛡️</span>
+                          <span>Ownership Claim</span>
+                        </span>
+                      )}
+                      {enq.message.includes('[SUGGEST_AN_EDIT]') && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-50 text-purple-800 border border-purple-300 flex items-center gap-1">
+                          <span>🚩</span>
+                          <span>Edit Suggestion</span>
+                        </span>
+                      )}
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase">
                         {enq.status}
                       </span>

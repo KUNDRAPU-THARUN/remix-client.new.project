@@ -110,6 +110,9 @@ export interface Listing {
   postedDate: string;
   badge?: string;
   email?: string;
+  website?: string;
+  pincode?: string;
+  subcategory?: string;
   status?: 'Active' | 'Pending Approval' | 'Expired';
   viewsCount?: number;
   postedByUser?: string;

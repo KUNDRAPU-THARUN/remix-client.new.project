@@ -36,6 +36,7 @@ import { PostAdModal } from './components/PostAdModal';
 import { PricingModal } from './components/PricingModal';
 import { FranchiseModal } from './components/FranchiseModal';
 import { AIAssistantModal } from './components/AIAssistantModal';
+import { CabBookingModal } from './components/CabBookingModal';
 import { ClassifiedsSection } from './components/ClassifiedsSection';
 import { KanipakamSpecial } from './components/KanipakamSpecial';
 import { EmergencySection } from './components/EmergencySection';
@@ -115,7 +116,7 @@ function isReview(value: unknown): value is Review {
 
 function isListing(value: unknown): value is Listing {
   return isRecord(value) && stringFields(value, ['id', 'title', 'category', 'area', 'address', 'phone', 'description', 'timings', 'postedDate'])
-    && optionalStrings(value, ['whatsapp', 'priceRange', 'badge', 'email', 'postedByUser', 'cityId'])
+    && optionalStrings(value, ['whatsapp', 'priceRange', 'badge', 'email', 'postedByUser', 'cityId', 'website', 'pincode', 'subcategory'])
     && finite(value.rating) && finite(value.reviewsCount) && value.reviewsCount >= 0
     && typeof value.isVerified === 'boolean' && strings(value.services) && strings(value.images)
     && Array.isArray(value.reviews) && value.reviews.every(isReview)
@@ -278,6 +279,7 @@ export const MainAppContent: React.FC = () => {
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isFranchiseOpen, setIsFranchiseOpen] = useState(false);
+  const [isCabBookingOpen, setIsCabBookingOpen] = useState(false);
   const storageWarnings = useRef(new Set<string>());
 
   const persist = useCallback((key: string, value: unknown) => {
@@ -461,6 +463,10 @@ export const MainAppContent: React.FC = () => {
   };
 
   const handleQuickTagClick = (tagLabel: string, catId?: string) => {
+    if (catId === 'cab-booking') {
+      setIsCabBookingOpen(true);
+      return;
+    }
     if (catId) {
       handleNavigateToCategory(catId);
     } else {
@@ -666,12 +672,15 @@ export const MainAppContent: React.FC = () => {
                 {route.cityId === 'vellore' && (
                   <div className="space-y-8 my-8">
                     <VelloreTheatresSection />
-                    <VelloreAttractionsSection />
+                    <VelloreAttractionsSection onOpenCabBooking={() => setIsCabBookingOpen(true)} />
                   </div>
                 )}
 
                 {/* Homepage Quick Callback Request */}
-                <HomepageQuickEnquiry currentCity={currentCity} />
+                <HomepageQuickEnquiry
+                  currentCity={currentCity}
+                  onOpenCabBooking={() => setIsCabBookingOpen(true)}
+                />
               </div>
             </div>
           )}
@@ -805,6 +814,13 @@ export const MainAppContent: React.FC = () => {
         <FranchiseModal
           isOpen={isFranchiseOpen}
           onClose={() => setIsFranchiseOpen(false)}
+          currentCity={currentCity}
+        />
+
+        {/* 9. Cab Booking Enquiry Modal */}
+        <CabBookingModal
+          isOpen={isCabBookingOpen}
+          onClose={() => setIsCabBookingOpen(false)}
           currentCity={currentCity}
         />
     </CityProvider>

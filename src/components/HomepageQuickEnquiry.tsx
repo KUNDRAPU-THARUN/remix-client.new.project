@@ -6,9 +6,10 @@ import { enquiryService } from '../services/enquiryService';
 
 interface HomepageQuickEnquiryProps {
   currentCity: CityConfig;
+  onOpenCabBooking?: () => void;
 }
 
-export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ currentCity }) => {
+export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ currentCity, onOpenCabBooking }) => {
   const categories = getCityCategories(currentCity.id);
   const localities = currentCity.localities.filter((a) => a.id !== 'all');
 
@@ -97,6 +98,25 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
               <span>Fast Doorstep Quotes Across All Mandals & Areas</span>
             </div>
           </div>
+
+          {onOpenCabBooking && currentCity.id === 'vellore' && (
+            <div className="mt-6 p-4 rounded-2xl bg-blue-500/15 border border-blue-400/30 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">🚕</span>
+                <div>
+                  <h4 className="text-xs font-bold text-white">Need a Taxi or Airport Cab?</h4>
+                  <p className="text-[11px] text-slate-300">Local rides, Chennai airport transfers & outstation trips</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenCabBooking}
+                className="px-3.5 py-2 rounded-xl bg-[#176AC4] hover:bg-blue-600 text-white font-bold text-xs transition cursor-pointer shrink-0 shadow-xs"
+              >
+                Book Cab
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Quick Enquiry Form */}
