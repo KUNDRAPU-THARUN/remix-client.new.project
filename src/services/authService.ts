@@ -1,5 +1,6 @@
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { UserAccount, CityId } from '../types';
+import { isCityId } from '../config/cities';
 
 export interface SignUpParams {
   email: string;
@@ -26,6 +27,7 @@ export const authService = {
   },
 
   async signUp(params: SignUpParams): Promise<AuthResponse> {
+    const targetCityId: CityId = isCityId(params.cityId) ? params.cityId : 'chittoor';
     const supabase = getSupabaseClient();
     if (!supabase) {
       // In development fallback mode without Supabase credentials
@@ -36,7 +38,7 @@ export const authService = {
         role: params.role,
         name: params.fullName,
         mobile: params.phone || '',
-        cityId: params.cityId || 'chittoor',
+        cityId: targetCityId,
       };
       return { user: mockUser };
     }
@@ -53,7 +55,7 @@ export const authService = {
             display_name: params.fullName.trim(),
             phone: params.phone?.trim() || null,
             role: dbRole,
-            city_id: params.cityId || 'chittoor',
+            city_id: targetCityId,
           },
         },
       });
@@ -72,7 +74,7 @@ export const authService = {
         display_name: params.fullName.trim(),
         email: params.email.trim(),
         phone: params.phone?.trim() || null,
-        city_id: params.cityId || 'chittoor',
+        city_id: targetCityId,
         account_status: 'active',
       });
 
@@ -83,7 +85,7 @@ export const authService = {
       // Record user role in user_roles
       await supabase.from('user_roles').upsert({
         user_id: authData.user.id,
-        city_id: params.cityId || 'chittoor',
+        city_id: targetCityId,
         role: dbRole,
       });
 
@@ -94,7 +96,7 @@ export const authService = {
         role: params.role,
         name: params.fullName,
         mobile: params.phone,
-        cityId: params.cityId || 'chittoor',
+        cityId: targetCityId,
       };
 
       return { user: userAccount };

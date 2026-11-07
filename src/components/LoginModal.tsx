@@ -13,12 +13,14 @@ import {
   ArrowRight,
   Shield,
   KeyRound,
-  AlertCircle
+  AlertCircle,
+  MapPin,
+  Globe,
 } from 'lucide-react';
 import { UserAccount, CityConfig, CityId } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useCity } from '../contexts/CityContext';
-import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
+import { CITIES, DEFAULT_CITY_ID, SUPPORTED_CITY_IDS, isCityId } from '../config/cities';
 
 export type DestinationTab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin';
 export type PortalType = 'customer' | 'business_owner' | 'city_franchise' | 'super_admin';
@@ -58,29 +60,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   } catch {
     // Rendered outside CityProvider (e.g. isolated test harness)
   }
-  const city = propCity || contextCity || CITIES[DEFAULT_CITY_ID];
-  const cityName = city.name;
-  const cityCode = city.code;
-  const cityTagline = city.tagline;
-  const cityBrandName = `${cityName}Ads`;
+  const defaultCity = propCity || contextCity || CITIES[DEFAULT_CITY_ID];
 
-  // Dynamic city initials for logo badge (CA = Chittoor, VA = Vellore, BA = Bengaluru)
-  const cityInitials = city.id === 'vellore' ? 'VA' : city.id === 'bengaluru' ? 'BA' : 'CA';
-
-  // Dynamic city gradients
-  const logoGradient =
-    city.id === 'vellore'
-      ? 'from-[#176AC4] via-[#15995F] to-[#E51E31]'
-      : city.id === 'bengaluru'
-      ? 'from-[#15995F] via-[#F5C325] to-[#176AC4]'
-      : 'from-[#E51E31] via-[#c91829] to-[#176AC4]';
-
-  const buttonGradient =
-    city.id === 'vellore'
-      ? 'from-[#176AC4] via-blue-700 to-indigo-800 shadow-blue-600/30'
-      : city.id === 'bengaluru'
-      ? 'from-[#15995F] via-emerald-700 to-teal-800 shadow-emerald-600/30'
-      : 'from-red-600 via-rose-600 to-red-700 shadow-red-600/30';
+  // Selected City State (for Sign In territory & Registration registered city)
+  const [selectedCityId, setSelectedCityId] = useState<CityId>(() => {
+    return defaultCity?.id || DEFAULT_CITY_ID;
+  });
 
   // Form states
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
@@ -102,6 +87,43 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     if (activeTab === 'dashboard') return 'business_owner';
     return 'customer';
   });
+
+  // Effective modal city based on user's current city selection
+  const modalCity = useMemo(() => {
+    return CITIES[selectedCityId] || defaultCity;
+  }, [selectedCityId, defaultCity]);
+
+  const cityName = modalCity.name;
+  const cityCode = modalCity.code;
+  const cityTagline = modalCity.tagline;
+  const cityBrandName = `${cityName}Ads`;
+
+  // Dynamic city initials for logo badge (CA = Chittoor, VA = Vellore, BA = Bengaluru, SA = Super Admin)
+  const isSuperAdminPortal = selectedPortal === 'super_admin';
+  const logoInitials = isSuperAdminPortal
+    ? 'SA'
+    : selectedCityId === 'vellore'
+    ? 'VA'
+    : selectedCityId === 'bengaluru'
+    ? 'BA'
+    : 'CA';
+
+  // Dynamic city gradients
+  const logoGradient = isSuperAdminPortal
+    ? 'from-purple-600 via-indigo-600 to-slate-900'
+    : selectedCityId === 'vellore'
+    ? 'from-[#176AC4] via-[#15995F] to-[#E51E31]'
+    : selectedCityId === 'bengaluru'
+    ? 'from-[#15995F] via-[#F5C325] to-[#176AC4]'
+    : 'from-[#E51E31] via-[#c91829] to-[#176AC4]';
+
+  const buttonGradient = isSuperAdminPortal
+    ? 'from-purple-700 via-indigo-700 to-slate-900 shadow-purple-600/30'
+    : selectedCityId === 'vellore'
+    ? 'from-[#176AC4] via-blue-700 to-indigo-800 shadow-blue-600/30'
+    : selectedCityId === 'bengaluru'
+    ? 'from-[#15995F] via-emerald-700 to-teal-800 shadow-emerald-600/30'
+    : 'from-red-600 via-rose-600 to-red-700 shadow-red-600/30';
 
   // Portal definitions for clear visual segmentation
   const portalOptions: {
@@ -143,8 +165,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     {
       id: 'city_franchise',
       title: 'City Franchise',
-      badge: cityCode,
-      desc: `${cityName} Ops`,
+      badge: isSuperAdminPortal ? 'Multi-City' : cityCode,
+      desc: isSuperAdminPortal ? 'Territory Ops' : `${cityName} Ops`,
       icon: Compass,
       activeBorder: 'border-rose-600',
       activeBg: 'bg-rose-50/70',
@@ -188,7 +210,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       case 'city_franchise':
         return `Sign In to ${cityName} Franchise →`;
       case 'business_owner':
-        return `Sign In to Business Dashboard →`;
+        return `Sign In to Business Dashboard (${cityName}) →`;
       case 'customer':
       default:
         return `Sign In to ${cityBrandName} →`;
@@ -215,18 +237,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setAvailableDestinations([]);
       setAuthMode('signin');
       setShowPassword(false);
+      setSelectedCityId(defaultCity?.id || DEFAULT_CITY_ID);
       // Contextual portal initialization based on active route
       if (activeTab === 'admin') setSelectedPortal('super_admin');
       else if (activeTab === 'franchise') setSelectedPortal('city_franchise');
       else if (activeTab === 'dashboard') setSelectedPortal('business_owner');
       else setSelectedPortal('customer');
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, defaultCity?.id]);
 
   if (!isOpen) return null;
 
   // Build list of authorized destinations based on user's server-verified roles
-  const computeDestinations = (user: UserAccount): AuthorizedDestination[] => {
+  const computeDestinations = (user: UserAccount, targetCityId: CityId = selectedCityId): AuthorizedDestination[] => {
     const destinations: AuthorizedDestination[] = [];
 
     // 1. Super Admin Console
@@ -242,19 +265,43 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
 
     // 2. City Franchise Command Center
-    const franchiseRole = user.roles?.find(
+    const franchiseRoles = user.roles?.filter(
       (r) => r.role === 'city_franchise' || r.role === 'data_entry_staff'
-    );
-    const userFranchiseCity = franchiseRole?.cityId || user.franchiseCityId;
-    if (user.isFranchise || userFranchiseCity) {
-      const assignedCityId = userFranchiseCity || city.id;
-      const assignedCityConfig = CITIES[assignedCityId] || city;
+    ) || [];
+
+    if (user.isSuperAdmin) {
+      const assignedCityConfig = CITIES[targetCityId] || modalCity;
       destinations.push({
-        id: `franchise-${assignedCityId}`,
+        id: `franchise-${targetCityId}`,
         title: `${assignedCityConfig.name} Franchise Command Center`,
         subtitle: `Regional listing moderation, quote dispatch & local directory (${assignedCityConfig.code})`,
         tab: 'franchise',
-        cityId: assignedCityId,
+        cityId: targetCityId,
+        badge: `Franchise (${assignedCityConfig.code})`,
+        badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      });
+    } else if (franchiseRoles.length > 0) {
+      for (const fRole of franchiseRoles) {
+        const assignedCityId = fRole.cityId || targetCityId;
+        const assignedCityConfig = CITIES[assignedCityId] || modalCity;
+        destinations.push({
+          id: `franchise-${assignedCityId}`,
+          title: `${assignedCityConfig.name} Franchise Command Center`,
+          subtitle: `Regional listing moderation, quote dispatch & local directory (${assignedCityConfig.code})`,
+          tab: 'franchise',
+          cityId: assignedCityId,
+          badge: `Franchise (${assignedCityConfig.code})`,
+          badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+        });
+      }
+    } else if (user.isFranchise && user.franchiseCityId) {
+      const assignedCityConfig = CITIES[user.franchiseCityId] || modalCity;
+      destinations.push({
+        id: `franchise-${user.franchiseCityId}`,
+        title: `${assignedCityConfig.name} Franchise Command Center`,
+        subtitle: `Regional listing moderation, quote dispatch & local directory (${assignedCityConfig.code})`,
+        tab: 'franchise',
+        cityId: user.franchiseCityId,
         badge: `Franchise (${assignedCityConfig.code})`,
         badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
       });
@@ -264,24 +311,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     const isMerchant =
       user.roles?.some((r) => r.role === 'business_owner') ||
       (!user.isSuperAdmin && !user.isFranchise && user.role === 'provider');
-    if (isMerchant) {
+    if (isMerchant || user.isSuperAdmin) {
+      const merchantCityConfig = CITIES[targetCityId] || modalCity;
       destinations.push({
         id: 'dashboard',
-        title: 'Business Owner Dashboard',
+        title: `Business Owner Dashboard (${merchantCityConfig.name})`,
         subtitle: 'Manage storefront advertisements, track customer leads & reviews',
         tab: 'dashboard',
+        cityId: targetCityId,
         badge: 'Merchant Portal',
         badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
       });
     }
 
     // 4. Consumer Experience
+    const consumerCityConfig = CITIES[targetCityId] || modalCity;
     destinations.push({
-      id: 'directory',
-      title: `Browse ${cityName} Directory`,
-      subtitle: `Explore verified businesses, attractions & classifieds in ${cityName} (${cityCode})`,
+      id: `directory-${targetCityId}`,
+      title: `Browse ${consumerCityConfig.name} Directory`,
+      subtitle: `Explore verified businesses, attractions & classifieds in ${consumerCityConfig.name} (${consumerCityConfig.code})`,
       tab: 'home',
-      cityId: city.id,
+      cityId: targetCityId,
       badge: 'Public Directory',
       badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
     });
@@ -383,15 +433,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           return;
         }
 
-        // Territory validation: Route to assigned city if distinct from current city
-        const assignedCityId = franchiseRole?.cityId || authenticatedUser.franchiseCityId;
-        if (assignedCityId && assignedCityId !== city.id && !authenticatedUser.isSuperAdmin) {
-          onLoginSuccess(authenticatedUser, 'franchise', assignedCityId);
+        // Super Admin can access any franchise territory
+        if (authenticatedUser.isSuperAdmin) {
+          onLoginSuccess(authenticatedUser, 'franchise', selectedCityId);
           onClose();
           return;
         }
 
-        onLoginSuccess(authenticatedUser, 'franchise', assignedCityId || city.id);
+        // Territory validation: Verify selected territory matches user's assigned franchise city
+        const assignedCityId = franchiseRole?.cityId || authenticatedUser.franchiseCityId;
+        if (assignedCityId && assignedCityId !== selectedCityId) {
+          const assignedCityName = CITIES[assignedCityId]?.name || assignedCityId;
+          const assignedCityCode = CITIES[assignedCityId]?.code || '';
+          const targetCityName = CITIES[selectedCityId]?.name || selectedCityId;
+          setErrorMessage(
+            `Access Denied: Your franchise account is authorized for ${assignedCityName} (${assignedCityCode}), not ${targetCityName}. Please select your assigned territory.`
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        onLoginSuccess(authenticatedUser, 'franchise', assignedCityId || selectedCityId);
         onClose();
         return;
       }
@@ -410,13 +472,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           return;
         }
 
-        onLoginSuccess(authenticatedUser, 'dashboard');
+        onLoginSuccess(authenticatedUser, 'dashboard', selectedCityId);
         onClose();
         return;
       }
 
       // Customer portal (default): Accessible to all verified users
-      onLoginSuccess(authenticatedUser, 'home', city.id);
+      // If user possesses elevated roles, offer the Multi-Role Destination Selector:
+      const destinations = computeDestinations(authenticatedUser, selectedCityId);
+      const elevatedDestinations = destinations.filter((d) => d.tab !== 'home');
+
+      if (elevatedDestinations.length > 0) {
+        setPendingUser(authenticatedUser);
+        setAvailableDestinations(destinations);
+        setIsLoading(false);
+        return;
+      }
+
+      // Pure Customer account
+      onLoginSuccess(authenticatedUser, 'home', selectedCityId);
       onClose();
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Sign in failed unexpectedly.');
@@ -445,6 +519,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setErrorMessage('Password must be at least 6 characters long.');
       return;
     }
+    if (!isCityId(selectedCityId)) {
+      setErrorMessage('Please select an authorized city territory (Chittoor, Vellore, or Bengaluru).');
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -454,16 +532,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         fullName: cleanName,
         phone: phone.trim() || undefined,
         role: signupRole,
-        cityId: city.id,
+        cityId: selectedCityId,
       });
 
       if (res.error) {
         setErrorMessage(res.error);
       } else if (res.user) {
         if (signupRole === 'provider') {
-          onLoginSuccess(res.user, 'dashboard');
+          onLoginSuccess(res.user, 'dashboard', selectedCityId);
         } else {
-          onLoginSuccess(res.user, 'home', city.id);
+          onLoginSuccess(res.user, 'home', selectedCityId);
         }
         onClose();
       } else {
@@ -516,24 +594,28 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <div
               className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${logoGradient} flex items-center justify-center text-white font-black text-sm shadow-md shadow-slate-950/40 shrink-0`}
             >
-              {cityInitials}
+              {logoInitials}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base font-heading text-white">
                   {authMode === 'signin'
-                    ? `Sign In to ${cityBrandName}`
+                    ? isSuperAdminPortal
+                      ? 'Sign In to Super Admin Console'
+                      : `Sign In to ${cityBrandName}`
                     : authMode === 'signup'
                     ? `Create ${cityBrandName} Account`
                     : 'Reset Password'}
                 </h3>
                 <span className="text-[10px] bg-white/10 text-slate-300 font-extrabold px-1.5 py-0.5 rounded border border-white/15">
-                  {cityCode}
+                  {isSuperAdminPortal ? 'GLOBAL' : cityCode}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 truncate max-w-[220px]">
                 {authMode === 'signin'
-                  ? cityTagline
+                  ? isSuperAdminPortal
+                    ? 'Platform-Wide Multi-City Governance'
+                    : cityTagline
                   : authMode === 'signup'
                   ? `Join ${cityName}'s Local Business Directory`
                   : 'Enter your email for recovery instructions'}
@@ -617,7 +699,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               {/* ------------------------------------------------------------- */}
               {authMode === 'signin' && (
                 <form onSubmit={handleSignInSubmit} noValidate className="space-y-4">
-                  {/* Email Address */}
                   {/* Four-Portal Target Selector */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
@@ -625,7 +706,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         Target Portal *
                       </label>
                       <span className="text-[10px] text-slate-400 font-semibold">
-                        Select your destination portal
+                        Select destination portal
                       </span>
                     </div>
 
@@ -679,14 +760,86 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         );
                       })}
                     </div>
-
-                    {/* Portal Description Helper Callout */}
-                    <div className="mt-2 p-2 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-center gap-2">
-                      <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>{getPortalHelper(selectedPortal)}</span>
-                    </div>
                   </div>
 
+                  {/* Territory / City Selection for City-Scoped Portals */}
+                  {selectedPortal === 'super_admin' ? (
+                    <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200 text-purple-900 text-xs flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-purple-600 text-white shrink-0">
+                          <Globe className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="font-bold block text-purple-950">Territory Scope: All Cities</span>
+                          <span className="text-[11px] text-purple-700">Multi-city governance (AP-03 • TN-23 • KA-01)</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-purple-200/80 text-purple-800 border border-purple-300">
+                        Global
+                      </span>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                          City / Territory *
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-semibold">
+                          Select target city
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {SUPPORTED_CITY_IDS.map((cId) => {
+                          const cConfig = CITIES[cId];
+                          const isSelected = selectedCityId === cId;
+                          const activeColor =
+                            cId === 'vellore'
+                              ? 'border-blue-600 bg-blue-50/80 text-blue-900 ring-1 ring-blue-500/30'
+                              : cId === 'bengaluru'
+                              ? 'border-emerald-600 bg-emerald-50/80 text-emerald-900 ring-1 ring-emerald-500/30'
+                              : 'border-red-600 bg-red-50/80 text-red-900 ring-1 ring-red-500/30';
+                          const badgeColor =
+                            cId === 'vellore'
+                              ? 'bg-blue-100 text-blue-800 border-blue-200'
+                              : cId === 'bengaluru'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                              : 'bg-red-100 text-red-800 border-red-200';
+
+                          return (
+                            <button
+                              key={cId}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCityId(cId);
+                                setErrorMessage('');
+                              }}
+                              className={`p-2 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                                isSelected
+                                  ? activeColor
+                                  : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-slate-400" />
+                                <span className="text-xs font-bold">{cConfig.name}</span>
+                              </div>
+                              <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${badgeColor}`}>
+                                {cConfig.code}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Portal Description Helper Callout */}
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-center gap-2">
+                    <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>{getPortalHelper(selectedPortal)}</span>
+                  </div>
+
+                  {/* Email Address */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
                       Email Address *
@@ -767,9 +920,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       {isLoading ? (
                         <span>Signing In...</span>
                       ) : (
-                        <>
-                          <span>{getSubmitButtonLabel()}</span>
-                        </>
+                        <span>{getSubmitButtonLabel()}</span>
                       )}
                     </button>
                   </div>
@@ -837,6 +988,65 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         Note: City Franchise and Super Admin accounts are provisioned via administrative governance and cannot be self-registered.
                       </span>
                     </div>
+                  </div>
+
+                  {/* Explicit Territory / City Selection for Registration */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                        Registered City / Territory *
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-semibold">
+                        Primary operating territory
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {SUPPORTED_CITY_IDS.map((cId) => {
+                        const cConfig = CITIES[cId];
+                        const isSelected = selectedCityId === cId;
+                        const activeColor =
+                          cId === 'vellore'
+                            ? 'border-blue-600 bg-blue-50/80 text-blue-900 ring-1 ring-blue-500/30'
+                            : cId === 'bengaluru'
+                            ? 'border-emerald-600 bg-emerald-50/80 text-emerald-900 ring-1 ring-emerald-500/30'
+                            : 'border-red-600 bg-red-50/80 text-red-900 ring-1 ring-red-500/30';
+                        const badgeColor =
+                          cId === 'vellore'
+                            ? 'bg-blue-100 text-blue-800 border-blue-200'
+                            : cId === 'bengaluru'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            : 'bg-red-100 text-red-800 border-red-200';
+
+                        return (
+                          <button
+                            key={cId}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCityId(cId);
+                              setErrorMessage('');
+                            }}
+                            className={`p-2 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                              isSelected
+                                ? activeColor
+                                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-slate-400" />
+                              <span className="text-xs font-bold">{cConfig.name}</span>
+                            </div>
+                            <span className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${badgeColor}`}>
+                              {cConfig.code}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 px-1">
+                      {signupRole === 'customer'
+                        ? `Your customer profile will be associated with ${CITIES[selectedCityId]?.name || selectedCityId} (${CITIES[selectedCityId]?.code || ''}).`
+                        : `Your business listings and leads will be managed in ${CITIES[selectedCityId]?.name || selectedCityId} (${CITIES[selectedCityId]?.code || ''}).`}
+                    </p>
                   </div>
 
                   {/* Full Name */}
@@ -1019,7 +1229,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Dynamic City Footer */}
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-center text-[11px] text-slate-400">
-          {cityBrandName} Security • Multi-City Local Advertising Platform
+          {isSuperAdminPortal ? 'KAARYAN Central Multi-City Governance Platform' : `${cityBrandName} Security • Multi-City Local Advertising Platform`}
         </div>
       </div>
     </div>
