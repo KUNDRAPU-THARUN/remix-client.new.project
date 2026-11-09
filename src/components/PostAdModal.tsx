@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Listing, UserAccount, CityConfig, CityId } from '../types';
 import { getCityCategories } from '../config/categories';
+import { CITIES } from '../config/cities';
 import { generateAdCopy } from '../services/aiService';
 import { storageService } from '../services/storageService';
 
@@ -47,8 +48,15 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
     : (currentCity?.id || 'chittoor');
 
   const cityId = effectiveCityId;
+  const targetCity: CityConfig = (currentCity && currentCity.id === cityId)
+    ? currentCity
+    : (CITIES[cityId] || currentCity || CITIES.chittoor);
+  const brandHeading = targetCity.brandName || (cityId === 'vellore' ? 'Vellore Ads' : cityId === 'bengaluru' ? 'Bengaluru Ads' : 'Chittoor Ads');
+  const cityName = targetCity.name || (cityId === 'vellore' ? 'Vellore' : cityId === 'bengaluru' ? 'Bengaluru' : 'Chittoor');
+  const cityCode = targetCity.code || (cityId === 'vellore' ? 'TN-23' : cityId === 'bengaluru' ? 'KA-01' : 'AP-03');
+
   const categories = getCityCategories(cityId);
-  const localities = currentCity?.localities || [];
+  const localities = currentCity?.localities || targetCity.localities || [];
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(categories[0]?.id || 'restaurants');
   const [area, setArea] = useState(localities[1]?.id || 'all');
@@ -133,7 +141,7 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
       address: address.trim(),
       phone: phone.trim(),
       whatsapp: whatsapp.trim() || phone.replace(/[^0-9]/g, ''),
-      description: description.trim() || `${title} offers quality local services in ${area}, ${currentCity?.name || 'Chittoor'}. Contact directly for prices and booking.`,
+      description: description.trim() || `${title} offers quality local services in ${area}, ${cityName}. Contact directly for prices and booking.`,
       rating: 0,
       reviewsCount: 0,
       isVerified: false,
@@ -165,10 +173,10 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
           <div>
             <h3 className="text-lg sm:text-xl font-black text-slate-900 font-heading flex items-center gap-2">
               <PlusCircle className="w-5 h-5 text-red-600" />
-              <span>Post Free Business Ad on ChittoorAds</span>
+              <span>Post Free Business Ad on {brandHeading}</span>
             </h3>
             <p className="text-xs text-slate-500">
-              Reach thousands of local customers in Chittoor, Kanipakam & nearby mandals for free!
+              Reach thousands of local customers in {cityName} ({cityCode}) & nearby areas for free!
             </p>
           </div>
 
@@ -312,14 +320,20 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
             {/* Address */}
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                Full Address & Landmark in Chittoor *
+                Full Address & Landmark in {cityName} *
               </label>
               <input
                 type="text"
                 required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="e.g. Beside Clock Tower, Gandhi Road, Chittoor - 517001"
+                placeholder={
+                  cityId === 'vellore'
+                    ? 'e.g. Near VIT Gate 2, Katpadi Main Road, Vellore - 632014'
+                    : cityId === 'bengaluru'
+                    ? 'e.g. 100ft Road, Near Sony Signal, Koramangala, Bengaluru - 560034'
+                    : 'e.g. Beside Clock Tower, Gandhi Road, Chittoor - 517001'
+                }
                 className="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-hidden font-medium"
               />
             </div>
@@ -387,7 +401,7 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe what makes your business great in Chittoor, special discounts, quality guarantees..."
+                placeholder={`Describe what makes your business great in ${cityName}, special discounts, quality guarantees...`}
                 className="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-red-500 outline-hidden"
               />
             </div>
@@ -445,10 +459,10 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
                 className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold text-sm sm:text-base rounded-xl shadow-md shadow-red-600/30 transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <CheckCircle2 className="w-5 h-5" />
-                <span>Publish Free Ad to Chittoor Directory</span>
+                <span>Publish Free Ad to {cityName} Directory</span>
               </button>
               <p className="text-[11px] text-slate-500 text-center mt-2">
-                100% Free forever. No listing charges. Instant public visibility across AP-03.
+                100% Free forever. No listing charges. Instant public visibility across {cityCode}.
               </p>
             </div>
           </form>
