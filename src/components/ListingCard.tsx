@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Listing } from '../types';
 import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
+import { resolveListingContact } from '../utils/contactValidation';
 
 interface ListingCardProps {
   listing: Listing;
@@ -31,13 +32,12 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   const cityConfig = CITIES[listing.cityId || DEFAULT_CITY_ID] || CITIES[DEFAULT_CITY_ID];
   const areaName = cityConfig.localities.find((a) => a.id === listing.area)?.name || listing.area;
 
-  // Contact validation: prevent empty tel: / wa.me/ links when phone is unpopulated
-  const digitsOnlyPhone = (listing.phone || '').replace(/[^0-9]/g, '');
-  const digitsOnlyWhatsApp = (listing.whatsapp || '').replace(/[^0-9]/g, '');
-  const cleanPhone = digitsOnlyPhone.length >= 5 ? (listing.phone || '').replace(/\s+/g, '') : '';
-  const cleanWhatsApp = digitsOnlyWhatsApp.length >= 5 ? digitsOnlyWhatsApp : (digitsOnlyPhone.length >= 5 ? digitsOnlyPhone : '');
-  const hasValidPhone = cleanPhone.length >= 5;
-  const hasValidWhatsApp = cleanWhatsApp.length >= 5;
+  // Contact validation: distinguish Indian mobile, landline with STD, helplines, and international formats
+  const contact = resolveListingContact(listing.phone, listing.whatsapp);
+  const cleanPhone = contact.dialablePhone;
+  const cleanWhatsApp = contact.whatsappNumber;
+  const hasValidPhone = contact.hasValidPhone;
+  const hasValidWhatsApp = contact.hasValidWhatsApp;
 
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
