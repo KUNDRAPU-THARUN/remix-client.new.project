@@ -38,6 +38,8 @@ import { Listing, Review } from '../types';
 import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
 import { enquiryService } from '../services/enquiryService';
 import { resolveListingContact } from '../utils/contactValidation';
+import { getOperatingHoursStatus } from '../utils/operatingHours';
+import { VelloreImageGallery } from './VelloreImageGallery';
 
 interface ListingDetailModalProps {
   listing: Listing | null;
@@ -113,6 +115,8 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
   const cleanWhatsApp = contact.whatsappNumber;
   const hasValidPhone = contact.hasValidPhone;
   const hasValidWhatsApp = contact.hasValidWhatsApp;
+  const isVellore = cityConfig.id === 'vellore';
+  const hoursStatus = getOperatingHoursStatus(listing.timings);
 
   // Direct contact handlers
   const handleCall = () => {
@@ -482,9 +486,27 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
         <div className="px-5 sm:px-6 pt-4 pb-2 border-b border-slate-100 bg-white shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 font-heading">
-                {listing.title}
-              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 font-heading">
+                  {listing.title}
+                </h2>
+                {listing.isVerified ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Verified Business</span>
+                  </span>
+                ) : isVellore ? (
+                  listing.status === 'Pending Approval' ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      <span>Pending Approval</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                      <span>Preview Listing</span>
+                    </span>
+                  )
+                ) : null}
+              </div>
               <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-slate-600">
                 {listing.reviewsCount > 0 ? (
                   <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-md">
@@ -698,12 +720,36 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/20" />
-                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white">
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white flex-wrap gap-2">
                   <div>
-                    <span className="text-xs bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-md">
-                      Verified {cityConfig.code} Listing
-                    </span>
-                    <p className="text-sm font-semibold mt-1">{listing.timings}</p>
+                    {listing.isVerified ? (
+                      <span className="text-xs bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-md">
+                        Verified {cityConfig.code} Business
+                      </span>
+                    ) : isVellore ? (
+                      listing.status === 'Pending Approval' ? (
+                        <span className="text-xs bg-amber-600 text-white font-bold px-2 py-0.5 rounded-md">
+                          Pending Moderation
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-slate-800 text-white font-bold px-2 py-0.5 rounded-md">
+                          Preview Listing
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-xs bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-md">
+                        Verified {cityConfig.code} Listing
+                      </span>
+                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      {isVellore && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border backdrop-blur-md ${hoursStatus.badgeClass}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${hoursStatus.dotClass}`} />
+                          <span>{hoursStatus.label}</span>
+                        </span>
+                      )}
+                      <p className="text-sm font-semibold">{listing.timings || (isVellore ? 'Hours Unavailable' : 'Regular Hours')}</p>
+                    </div>
                   </div>
                   {listing.priceRange && (
                     <span
@@ -752,13 +798,26 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
                 </div>
 
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                    Working Hours
-                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                      Working Hours
+                    </span>
+                    {isVellore && (
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${hoursStatus.badgeClass}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${hoursStatus.dotClass}`} />
+                        <span>{hoursStatus.label}</span>
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs sm:text-sm font-semibold text-slate-800 mt-1 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{listing.timings}</span>
+                    <span>{listing.timings || (isVellore ? 'Hours Unavailable' : 'Regular Hours')}</span>
                   </p>
+                  {isVellore && hoursStatus.currentIstTime && (
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Current IST: {hoursStatus.currentIstTime}
+                    </p>
+                  )}
                   {listing.subcategory && (
                     <p className="text-xs text-slate-500 mt-2 font-medium">
                       Specialty: <span className="text-slate-800 font-semibold">{listing.subcategory}</span>
@@ -883,34 +942,13 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
           {/* 3. GALLERY TAB */}
           {activeTab === 'gallery' && (
             <div className="space-y-4">
-              <div className="h-72 sm:h-96 w-full rounded-2xl overflow-hidden bg-slate-900 relative shadow-md">
-                <img
-                  src={listing.images[activeImageIdx] || listing.images[0]}
-                  alt="Gallery large"
-                  className="w-full h-full object-contain"
-                />
-                <button
-                  onClick={() => setLightboxPhoto(listing.images[activeImageIdx] || listing.images[0])}
-                  className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/80 text-white rounded-lg backdrop-blur-xs transition"
-                  title="Expand Fullscreen"
-                >
-                  <Maximize2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
-                {listing.images.map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveImageIdx(i)}
-                    className={`h-20 sm:h-24 rounded-xl overflow-hidden border-2 transition ${
-                      activeImageIdx === i ? 'border-red-600 scale-95 shadow-md' : 'border-slate-200 opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
+              <VelloreImageGallery
+                images={listing.images}
+                title={listing.title}
+                aspectRatioClass="h-72 sm:h-96"
+                showThumbnails={true}
+                altPrefix={listing.title}
+              />
             </div>
           )}
 

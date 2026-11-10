@@ -19,6 +19,7 @@ import { Listing, CityConfig } from '../types';
 import { getCityCategories } from '../config/categories';
 import { useTranslation } from '../i18n/LanguageContext';
 import { resolveListingContact } from '../utils/contactValidation';
+import { getOperatingHoursStatus } from '../utils/operatingHours';
 
 interface HomeSectionsProps {
   featuredListings: Listing[];
@@ -81,6 +82,8 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
               const contact = resolveListingContact(biz.phone, biz.whatsapp);
               const hasValidPhone = contact.hasValidPhone;
               const hasValidWhatsApp = contact.hasValidWhatsApp;
+              const isVellore = currentCity.id === 'vellore';
+              const bizHours = getOperatingHoursStatus(biz.timings);
 
               return (
                 <div
@@ -120,11 +123,15 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
                           </span>
                         )}
 
-                        {biz.isVerified && (
+                        {biz.isVerified ? (
                           <span className="bg-[#15995F] text-white p-1 rounded-full shadow-md" title="Verified business">
                             <ShieldCheck className="w-3.5 h-3.5" />
                           </span>
-                        )}
+                        ) : isVellore ? (
+                          <span className="bg-slate-900/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-xs">
+                            {biz.status === 'Pending Approval' ? 'Pending' : 'Preview'}
+                          </span>
+                        ) : null}
                       </div>
 
                       {/* Locality Pill on bottom of image */}
@@ -148,6 +155,20 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
                     <p className="text-[11px] text-slate-400 mt-1 line-clamp-1 font-medium">
                       {biz.address}
                     </p>
+
+                    {isVellore && (
+                      <div className="flex items-center justify-between gap-1.5 mt-2 pt-1 text-[10px]">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-bold border ${bizHours.badgeClass}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${bizHours.dotClass}`} />
+                          <span>{bizHours.label}</span>
+                        </span>
+                        {biz.priceRange && (
+                          <span className="font-semibold text-slate-500 truncate max-w-[110px]" title={biz.priceRange}>
+                            {biz.priceRange}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Card Actions: Call, WhatsApp, View Details */}
