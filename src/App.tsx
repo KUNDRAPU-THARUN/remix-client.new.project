@@ -27,6 +27,9 @@ import { VelloreAttractionsSection } from './components/VelloreAttractionsSectio
 import { VelloreTheatresSection } from './components/VelloreTheatresSection';
 import { HomepageQuickEnquiry } from './components/HomepageQuickEnquiry';
 import { CategoryResultsPage, ResultsFilters } from './components/CategoryResultsPage';
+import { VelloreAboutPage } from './components/VelloreAboutPage';
+import { VelloreContactPage } from './components/VelloreContactPage';
+import { StandaloneBusinessPage } from './components/StandaloneBusinessPage';
 import { UserDashboard } from './components/UserDashboard';
 import { FranchiseDashboardLayout } from './components/franchise/FranchiseDashboardLayout';
 import { AdminDashboardLayout } from './components/admin/AdminDashboardLayout';
@@ -49,7 +52,7 @@ import { migrationService } from './services/migrationService';
 import { getEffectiveDashboardCity, isSuperAdmin } from './utils/regionAuthorization';
 import { Lock } from 'lucide-react';
 
-type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin';
+type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz';
 
 interface AppRouteState {
   cityId: CityId;
@@ -434,7 +437,7 @@ export const MainAppContent: React.FC = () => {
   };
 
   const handleNavigateTab = (tab: string) => {
-    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard', 'franchise', 'admin'].includes(tab)) return;
+    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard', 'franchise', 'admin', 'about', 'contact', 'biz'].includes(tab)) return;
     navigate({
       ...route,
       tab: tab as Tab,
@@ -624,7 +627,7 @@ export const MainAppContent: React.FC = () => {
   return (
     <CityProvider currentCityId={route.cityId} onCityChange={handleCityChange}>
       {/* Dynamic SEO Title, Description, Open Graph & Canonical Tags */}
-      <SEOHead currentCity={currentCity} selectedListing={selectedListing} />
+      <SEOHead currentCity={currentCity} selectedListing={selectedListing} activeTab={activeTab} />
 
       {/* Strict Region Lock Notification Banner */}
       {regionNotice && (
@@ -837,6 +840,42 @@ export const MainAppContent: React.FC = () => {
               <KanipakamSpecial />
             </div>
           )}
+
+          {/* VIEW 6: VELLORE ABOUT PAGE */}
+          {activeTab === 'about' && (
+            <VelloreAboutPage
+              currentCity={currentCity}
+              onNavigateHome={handleBackToHome}
+              onNavigateCategory={(catId, areaId) => handleNavigateToCategory(catId, areaId)}
+              onNavigateContact={() => handleNavigateTab('contact')}
+              onOpenPostAd={() => setIsPostAdOpen(true)}
+              onOpenEmergency={() => setIsEmergencyOpen(true)}
+            />
+          )}
+
+          {/* VIEW 7: VELLORE CONTACT PAGE */}
+          {activeTab === 'contact' && (
+            <VelloreContactPage
+              currentCity={currentCity}
+              onNavigateHome={handleBackToHome}
+              onOpenEmergency={() => setIsEmergencyOpen(true)}
+            />
+          )}
+
+          {/* VIEW 8: STANDALONE BUSINESS PROFILE */}
+          {activeTab === 'biz' && (
+            <StandaloneBusinessPage
+              listingId={route.listingId}
+              listings={listings}
+              currentCity={currentCity}
+              currentUser={currentUser}
+              savedIds={savedIds}
+              onToggleSave={toggleSaveListing}
+              onNavigateHome={handleBackToHome}
+              onNavigateCategory={(catId, areaId) => handleNavigateToCategory(catId, areaId)}
+              onAddReview={handleAddReview}
+            />
+          )}
         </main>
 
         {/* Footer with Multi-City Directory Links */}
@@ -848,6 +887,8 @@ export const MainAppContent: React.FC = () => {
           onOpenAI={() => setIsAIOpen(true)}
           onOpenFranchise={() => setIsFranchiseOpen(true)}
           onNavigateFranchise={() => handleNavigateTab('franchise')}
+          onNavigateAbout={() => handleNavigateTab('about')}
+          onNavigateContact={() => handleNavigateTab('contact')}
           currentCity={currentCity}
           allCities={allCities}
         />
@@ -857,7 +898,7 @@ export const MainAppContent: React.FC = () => {
     {/* MODALS */}
         {/* 1. Business Details Modal */}
         <ListingDetailModal
-          listing={selectedListing}
+          listing={activeTab === 'biz' ? null : selectedListing}
           onClose={() => selectListing(null)}
           isSaved={selectedListing ? savedIds.includes(selectedListing.id) : false}
           onToggleSave={toggleSaveListing}

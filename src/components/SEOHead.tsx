@@ -4,6 +4,7 @@ import { CityConfig, Listing } from '../types';
 interface SEOHeadProps {
   currentCity: CityConfig;
   selectedListing?: Listing | null;
+  activeTab?: string;
 }
 
 function updateMetaTag(attributeName: 'name' | 'property', attributeValue: string, content: string) {
@@ -26,16 +27,22 @@ function updateCanonicalLink(url: string) {
   link.setAttribute('href', url);
 }
 
-export const SEOHead: React.FC<SEOHeadProps> = ({ currentCity, selectedListing }) => {
+export const SEOHead: React.FC<SEOHeadProps> = ({ currentCity, selectedListing, activeTab }) => {
   useEffect(() => {
     const isListing = Boolean(selectedListing);
-    const title = isListing
-      ? `${selectedListing!.title} - ${currentCity.brandName} (${currentCity.code})`
-      : currentCity.seo.title;
+    let title = currentCity.seo.title;
+    let description = currentCity.seo.description;
 
-    const description = isListing
-      ? `${selectedListing!.title} in ${currentCity.name}. ${selectedListing!.address}. Phone: ${selectedListing!.phone}. ${selectedListing!.description.slice(0, 130)}`
-      : currentCity.seo.description;
+    if (isListing) {
+      title = `${selectedListing!.title} - ${currentCity.brandName} (${currentCity.code})`;
+      description = `${selectedListing!.title} in ${currentCity.name}. ${selectedListing!.address}. Phone: ${selectedListing!.phone}. ${selectedListing!.description.slice(0, 130)}`;
+    } else if (activeTab === 'about') {
+      title = `About ${currentCity.brandName} - Fort City Business Directory & Classifieds (${currentCity.code})`;
+      description = `Discover ${currentCity.brandName}, the premier local business directory, CMC hospital corridor, student life, and classifieds portal for ${currentCity.name} (${currentCity.code}).`;
+    } else if (activeTab === 'contact') {
+      title = `Contact ${currentCity.brandName} - Office & Support Helpline (${currentCity.code})`;
+      description = `Get in touch with ${currentCity.brandName} regional office in ${currentCity.name}. Phone: ${currentCity.contact.phone}. Office: ${currentCity.contact.address}.`;
+    }
 
     const url = typeof window !== 'undefined' ? window.location.href : `https://${currentCity.domain}`;
     const image = isListing && selectedListing!.images?.[0]
@@ -63,7 +70,7 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentCity, selectedListing }
 
     // 5. Canonical Link
     updateCanonicalLink(url.split('?')[0]);
-  }, [currentCity, selectedListing]);
+  }, [currentCity, selectedListing, activeTab]);
 
   return null;
 };

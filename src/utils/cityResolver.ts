@@ -3,7 +3,7 @@ import { CITIES, DEFAULT_CITY_ID, isCityId } from '../config/cities';
 
 export interface ParsedCityRoute {
   cityId: CityId;
-  tab: 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin';
+  tab: 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz';
   categoryId: string;
   savedOnly: boolean;
   listingId: string | null;
@@ -85,13 +85,20 @@ export function parseCityRoute(
   const isCategory = Boolean(categoryMatch) || effectiveSubpath === '/category';
   const rawCatId = categoryMatch?.[1];
 
-  // Direct business route matching (/business/:id)
+  // Direct business route matching (/business/:id or /biz/:id)
+  const bizMatch = effectiveSubpath.match(/^\/biz\/([^/]+)$/);
   const businessMatch = effectiveSubpath.match(/^\/business\/([^/]+)$/);
-  const directListingId = businessMatch ? businessMatch[1] : null;
+  const directListingId = bizMatch ? bizMatch[1] : (businessMatch ? businessMatch[1] : null);
 
   let tab: ParsedCityRoute['tab'] = 'home';
-  if (isCategory) {
+  if (bizMatch) {
+    tab = 'biz';
+  } else if (isCategory) {
     tab = 'category';
+  } else if (effectiveSubpath === '/about' || effectiveSubpath === '/about-us') {
+    tab = 'about';
+  } else if (effectiveSubpath === '/contact' || effectiveSubpath === '/contact-us') {
+    tab = 'contact';
   } else if (effectiveSubpath === '/dashboard' || effectiveSubpath === '/dashboard/my-ads') {
     tab = 'dashboard';
   } else if (effectiveSubpath === '/franchise' || effectiveSubpath.startsWith('/franchise/') || effectiveSubpath.startsWith('/franchise')) {
@@ -157,6 +164,13 @@ export function buildCityRouteUrl(
   const prefix = isCityDomain ? '' : `/city/${cityId}`;
 
   let path = '';
+  if (tab === 'biz') {
+    path = `${prefix}/biz/${filters?.listingId || ''}`;
+  } else if (tab === 'about') {
+    path = `${prefix}/about`;
+  } else if (tab === 'contact') {
+    path = `${prefix}/contact`;
+  } else
   if (tab === 'home' && filters?.listingId) {
     path = `${prefix}/business/${filters.listingId}`;
   } else if (tab === 'home') {
@@ -190,7 +204,7 @@ export function buildCityRouteUrl(
     if (filters.sortBy && filters.sortBy !== 'rating') params.set('sort', filters.sortBy);
     if (filters.savedOnly) params.set('saved', '1');
   }
-  if (filters?.listingId && tab !== 'home') {
+  if (filters?.listingId && tab !== 'home' && tab !== 'biz') {
     params.set('listing', filters.listingId);
   }
 

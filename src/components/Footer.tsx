@@ -22,6 +22,8 @@ interface FooterProps {
   onOpenPricing?: () => void;
   onOpenFranchise?: () => void;
   onNavigateFranchise?: () => void;
+  onNavigateAbout?: () => void;
+  onNavigateContact?: () => void;
   currentCity: CityConfig;
   allCities: CityConfig[];
 }
@@ -35,6 +37,8 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenPricing,
   onOpenFranchise,
   onNavigateFranchise,
+  onNavigateAbout,
+  onNavigateContact,
   currentCity,
   allCities,
 }) => {
@@ -172,6 +176,28 @@ export const Footer: React.FC<FooterProps> = ({
               <span>Contact & Support</span>
             </h4>
             <ul className="space-y-2.5 text-xs">
+              {onNavigateAbout && (
+                <li>
+                  <button
+                    onClick={onNavigateAbout}
+                    className="text-slate-300 hover:text-white font-medium transition flex items-center gap-1.5 cursor-pointer text-xs"
+                  >
+                    <Info className="w-3.5 h-3.5 text-blue-400" />
+                    <span>About {currentCity.brandName}</span>
+                  </button>
+                </li>
+              )}
+              {onNavigateContact && (
+                <li>
+                  <button
+                    onClick={onNavigateContact}
+                    className="text-slate-300 hover:text-white font-medium transition flex items-center gap-1.5 cursor-pointer text-xs"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Contact Office & Helpdesk</span>
+                  </button>
+                </li>
+              )}
               <li>
                 <button
                   onClick={onOpenPostAd}
