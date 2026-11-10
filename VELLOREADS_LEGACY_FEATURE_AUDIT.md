@@ -2,12 +2,12 @@
 
 ## Comprehensive Architectural, UI/UX, Content & SEO Audit Report
 
-**Client Website:** <https://velloreads.com/>
-**Deployed New Vellore Platform:** <https://remix-client-new-project.vercel.app/city/vellore>
-**Repository:** `remix-client.new.project`
-**Target Territory:** Vellore (`TN-23`), Tamil Nadu, India
-**Auditor:** Senior Full-Stack Architect, Web QA Engineer, UI/UX Auditor & Supabase Engineer — KAARYAN LABS
-**Date:** November 2, 2026
+- **Client Website:** <https://velloreads.com/>
+- **Deployed New Vellore Platform:** <https://remix-client-new-project.vercel.app/city/vellore>
+- **Repository:** `remix-client.new.project`
+- **Target Territory:** Vellore (`TN-23`), Tamil Nadu, India
+- **Auditor:** Senior Full-Stack Architect, Web QA Engineer, UI/UX Auditor & Supabase Engineer — KAARYAN LABS
+- **Date:** November 2, 2026
 
 ---
 
@@ -23,15 +23,15 @@ This audit provides a comprehensive, feature-by-feature comparison between the l
 2. **Branding & SEO Finding (Verified):** The reported issue of `/city/vellore` exposing a "ChittoorAds" title was verified. In the deployed Vite SPA, the server-delivered `index.html` serves static `<title>` and `<meta property="og:...">` tags hardcoded to ChittoorAds. While client-side JavaScript hydration updates `document.title` to *"Vellore Ads - Local Business Directory & Services (TN-23)"*, web crawlers, search bots, and social media scrapers receive Chittoor metadata.
 3. **Category Directory Bloat:** The legacy site contains **1,015 distinct category routes** riddled with severe duplication (`Hospital` vs `Hospital-&-Clinics`, `Hotel` vs `Hotel-&-Resorts`, `School` vs `Schools`, `IT-Solutions` vs `Solutions`). Conversely, the new application currently hardcodes 18 Chittoor-centric categories (`CHITTOOR_CATEGORIES`), causing regional mismatches (e.g., "Kanipakam Tours" and "Mango Mandis" showing for Vellore).
 4. **Missing Legacy Content Modules:** Several highly localized features from `velloreads.com` are currently absent in the new application:
-   - **Local Theatres Directory:** Prominent cinemas (Vishnu Cinemas, Balaji Cinemas, Lakshmi Multiplex, etc.).
-   - **Top City Attractions:** Vellore Fort, Sripuram Golden Temple, Jalakandeswarar Temple.
-   - **Homepage Quick Service Request:** Global multi-category quote request form.
-   - **Pricing & Subscription Packages Page:** Public presentation of Free, Gold, Platinum, and Premium merchant tiers.
-   - **Franchise Partner Portal:** Public inquiry and onboarding page for city franchise expansion.
+  - **Local Theatres Directory:** Prominent cinemas (Vishnu Cinemas, Balaji Cinemas, Lakshmi Multiplex, etc.).
+  - **Top City Attractions:** Vellore Fort, Sripuram Golden Temple, Jalakandeswarar Temple.
+  - **Homepage Quick Service Request:** Global multi-category quote request form.
+  - **Pricing & Subscription Packages Page:** Public presentation of Free, Gold, Platinum, and Premium merchant tiers.
+  - **Franchise Partner Portal:** Public inquiry and onboarding page for city franchise expansion.
 
 ---
 
-## 2. LEGACY WEBSITE AUDIT (<https://velloreads.com/>)
+## 2. LEGACY WEBSITE AUDIT (`https://velloreads.com/`)
 
 A comprehensive crawl and automated analysis of `velloreads.com` and its internal endpoints was executed. Every accessible section was audited across 36 core areas:
 
@@ -139,12 +139,12 @@ Audit performed on the live deployed URL (`https://remix-client-new-project.verc
 
    This only updates `document.title` and `meta[name="description"]`. It **fails to update**:
 
-   - `<meta property="og:title">`
-   - `<meta property="og:description">`
-   - `<meta property="og:url">`
-   - `<meta name="twitter:title">`
-   - `<meta name="twitter:description">`
-   - `<link rel="canonical">` (missing entirely)
+  - `<meta property="og:title">`
+  - `<meta property="og:description">`
+  - `<meta property="og:url">`
+  - `<meta name="twitter:title">`
+  - `<meta name="twitter:description">`
+  - `<link rel="canonical">` (missing entirely)
 
 3. **Contact Details Discrepancy in `src/config/cities.ts`:**
    Lines 370-374 set:
@@ -174,18 +174,20 @@ Audit performed on the live deployed URL (`https://remix-client-new-project.verc
 The old site contains **1,015 category entries**, but analysis reveals severe structural bloat:
 
 1. **Direct Duplicates:**
-   - `Hospital` (447 KB page) AND `Hospital-&-Clinics`
-   - `Hotel` AND `Hotel-&-Resorts`
-   - `School` AND `Schools`
-   - `College` AND `Colleges`
-   - `Computer` AND `Computer-Repair`
-   - `Mobile` AND `Mobile-Shops`
-   - `Departmental` AND `Departmental-Store`
-   - `General` AND `General-Shop`
-   - `Rental` AND `Rental-House`
-   - `Estates` AND `Property` AND `Real-Estate-Agency`
-   - `Travels` AND `Tour-&-Travels`
+  - `Hospital` (447 KB page) AND `Hospital-&-Clinics`
+  - `Hotel` AND `Hotel-&-Resorts`
+  - `School` AND `Schools`
+  - `College` AND `Colleges`
+  - `Computer` AND `Computer-Repair`
+  - `Mobile` AND `Mobile-Shops`
+  - `Departmental` AND `Departmental-Store`
+  - `General` AND `General-Shop`
+  - `Rental` AND `Rental-House`
+  - `Estates` AND `Property` AND `Real-Estate-Agency`
+  - `Travels` AND `Tour-&-Travels`
+
 2. **Subcategory Confusion:** Specialty terms like "Ready made Dress", "Medicine", and "Driving School" are mixed as top-level parent categories alongside major industries.
+
 3. **Ghost Categories:** Hundreds of generated slugs lead to zero listings or duplicate results.
 
 ### Comparison: Legacy vs Current vs Database Schema

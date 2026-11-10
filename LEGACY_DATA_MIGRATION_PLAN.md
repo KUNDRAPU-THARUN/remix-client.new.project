@@ -1,12 +1,13 @@
 # KAARYAN LABS — LEGACY DATA MIGRATION PLAN
+
 ## Vellore Ads (`velloreads.com`) to Multi-City Supabase Architecture
 
-**Author:** Senior Full-Stack Architect & Supabase Database Engineer, KAARYAN LABS
-**Target Platform:** `remix-client.new.project`
-**Target Cities:** Vellore Ads (`TN-23`), Chittoor Ads (`AP-03`), Bengaluru Ads (`KA-01`)
-**Database:** PostgreSQL 15 on Supabase
-**Storage:** Supabase Storage (`business-media` bucket)
-**Status:** APPROVED & READY FOR CLIENT AUTHORIZATION
+- **Author:** Senior Full-Stack Architect & Supabase Database Engineer, KAARYAN LABS
+- **Target Platform:** `remix-client.new.project`
+- **Target Cities:** Vellore Ads (`TN-23`), Chittoor Ads (`AP-03`), Bengaluru Ads (`KA-01`)
+- **Database:** PostgreSQL 15 on Supabase
+- **Storage:** Supabase Storage (`business-media` bucket)
+- **Status:** APPROVED & READY FOR CLIENT AUTHORIZATION
 
 ---
 
@@ -191,37 +192,43 @@ INSERT INTO businesses (
 Legacy listings do not have active Supabase Auth user IDs (`posted_by_user IS NULL`). To allow business owners to claim and manage their migrated listings without friction:
 
 1. **Self-Service Verification by SMS OTP / WhatsApp:**
-   - The owner visits the Business Owner Dashboard `/city/vellore/dashboard`.
-   - Clicks **"Claim My Existing Business"**.
-   - Enters their registered phone number (matched against `businesses.phone`).
-   - Receives an OTP on that number.
-   - Upon verification, their `auth.users.id` is linked to `businesses.posted_by_user`.
+  - The owner visits the Business Owner Dashboard `/city/vellore/dashboard`.
+  - Clicks **"Claim My Existing Business"**.
+  - Enters their registered phone number (matched against `businesses.phone`).
+  - Receives an OTP on that number.
+  - Upon verification, their `auth.users.id` is linked to `businesses.posted_by_user`.
+
 2. **Immediate Dashboard Access:**
-   - Once claimed, the business appears in the merchant's **My Listings** tab.
-   - They can immediately edit opening hours, upload high-res images, respond to customer enquiries, and monitor visitor impressions.
+  - Once claimed, the business appears in the merchant's **My Listings** tab.
+  - They can immediately edit opening hours, upload high-res images, respond to customer enquiries, and monitor visitor impressions.
 
 ---
 
 ## 8. Rollback and Verification Strategy
 
 1. **Pre-Migration Snapshot:**
-   - A full pg_dump backup of the production database is taken prior to batch execution:
-     ```bash
-     pg_dump -h db.supabase.co -U postgres -d postgres -t businesses -t customer_enquiries > pre_migration_backup.sql
-     ```
+  - A full pg_dump backup of the production database is taken prior to batch execution:
+
+    ```bash
+    pg_dump -h db.supabase.co -U postgres -d postgres -t businesses -t customer_enquiries > pre_migration_backup.sql
+    ```
+
 2. **Transaction Scoping:**
-   - The migration runs inside an explicit transaction block:
-     ```sql
-     BEGIN;
-     -- Batch insert commands
-     -- If error count > 0, ROLLBACK;
-     COMMIT;
-     ```
+  - The migration runs inside an explicit transaction block:
+
+    ```sql
+    BEGIN;
+    -- Batch insert commands
+    -- If error count > 0, ROLLBACK;
+    COMMIT;
+    ```
+
 3. **Partitioned Deletion Capability:**
-   - In the unlikely event of an abort request, all migrated records are identifiable by their city tag and migration sequence prefix (`v-mig-%`):
-     ```sql
-     DELETE FROM businesses WHERE city_id = 'vellore' AND id LIKE 'v-mig-%';
-     ```
+  - In the unlikely event of an abort request, all migrated records are identifiable by their city tag and migration sequence prefix (`v-mig-%`):
+
+    ```sql
+    DELETE FROM businesses WHERE city_id = 'vellore' AND id LIKE 'v-mig-%';
+    ```
 
 ---
 
@@ -232,4 +239,3 @@ Legacy listings do not have active Supabase Auth user IDs (`posted_by_user IS NU
 - [ ] Client approves baseline pre-verified status for active legacy advertisers.
 - [ ] Staging test batch of 50 businesses executed and verified on `remix-client-new-project.vercel.app/city/vellore`.
 - [ ] Production execution scheduled outside peak hours (9:00 PM – 11:00 PM IST).
-
