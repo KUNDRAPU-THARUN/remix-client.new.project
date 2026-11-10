@@ -42,6 +42,9 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentCity, selectedListing, 
     } else if (activeTab === 'contact') {
       title = `Contact ${currentCity.brandName} - Office & Support Helpline (${currentCity.code})`;
       description = `Get in touch with ${currentCity.brandName} regional office in ${currentCity.name}. Phone: ${currentCity.contact.phone}. Office: ${currentCity.contact.address}.`;
+    } else if (activeTab === 'biz') {
+      title = `Business Profile - ${currentCity.brandName} (${currentCity.code})`;
+      description = `View verified local business details, directions, contact, and reviews in ${currentCity.name} (${currentCity.code}).`;
     }
 
     const url = typeof window !== 'undefined' ? window.location.href : `https://${currentCity.domain}`;

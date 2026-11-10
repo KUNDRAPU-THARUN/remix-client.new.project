@@ -322,15 +322,6 @@ export const MainAppContent: React.FC = () => {
     }
   }, [currentUser, persist]);
 
-  // Update document title and SEO metadata on city change
-  useEffect(() => {
-    document.title = currentCity.seo.title;
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) {
-      metaDesc.setAttribute('content', currentCity.seo.description);
-    }
-  }, [currentCity]);
-
   // Handle URL Path parsing on initial mount and popstate (Browser Back/Forward)
   useEffect(() => {
     const handleLocationChange = () => {

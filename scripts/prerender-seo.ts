@@ -37,6 +37,34 @@ const CITY_SEO_DATA: CitySEO[] = [
   },
 ];
 
+interface SubPageSEO {
+  cityId: string;
+  subpath: string;
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  territoryCode: string;
+}
+
+const SUBPAGE_SEO_DATA: SubPageSEO[] = [
+  {
+    cityId: 'vellore',
+    subpath: 'about',
+    title: 'About Vellore Ads - Fort City Business Directory & Classifieds (TN-23)',
+    description: 'Discover Vellore Ads, the premier local business directory, CMC hospital corridor, student life, and classifieds portal for Vellore (TN-23).',
+    canonicalUrl: 'https://remix-client-new-project.vercel.app/city/vellore/about',
+    territoryCode: 'TN-23',
+  },
+  {
+    cityId: 'vellore',
+    subpath: 'contact',
+    title: 'Contact Vellore Ads - Office & Support Helpline (TN-23)',
+    description: 'Get in touch with Vellore Ads regional office in Vellore. Phone: +91 81899 85559. Office: Katpadi Main Road, Near VIT Junction, Vellore - 632014, Tamil Nadu.',
+    canonicalUrl: 'https://remix-client-new-project.vercel.app/city/vellore/contact',
+    territoryCode: 'TN-23',
+  },
+];
+
 function prerender() {
   const distDir = path.join(process.cwd(), 'dist');
   const templatePath = path.join(distDir, 'index.html');
@@ -97,7 +125,53 @@ function prerender() {
     console.log(`✅ Generated prerendered SEO HTML for ${city.name} (${city.code}) -> dist/city/${city.id}/index.html`);
   }
 
-  console.log('✅ All 3 city SEO entrypoints prerendered successfully.\n');
+  // Sub-pages prerendering (About, Contact)
+  for (const sub of SUBPAGE_SEO_DATA) {
+    const subDir = path.join(distDir, 'city', sub.cityId, sub.subpath);
+    if (!fs.existsSync(subDir)) {
+      fs.mkdirSync(subDir, { recursive: true });
+    }
+
+    let subHtml = baseHtml;
+
+    // 1. Title replacement
+    subHtml = subHtml.replace(
+      /<title>.*?<\/title>/is,
+      `<title>${sub.title}</title>`
+    );
+
+    // 2. Meta description replacement
+    subHtml = subHtml.replace(
+      /<meta\s+name="description"\s+content=".*?"\s*\/?>/is,
+      `<meta name="description" content="${sub.description}" />`
+    );
+
+    // 3. OpenGraph Title replacement
+    subHtml = subHtml.replace(
+      /<meta\s+property="og:title"\s+content=".*?"\s*\/?>/is,
+      `<meta property="og:title" content="${sub.title}" />`
+    );
+
+    // 4. OpenGraph Description replacement
+    subHtml = subHtml.replace(
+      /<meta\s+property="og:description"\s+content=".*?"\s*\/?>/is,
+      `<meta property="og:description" content="${sub.description}" />`
+    );
+
+    // 5. Inject Canonical URL & OG URL before </head>
+    const subSeoTags = `    <link rel="canonical" href="${sub.canonicalUrl}" />\n` +
+      `    <meta property="og:url" content="${sub.canonicalUrl}" />\n` +
+      `    <meta name="city" content="${sub.cityId}" />\n` +
+      `    <meta name="territory-code" content="${sub.territoryCode}" />\n  `;
+
+    subHtml = subHtml.replace('</head>', `${subSeoTags}</head>`);
+
+    const subIndexPath = path.join(subDir, 'index.html');
+    fs.writeFileSync(subIndexPath, subHtml, 'utf-8');
+    console.log(`✅ Generated prerendered SEO HTML for ${sub.cityId}/${sub.subpath} (${sub.territoryCode}) -> dist/city/${sub.cityId}/${sub.subpath}/index.html`);
+  }
+
+  console.log('✅ All city and subpage SEO entrypoints prerendered successfully.\n');
 }
 
 prerender();
