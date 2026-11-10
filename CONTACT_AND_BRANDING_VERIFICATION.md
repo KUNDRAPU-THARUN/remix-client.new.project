@@ -64,7 +64,7 @@ Each city features a dedicated, localized 24x7 emergency helpline directory acce
 
 | Field | Chittoor Ads | Vellore Ads | Bengaluru Ads |
 | :--- | :--- | :--- | :--- |
-| **Document Title (`<title>`)** | `Chittoor Ads | Local Business Directory, Classifieds & Services` | `Vellore Ads | Local Business Directory, Classifieds & Hospitals` | `Bengaluru Ads | Local Business Directory, Classifieds & Tech Services` |
+| **Document Title** (`&lt;title&gt;`) | `Chittoor Ads | Local Business Directory, Classifieds & Services` | `Vellore Ads | Local Business Directory, Classifieds & Hospitals` | `Bengaluru Ads | Local Business Directory, Classifieds & Tech Services` |
 | **Meta Description** | "Discover verified local businesses, restaurants, hospitals, Kanipakam travel services, real estate, and classified ads in Chittoor, Andhra Pradesh." | "Discover verified local businesses, CMC hospital doctors, VIT student PGs, Ambur biryani restaurants, movie theatres, and classified ads in Vellore, Tamil Nadu." | "Discover verified local businesses, IT startups, coworking spaces, multispeciality hospitals, and classified ads in Bengaluru, Karnataka." |
 | **Open Graph `og:title`** | Chittoor Ads — Local Directory & Classifieds | Vellore Ads — Local Directory & Classifieds | Bengaluru Ads — Local Directory & Classifieds |
 | **Canonical Link** | `https://remix-client-new-project.vercel.app/city/chittoor` | `https://remix-client-new-project.vercel.app/city/vellore` | `https://remix-client-new-project.vercel.app/city/bengaluru` |

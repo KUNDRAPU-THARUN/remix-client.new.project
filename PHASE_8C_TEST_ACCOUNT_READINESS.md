@@ -36,22 +36,26 @@ DO $$ ... INSERT INTO auth.users (id, email, encrypted_password, ...) VALUES (..
 
 #### Why Direct SQL Insertion Into `auth.users` Fails in Supabase GoTrue
 
-1. **Supabase GoTrue Identity Linking Violation (`auth.identities`):**
-  - Modern Supabase Auth (GoTrue v2) separates the primary user identity record (`auth.users`) from authentication providers (`auth.identities`).
-  - When a user logs in via `supabase.auth.signInWithPassword()`, GoTrue queries `auth.identities` where `provider = 'email'` and `identity_data->>'email' = ...`.
-  - Direct SQL insertion into `auth.users` leaves `auth.identities` unpopulated. Consequently, password sign-in attempts fail with an immediate `Invalid login credentials` error, even if the password hash in `auth.users` is mathematically valid.
+##### 1. Supabase GoTrue Identity Linking Violation (`auth.identities`)
 
-2. **Missing GoTrue State & Internal Metadata:**
-  - GoTrue maintains critical internal columns (`confirmation_token`, `recovery_token`, `email_change_token_current`, `reauthentication_token`, `is_sso_user`, `is_anonymous`).
-  - Raw SQL inserts bypass GoTrue's internal validation, case normalization, email formatting rules, and cryptographic salt generation parameters.
+- Modern Supabase Auth (GoTrue v2) separates the primary user identity record (`auth.users`) from authentication providers (`auth.identities`).
+- When a user logs in via `supabase.auth.signInWithPassword()`, GoTrue queries `auth.identities` where `provider = 'email'` and `identity_data->>'email' = ...`.
+- Direct SQL insertion into `auth.users` leaves `auth.identities` unpopulated. Consequently, password sign-in attempts fail with an immediate `Invalid login credentials` error, even if the password hash in `auth.users` is mathematically valid.
 
-3. **Database Trigger Race Conditions & Duplication:**
-  - Any insertion into `auth.users` fires the `on_auth_user_created` trigger, which calls [`public.handle_new_user()`](file:///c:/Users/kthar/Downloads/remix-client.new.project/supabase/migrations/20261101000004_fix_handle_new_user.sql).
-  - If a draft script manually inserts into `public.user_profiles` or `public.user_roles` after inserting into `auth.users`, it conflicts with the trigger's concurrent operations, triggering foreign-key or unique constraint violations (`user_roles_user_id_role_city_id_key`).
+##### 2. Missing GoTrue State & Internal Metadata
 
-4. **Security & Cryptographic Risk:**
-  - Generating password hashes outside GoTrue requires invoking pgcrypto's `crypt()` function with manually tuned salt iterations.
-  - Supabase Auth handles bcrypt hashing and salting inside GoTrue's Go runtime. Bypassing GoTrue risks producing password hashes that GoTrue cannot authenticate or verify.
+- GoTrue maintains critical internal columns (`confirmation_token`, `recovery_token`, `email_change_token_current`, `reauthentication_token`, `is_sso_user`, `is_anonymous`).
+- Raw SQL inserts bypass GoTrue's internal validation, case normalization, email formatting rules, and cryptographic salt generation parameters.
+
+##### 3. Database Trigger Race Conditions & Duplication
+
+- Any insertion into `auth.users` fires the `on_auth_user_created` trigger, which calls [`public.handle_new_user()`](file:///c:/Users/kthar/Downloads/remix-client.new.project/supabase/migrations/20261101000004_fix_handle_new_user.sql).
+- If a draft script manually inserts into `public.user_profiles` or `public.user_roles` after inserting into `auth.users`, it conflicts with the trigger's concurrent operations, triggering foreign-key or unique constraint violations (`user_roles_user_id_role_city_id_key`).
+
+##### 4. Security & Cryptographic Risk
+
+- Generating password hashes outside GoTrue requires invoking pgcrypto's `crypt()` function with manually tuned salt iterations.
+- Supabase Auth handles bcrypt hashing and salting inside GoTrue's Go runtime. Bypassing GoTrue risks producing password hashes that GoTrue cannot authenticate or verify.
 
 ---
 
@@ -181,18 +185,16 @@ To ensure compatibility with GoTrue, database triggers, and security boundaries,
 #### Persona 3: City Franchise Partner (Vellore Hub — TN-23)
 
 - **Email:** Dedicated owned mailbox / alias (e.g. `staging.franchise.vellore@kaaryanlabs.com`).
-- **Provisioning Method (Two-Step Governed Promotion):**
-  1. **Step 1 (Auth Creation):** Create user in Supabase Dashboard -> Authentication -> Users -> "Add User" (Auto-confirm email: enabled). `handle_new_user()` creates baseline profile and customer role.
-  2. **Step 2 (Governed Role Assignment):** Once the Super Admin is bootstrapped, the Super Admin calls the audited RPC via the Super Admin Dashboard (`/admin/users`) or via SQL:
+- **Provisioning Method (Two-Step Governed Promotion):** In Step 1 (Auth Creation), create user in Supabase Dashboard -> Authentication -> Users -> "Add User" (Auto-confirm email: enabled), which triggers `handle_new_user()` to create baseline profile and customer role. In Step 2 (Governed Role Assignment), once the Super Admin is bootstrapped, the Super Admin calls the audited RPC via the Super Admin Dashboard (`/admin/users`) or executes SQL:
 
-    ```sql
-    -- Executed by authenticated Super Admin
-    SELECT public.admin_assign_user_role(
-        '<vellore_user_id>',
-        'city_franchise',
-        'vellore'
-    );
-    ```
+```sql
+-- Executed by authenticated Super Admin
+SELECT public.admin_assign_user_role(
+    '00000000-0000-0000-0000-000000000000', -- vellore_user_id
+    'city_franchise',
+    'vellore'
+);
+```
 
 - **Automated Result:** Atomic replacement of baseline role with `city_franchise` for `vellore`, recording `assigned_by` and an immutable audit log in `public.audit_logs`.
 
@@ -321,19 +323,22 @@ The multi-city platform enforces four defense-in-depth barriers ensuring ordinar
 
 To satisfy rigorous security compliance and enable end-to-end testing of email flows:
 
-1. **Email Address Criteria:**
-  - Test accounts must use owned inboxes or team catch-all domain aliases (e.g., Google Workspace aliases or personal developer plus-addressing: `qa+superadmin@...`, `qa+franchise@...`).
-  - Ensures verification links, MFA tokens, and password reset workflows can be received and tested.
+#### 7.1 Email Address Criteria
 
-2. **Password Entropy & Generation:**
-  - Minimum length: 16 characters.
-  - Character classes: Uppercase, lowercase, numbers, and symbols.
-  - Distinct passwords generated for each of the four test personas.
+- Test accounts must use owned inboxes or team catch-all domain aliases (e.g., Google Workspace aliases or personal developer plus-addressing: `qa+superadmin@...`, `qa+franchise@...`).
+- Ensures verification links, MFA tokens, and password reset workflows can be received and tested.
 
-3. **Zero Secrets in Git:**
-  - Credentials must **never** be committed to Git or written into shared Markdown documents.
-  - For local CLI execution, test credentials are provided via `.env.test.local`, which is protected by `.gitignore` (`.env*` rule).
-  - Production secrets remain exclusively in the secure Vercel and Supabase management consoles.
+#### 7.2 Password Entropy & Generation
+
+- Minimum length: 16 characters.
+- Character classes: Uppercase, lowercase, numbers, and symbols.
+- Distinct passwords generated for each of the four test personas.
+
+#### 7.3 Zero Secrets in Git
+
+- Credentials must **never** be committed to Git or written into shared Markdown documents.
+- For local CLI execution, test credentials are provided via `.env.test.local`, which is protected by `.gitignore` (`.env*` rule).
+- Production secrets remain exclusively in the secure Vercel and Supabase management consoles.
 
 ---
 
@@ -399,48 +404,49 @@ The multi-environment deployment architecture ensures complete safety between pr
 
 #### Administrator Action Plan (To Be Performed Manually by Stakeholder)
 
-- [ ] **Step 1: Create GoTrue Users in Staging Dashboard**
-  - Open: `https://supabase.com/dashboard/project/tbwtxnszyddvpgqvxwow/auth/users`
-  - Create the four test accounts with "Auto Confirm User" enabled:
-    1. `staging.superadmin@kaaryanlabs.com`
-    2. `staging.franchise.vellore@kaaryanlabs.com`
-    3. `staging.merchant@kaaryanlabs.com`
-    4. `staging.customer@kaaryanlabs.com`
-  - *Store passwords in your secure secrets manager.*
+##### Step 1: Create GoTrue Users in Staging Dashboard
 
-- [ ] **Step 2: Execute Super Admin Bootstrap Script in Staging SQL Editor**
-  - Open: `https://supabase.com/dashboard/project/tbwtxnszyddvpgqvxwow/sql/new`
-  - Run the SQL script from **Section 5** above to promote `staging.superadmin@kaaryanlabs.com` to Super Admin.
+- Open: `https://supabase.com/dashboard/project/tbwtxnszyddvpgqvxwow/auth/users`
+- Create the four test accounts with "Auto Confirm User" enabled: `staging.superadmin@kaaryanlabs.com`, `staging.franchise.vellore@kaaryanlabs.com`, `staging.merchant@kaaryanlabs.com`, and `staging.customer@kaaryanlabs.com`.
+- Store passwords in your secure secrets manager.
 
-- [ ] **Step 3: Promote Vellore Franchise Partner**
-  - Either log into the Super Admin portal (`/admin/users`) with the bootstrapped Super Admin to assign the `city_franchise` role for `vellore`, OR run:
+##### Step 2: Execute Super Admin Bootstrap Script in Staging SQL Editor
 
-    ```sql
-    SELECT public.admin_assign_user_role(
-        (SELECT id FROM auth.users WHERE email = 'staging.franchise.vellore@kaaryanlabs.com'),
-        'city_franchise',
-        'vellore'
-    );
-    ```
+- Open: `https://supabase.com/dashboard/project/tbwtxnszyddvpgqvxwow/sql/new`
+- Run the SQL script from **Section 5** above to promote `staging.superadmin@kaaryanlabs.com` to Super Admin.
 
-- [ ] **Step 4: Provide Local Environment Variables for QA Execution**
-  - Create a private, git-ignored `.env.test.local` (or configure session variables) containing:
+##### Step 3: Promote Vellore Franchise Partner
 
-    ```env
-    VITE_SUPABASE_URL=https://tbwtxnszyddvpgqvxwow.supabase.co
-    VITE_SUPABASE_PUBLISHABLE_KEY=<staging-anon-key>
-    TEST_SUPER_ADMIN_EMAIL=staging.superadmin@kaaryanlabs.com
-    TEST_SUPER_ADMIN_PASSWORD=<super-admin-password>
-    TEST_FRANCHISE_EMAIL=staging.franchise.vellore@kaaryanlabs.com
-    TEST_FRANCHISE_PASSWORD=<franchise-password>
-    TEST_OWNER_EMAIL=staging.merchant@kaaryanlabs.com
-    TEST_OWNER_PASSWORD=<owner-password>
-    TEST_CUSTOMER_EMAIL=staging.customer@kaaryanlabs.com
-    TEST_CUSTOMER_PASSWORD=<customer-password>
-    ```
+- Either log into the Super Admin portal (`/admin/users`) with the bootstrapped Super Admin to assign the `city_franchise` role for `vellore`, OR run:
 
-- [ ] **Step 5: Notify Agent to Execute Phase 8C Live Verification Suite**
-  - Once the four accounts are provisioned, reply to begin execution of the live authenticated test suite.
+```sql
+SELECT public.admin_assign_user_role(
+    (SELECT id FROM auth.users WHERE email = 'staging.franchise.vellore@kaaryanlabs.com'),
+    'city_franchise',
+    'vellore'
+);
+```
+
+##### Step 4: Provide Local Environment Variables for QA Execution
+
+- Create a private, git-ignored `.env.test.local` (or configure session variables) containing:
+
+```env
+VITE_SUPABASE_URL="https://tbwtxnszyddvpgqvxwow.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY="your-staging-anon-key"
+TEST_SUPER_ADMIN_EMAIL="staging.superadmin@kaaryanlabs.com"
+TEST_SUPER_ADMIN_PASSWORD="your-super-admin-password"
+TEST_FRANCHISE_EMAIL="staging.franchise.vellore@kaaryanlabs.com"
+TEST_FRANCHISE_PASSWORD="your-franchise-password"
+TEST_OWNER_EMAIL="staging.merchant@kaaryanlabs.com"
+TEST_OWNER_PASSWORD="your-owner-password"
+TEST_CUSTOMER_EMAIL="staging.customer@kaaryanlabs.com"
+TEST_CUSTOMER_PASSWORD="your-customer-password"
+```
+
+##### Step 5: Notify Agent to Execute Phase 8C Live Verification Suite
+
+- Once the four accounts are provisioned, reply to begin execution of the live authenticated test suite.
 
 ---
 
