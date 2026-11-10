@@ -16,6 +16,7 @@ import { Listing } from '../types';
 import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
 import { resolveListingContact } from '../utils/contactValidation';
 import { getOperatingHoursStatus } from '../utils/operatingHours';
+import { buildListingWhatsAppUrl } from '../utils/whatsappTemplates';
 
 interface ListingCardProps {
   listing: Listing;
@@ -49,10 +50,21 @@ export const ListingCard: React.FC<ListingCardProps> = ({
       onSelect(listing);
       return;
     }
-    const message = encodeURIComponent(
-      `Hello! I found your listing "${listing.title}" on ${cityConfig.brandName} (${cityConfig.code}). I would like to inquire about your services.`
-    );
-    window.open(`https://wa.me/${cleanWhatsApp}?text=${message}`, '_blank');
+    const wa = buildListingWhatsAppUrl({
+      phone: listing.phone,
+      whatsapp: listing.whatsapp,
+      businessTitle: listing.title,
+      categoryId: listing.category,
+      localityName: areaName,
+      cityId: cityConfig.id,
+      brandName: cityConfig.brandName,
+      cityCode: cityConfig.code,
+    });
+    if (wa.isValid && wa.url) {
+      window.open(wa.url, '_blank');
+    } else {
+      onSelect(listing);
+    }
   };
 
   const handleCall = (e: React.MouseEvent) => {
