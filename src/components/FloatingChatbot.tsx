@@ -294,15 +294,17 @@ export const FloatingChatbot: React.FC<FloatingChatbotProps> = ({ currentCity })
                     <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
                     <span>Clear Chat History</span>
                   </button>
-                  <a
-                    href={`https://wa.me/${phoneClean}?text=Hi%20${encodeURIComponent(brandName)}%20Support`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-emerald-700 font-medium"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>WhatsApp Helpdesk</span>
-                  </a>
+                  {phoneClean && (
+                    <a
+                      href={`https://wa.me/${phoneClean}?text=Hi%20${encodeURIComponent(brandName)}%20Support`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-emerald-700 font-medium"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>WhatsApp Helpdesk</span>
+                    </a>
+                  )}
                   <button
                     onClick={() => {
                       setIsOpen(false);

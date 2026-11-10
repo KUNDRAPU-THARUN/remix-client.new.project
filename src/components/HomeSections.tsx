@@ -12,11 +12,13 @@ import {
   CheckCircle2,
   TrendingUp,
   Users,
-  PlusCircle
+  PlusCircle,
+  Send
 } from 'lucide-react';
 import { Listing, CityConfig } from '../types';
 import { getCityCategories } from '../config/categories';
 import { useTranslation } from '../i18n/LanguageContext';
+import { resolveListingContact } from '../utils/contactValidation';
 
 interface HomeSectionsProps {
   featuredListings: Listing[];
@@ -36,20 +38,6 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
   currentCity,
 }) => {
   const { t } = useTranslation();
-
-  const handleCall = (e: React.MouseEvent, phone: string) => {
-    e.stopPropagation();
-    window.location.href = `tel:${phone.replace(/\s+/g, '')}`;
-  };
-
-  const handleWhatsApp = (e: React.MouseEvent, listing: Listing) => {
-    e.stopPropagation();
-    const phone = listing.whatsapp || listing.phone.replace(/[^0-9]/g, '');
-    const message = encodeURIComponent(
-      `Hello! I found your listing "${listing.title}" on ${currentCity.brandName} (${currentCity.code} Local Discovery). I would like to inquire about your services.`
-    );
-    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
-  };
 
   return (
     <div className="space-y-14 py-4">
@@ -90,6 +78,9 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
               const cityCats = getCityCategories(currentCity.id);
               const catName = cityCats.find((c) => c.id === biz.category)?.name || biz.category;
               const areaName = currentCity.localities.find((a) => a.id === biz.area)?.name || biz.area;
+              const contact = resolveListingContact(biz.phone, biz.whatsapp);
+              const hasValidPhone = contact.hasValidPhone;
+              const hasValidWhatsApp = contact.hasValidWhatsApp;
 
               return (
                 <div
@@ -162,24 +153,66 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
                   {/* Card Actions: Call, WhatsApp, View Details */}
                   <div className="mt-3.5 pt-3 border-t border-slate-100 space-y-2">
                     <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={(e) => handleCall(e, biz.phone)}
-                        className="py-1.5 px-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-[11px] transition flex items-center justify-center gap-1 cursor-pointer"
-                        title={`Call ${biz.phone}`}
-                      >
-                        <Phone className="w-3 h-3 text-[#15995F]" />
-                        <span>Call</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleWhatsApp(e, biz)}
-                        className="py-1.5 px-2 rounded-lg bg-[#15995F] hover:bg-emerald-700 text-white font-bold text-[11px] transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
-                        title="Chat on WhatsApp"
-                      >
-                        <MessageSquare className="w-3 h-3" />
-                        <span>WhatsApp</span>
-                      </button>
+                      {hasValidPhone ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `tel:${contact.dialablePhone}`;
+                          }}
+                          className="py-1.5 px-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-[11px] transition flex items-center justify-center gap-1 cursor-pointer"
+                          title={`Call ${contact.dialablePhone}`}
+                          aria-label={`Call ${biz.title}`}
+                        >
+                          <Phone className="w-3 h-3 text-[#15995F]" />
+                          <span>Call</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectListing(biz);
+                          }}
+                          className="py-1.5 px-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-[11px] transition flex items-center justify-center gap-1 cursor-pointer"
+                          title="Direct phone not provided — Click to view details and send enquiry"
+                          aria-label={`Enquire with ${biz.title} (Phone unavailable)`}
+                        >
+                          <Send className="w-3 h-3 text-blue-600" />
+                          <span>Enquire</span>
+                        </button>
+                      )}
+
+                      {hasValidWhatsApp ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const message = encodeURIComponent(
+                              `Hello! I found your listing "${biz.title}" on ${currentCity.brandName} (${currentCity.code} Local Discovery). I would like to inquire about your services.`
+                            );
+                            window.open(`https://wa.me/${contact.whatsappNumber}?text=${message}`, '_blank');
+                          }}
+                          className="py-1.5 px-2 rounded-lg bg-[#15995F] hover:bg-emerald-700 text-white font-bold text-[11px] transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
+                          title="Chat on WhatsApp"
+                          aria-label={`WhatsApp ${biz.title}`}
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          <span>WhatsApp</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          aria-disabled="true"
+                          className="py-1.5 px-2 rounded-lg bg-slate-100 text-slate-400 font-bold text-[11px] border border-slate-200 cursor-not-allowed select-none flex items-center justify-center gap-1"
+                          title="WhatsApp contact not provided for this listing"
+                          aria-label="WhatsApp unavailable"
+                        >
+                          <MessageSquare className="w-3 h-3 text-slate-300" />
+                          <span>WhatsApp</span>
+                        </button>
+                      )}
                     </div>
                     <button
                       type="button"

@@ -325,7 +325,8 @@ async function runBrowserE2E() {
     // Close emergency modal
     await evaluateScript(ws, `
       (() => {
-        const closeBtn = document.querySelector('[role="dialog"] button, div[class*="backdrop-blur"] button');
+        const closeBtn = document.querySelector('button[aria-label*="Close"], button[aria-label*="close"]') ||
+                         document.querySelector('[role="dialog"] button, div[class*="backdrop-blur"] button');
         if (closeBtn) closeBtn.click();
       })()
     `);
@@ -345,7 +346,9 @@ async function runBrowserE2E() {
       (() => {
         const inp = document.querySelector('input[type="text"]');
         if (inp) {
-          inp.value = 'Diagnostic';
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          if (setter) setter.call(inp, 'Diagnostic');
+          else inp.value = 'Diagnostic';
           inp.dispatchEvent(new Event('input', { bubbles: true }));
         }
       })()
@@ -362,7 +365,9 @@ async function runBrowserE2E() {
       (() => {
         const inp = document.querySelector('input[type="text"]');
         if (inp) {
-          inp.value = '';
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          if (setter) setter.call(inp, '');
+          else inp.value = '';
           inp.dispatchEvent(new Event('input', { bubbles: true }));
         }
       })()

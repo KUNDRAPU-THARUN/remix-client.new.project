@@ -56,7 +56,7 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
   const cityCode = targetCity.code || (cityId === 'vellore' ? 'TN-23' : cityId === 'bengaluru' ? 'KA-01' : 'AP-03');
 
   const categories = getCityCategories(cityId);
-  const localities = currentCity?.localities || targetCity.localities || [];
+  const localities = targetCity.localities || currentCity?.localities || [];
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(categories[0]?.id || 'restaurants');
   const [area, setArea] = useState(localities[1]?.id || 'all');
