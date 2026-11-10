@@ -9,10 +9,12 @@ import {
   Clock, 
   Tag, 
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Send
 } from 'lucide-react';
 import { Listing } from '../types';
 import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
+import { resolveListingContact } from '../utils/contactValidation';
 
 interface ListingCardProps {
   listing: Listing;
@@ -30,18 +32,32 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   const cityConfig = CITIES[listing.cityId || DEFAULT_CITY_ID] || CITIES[DEFAULT_CITY_ID];
   const areaName = cityConfig.localities.find((a) => a.id === listing.area)?.name || listing.area;
 
+  // Contact validation: distinguish Indian mobile, landline with STD, helplines, and international formats
+  const contact = resolveListingContact(listing.phone, listing.whatsapp);
+  const cleanPhone = contact.dialablePhone;
+  const cleanWhatsApp = contact.whatsappNumber;
+  const hasValidPhone = contact.hasValidPhone;
+  const hasValidWhatsApp = contact.hasValidWhatsApp;
+
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const phone = listing.whatsapp || listing.phone.replace(/[^0-9]/g, '');
+    if (!hasValidWhatsApp) {
+      onSelect(listing);
+      return;
+    }
     const message = encodeURIComponent(
       `Hello! I found your listing "${listing.title}" on ${cityConfig.brandName} (${cityConfig.code}). I would like to inquire about your services.`
     );
-    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${cleanWhatsApp}?text=${message}`, '_blank');
   };
 
   const handleCall = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.location.href = `tel:${listing.phone.replace(/\s+/g, '')}`;
+    if (!hasValidPhone) {
+      onSelect(listing);
+      return;
+    }
+    window.location.href = `tel:${cleanPhone}`;
   };
 
   const handleSave = (e: React.MouseEvent) => {
@@ -176,23 +192,57 @@ export const ListingCard: React.FC<ListingCardProps> = ({
       {/* Card Action Buttons */}
       <div className="p-4 pt-0 sm:p-5 sm:pt-0">
         <div className="grid grid-cols-2 gap-2">
-          {/* Call Button */}
-          <button
-            onClick={handleCall}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-200 text-slate-800 hover:bg-slate-50 font-semibold text-xs sm:text-sm transition cursor-pointer"
-          >
-            <Phone className="w-4 h-4 text-[#15995F]" />
-            <span>Call Now</span>
-          </button>
+          {/* Call / Enquiry Button */}
+          {hasValidPhone ? (
+            <button
+              type="button"
+              onClick={handleCall}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-200 text-slate-800 hover:bg-slate-50 font-semibold text-xs sm:text-sm transition cursor-pointer"
+              aria-label={`Call ${listing.title}`}
+            >
+              <Phone className="w-4 h-4 text-[#15995F]" />
+              <span>Call Now</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(listing);
+              }}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold text-xs sm:text-sm transition cursor-pointer"
+              title="Direct phone not provided — Click to view details and send enquiry"
+              aria-label={`Enquire with ${listing.title} (Phone unavailable)`}
+            >
+              <Send className="w-3.5 h-3.5 text-blue-600" />
+              <span>Enquire</span>
+            </button>
+          )}
 
           {/* WhatsApp Button */}
-          <button
-            onClick={handleWhatsApp}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#15995F] hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm transition shadow-2xs shadow-emerald-600/30 cursor-pointer"
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>WhatsApp</span>
-          </button>
+          {hasValidWhatsApp ? (
+            <button
+              type="button"
+              onClick={handleWhatsApp}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#15995F] hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm transition shadow-2xs shadow-emerald-600/30 cursor-pointer"
+              aria-label={`WhatsApp ${listing.title}`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 text-slate-400 font-semibold text-xs sm:text-sm border border-slate-200 cursor-not-allowed select-none"
+              title="WhatsApp contact not provided for this listing"
+              aria-label="WhatsApp unavailable"
+            >
+              <MessageSquare className="w-4 h-4 text-slate-300" />
+              <span>WhatsApp</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

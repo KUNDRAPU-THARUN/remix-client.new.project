@@ -253,7 +253,7 @@ async function runTestSuite() {
   assert(res14Bengaluru.isPermitted, 'Test 14c: Super Admin permitted in Bengaluru administrative view');
 
   // --------------------------------------------------------------------------
-  console.log('\n--- SECTION 3: Navbar Region Lock Badge Audit ---');
+  console.log('\n--- SECTION 3: Navbar Region Lock Badge & Strict City Lock Audit ---');
   // --------------------------------------------------------------------------
 
   // Anonymous visitor: Free to browse all public cities, no lock badge
@@ -261,20 +261,70 @@ async function runTestSuite() {
   assert(!badgeAnon.isLocked, 'Anonymous: Not region locked');
   assert(badgeAnon.canSwitchCity, 'Anonymous: Can switch public cities freely');
 
-  // Signed-in Customer browsing public directory: Free to browse, no dashboard lock
-  const badgeCustPublic = getRegionLockBadge(velloreCustomer, 'home', 'bengaluru');
-  assert(!badgeCustPublic.isLocked, 'Customer on public home: Not locked out of browsing');
-  assert(badgeCustPublic.canSwitchCity, 'Customer on public home: Can switch public city');
-  assert(badgeCustPublic.lockLabel === 'Registered Region', 'Customer: Displays "Registered Region" badge');
+  // Signed-out user: City switching restored
+  const signedOutUser = null;
+  const badgeSignedOut = getRegionLockBadge(signedOutUser, 'home', 'bengaluru');
+  assert(!badgeSignedOut.isLocked, 'Signed-out user: Not region locked');
+  assert(badgeSignedOut.canSwitchCity, 'Signed-out user: City switching restored to public browsing');
 
-  // Business Owner on Dashboard: STRICTLY LOCKED
+  // Signed-in Vellore Customer: Strictly locked across all public & private routes
+  const badgeCustHome = getRegionLockBadge(velloreCustomer, 'home', 'vellore');
+  assert(badgeCustHome.isLocked, 'Vellore Customer on home: Strictly locked to registered city');
+  assert(!badgeCustHome.canSwitchCity, 'Vellore Customer on home: Cannot switch city (no city dropdown)');
+  assert(badgeCustHome.allowedCityId === 'vellore', 'Vellore Customer: Bound strictly to Vellore');
+  assert(badgeCustHome.lockLabel === 'Registered City', 'Vellore Customer: Displays "Registered City" label');
+  assert(badgeCustHome.statusText === 'Account City', 'Vellore Customer: Displays "Account City" status');
+
+  const badgeCustClassifieds = getRegionLockBadge(velloreCustomer, 'classifieds', 'vellore');
+  assert(badgeCustClassifieds.isLocked, 'Vellore Customer on classifieds: Remains strictly locked');
+  assert(!badgeCustClassifieds.canSwitchCity, 'Vellore Customer on classifieds: Cannot switch city');
+
+  // Chittoor Customer: Strictly locked to Chittoor
+  const chittoorCustomer: UserAccount = {
+    id: 'usr-customer-ch-01',
+    username: 'chittoor_shopper',
+    email: 'customer@chittoor.ads',
+    role: 'customer',
+    roles: [{ role: 'customer', cityId: 'chittoor' }],
+    name: 'Chittoor Customer',
+    cityId: 'chittoor',
+  };
+  const badgeChCust = getRegionLockBadge(chittoorCustomer, 'home', 'chittoor');
+  assert(badgeChCust.isLocked, 'Chittoor Customer on home: Strictly locked');
+  assert(!badgeChCust.canSwitchCity, 'Chittoor Customer: Cannot switch city');
+  assert(badgeChCust.allowedCityId === 'chittoor', 'Chittoor Customer: Bound to Chittoor');
+
+  // Bengaluru Customer: Strictly locked to Bengaluru
+  const bengaluruCustomer: UserAccount = {
+    id: 'usr-customer-blr-01',
+    username: 'bengaluru_shopper',
+    email: 'customer@bengaluru.ads',
+    role: 'customer',
+    roles: [{ role: 'customer', cityId: 'bengaluru' }],
+    name: 'Bengaluru Customer',
+    cityId: 'bengaluru',
+  };
+  const badgeBlrCust = getRegionLockBadge(bengaluruCustomer, 'home', 'bengaluru');
+  assert(badgeBlrCust.isLocked, 'Bengaluru Customer on home: Strictly locked');
+  assert(!badgeBlrCust.canSwitchCity, 'Bengaluru Customer: Cannot switch city');
+  assert(badgeBlrCust.allowedCityId === 'bengaluru', 'Bengaluru Customer: Bound to Bengaluru');
+
+  // Business Owner on Home & Dashboard: STRICTLY LOCKED across all routes
+  const badgeOwnerHome = getRegionLockBadge(velloreOwner, 'home', 'vellore');
+  assert(badgeOwnerHome.isLocked, 'Business Owner on home: Strictly locked');
+  assert(!badgeOwnerHome.canSwitchCity, 'Business Owner on home: Cannot switch city');
+
   const badgeOwnerDashboard = getRegionLockBadge(velloreOwner, 'dashboard', 'vellore');
   assert(badgeOwnerDashboard.isLocked, 'Business Owner on dashboard: Strictly locked');
   assert(!badgeOwnerDashboard.canSwitchCity, 'Business Owner on dashboard: Cannot switch city');
   assert(badgeOwnerDashboard.lockLabel === 'Assigned Business Region', 'Business Owner: Displays "Assigned Business Region"');
   assert(badgeOwnerDashboard.allowedCityId === 'vellore', 'Business Owner: Bound to Vellore');
 
-  // City Franchise on Franchise Command Center: STRICTLY LOCKED
+  // City Franchise on Home & Franchise Command Center: STRICTLY LOCKED
+  const badgeFranHome = getRegionLockBadge(velloreFranchise, 'home', 'vellore');
+  assert(badgeFranHome.isLocked, 'Franchise on home: Strictly locked');
+  assert(!badgeFranHome.canSwitchCity, 'Franchise on home: Cannot switch city');
+
   const badgeFranDashboard = getRegionLockBadge(velloreFranchise, 'franchise', 'vellore');
   assert(badgeFranDashboard.isLocked, 'Franchise on command center: Strictly locked');
   assert(!badgeFranDashboard.canSwitchCity, 'Franchise on command center: Cannot switch city');
@@ -282,8 +332,12 @@ async function runTestSuite() {
   assert(badgeFranDashboard.allowedCityId === 'vellore', 'Franchise: Bound to Vellore');
 
   // Super Admin: Never locked, oversight across all cities
+  const badgeSuperAdminHome = getRegionLockBadge(superAdmin, 'home', 'vellore');
+  assert(!badgeSuperAdminHome.isLocked, 'Super Admin on home: Never locked');
+  assert(badgeSuperAdminHome.canSwitchCity, 'Super Admin on home: Can switch cities');
+
   const badgeSuperAdmin = getRegionLockBadge(superAdmin, 'dashboard', 'vellore');
-  assert(!badgeSuperAdmin.isLocked, 'Super Admin: Never locked');
+  assert(!badgeSuperAdmin.isLocked, 'Super Admin on dashboard: Never locked');
   assert(badgeSuperAdmin.canSwitchCity, 'Super Admin: Can switch cities');
   assert(badgeSuperAdmin.isSuperAdmin, 'Super Admin: isSuperAdmin flag is true');
 

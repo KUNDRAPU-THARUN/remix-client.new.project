@@ -94,7 +94,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <MapPin className="w-5 h-5 fill-white" />
               </div>
               <span className="text-2xl font-black text-white tracking-tight font-heading">
-                {currentCity.name}<span className="text-[#E51E31]">Ads</span>
+                {currentCity.name}<span style={{ color: currentCity.theme.primaryColor }}>Ads</span>
               </span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed font-medium">

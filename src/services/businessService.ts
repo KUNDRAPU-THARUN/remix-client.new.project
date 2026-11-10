@@ -463,5 +463,45 @@ export const businessService = {
       return { success: false, error: err instanceof Error ? err.message : 'Review submission failed.' };
     }
   },
+
+  async getListingReviews(listingId: string): Promise<Review[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+    try {
+      const { data: found } = await supabase
+        .from('businesses')
+        .select('id')
+        .or(`id.eq.${listingId},legacy_id.eq.${listingId}`)
+        .maybeSingle();
+
+      if (!found) return [];
+
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('business_id', found.id)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+
+      if (error || !data) return [];
+      return data.map((r: any) => ({
+        id: r.id,
+        author: r.author_name,
+        rating: Number(r.rating) || 5,
+        comment: r.comment || '',
+        date: r.created_at ? r.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        verifiedPurchase: Boolean(r.verified_purchase),
+        helpfulCount: r.helpful_count || 0,
+        unhelpfulCount: r.unhelpful_count || 0,
+        subRatings: {
+          serviceQuality: r.service_quality || undefined,
+          valueForMoney: r.value_for_money || undefined,
+          cleanliness: r.cleanliness || undefined,
+        },
+      }));
+    } catch {
+      return [];
+    }
+  },
 };
 

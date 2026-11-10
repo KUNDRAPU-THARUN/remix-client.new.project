@@ -37,6 +37,7 @@ import {
 import { Listing, Review } from '../types';
 import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
 import { enquiryService } from '../services/enquiryService';
+import { resolveListingContact } from '../utils/contactValidation';
 
 interface ListingDetailModalProps {
   listing: Listing | null;
@@ -106,9 +107,20 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
   const cityConfig = CITIES[listing.cityId || DEFAULT_CITY_ID] || CITIES[DEFAULT_CITY_ID];
   const areaName = cityConfig.localities.find((a) => a.id === listing.area)?.name || listing.area;
 
+  // Contact validation: distinguish Indian mobile, landline with STD, helplines, and international formats
+  const contact = resolveListingContact(listing.phone, listing.whatsapp);
+  const cleanPhone = contact.dialablePhone;
+  const cleanWhatsApp = contact.whatsappNumber;
+  const hasValidPhone = contact.hasValidPhone;
+  const hasValidWhatsApp = contact.hasValidWhatsApp;
+
   // Direct contact handlers
   const handleCall = () => {
-    window.location.href = `tel:${listing.phone.replace(/\s+/g, '')}`;
+    if (!hasValidPhone) {
+      setIsEnquiryOpen(true);
+      return;
+    }
+    window.location.href = `tel:${cleanPhone}`;
   };
 
   // Customer Enquiry Dialog State
@@ -219,19 +231,24 @@ Verification Note / Proof: ${claimProof.trim() || 'Claimant requested ownership 
       setEditError('Please describe the correction needed (at least 5 characters).');
       return;
     }
+    const cleanEditPhone = editPhone.replace(/\D/g, '');
+    if (cleanEditPhone.length < 10) {
+      setEditError('Please enter a valid 10-digit mobile number so our team can verify the update.');
+      return;
+    }
     setIsEditSubmitting(true);
     const msg = `[SUGGEST_AN_EDIT]
 Category: ${editType}
 Listing: ${listing.title} (${listing.id})
 Proposed Corrections: ${editDetails.trim()}
-Submitted by: ${editName.trim() || 'Community Contributor'} (${editPhone.trim() || 'No phone provided'})`.trim();
+Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`.trim();
 
     const res = await enquiryService.submitEnquiry({
       businessId: listing.id,
       businessName: listing.title,
       cityId: listing.cityId || cityConfig.id,
       customerName: editName.trim() || 'Community Contributor',
-      customerPhone: editPhone.trim() || '9999999999',
+      customerPhone: cleanEditPhone,
       message: msg,
     });
     setIsEditSubmitting(false);
@@ -246,11 +263,14 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${editPhone.trim() 
   };
 
   const handleWhatsApp = () => {
-    const phone = listing.whatsapp || listing.phone.replace(/[^0-9]/g, '');
+    if (!hasValidWhatsApp) {
+      setIsEnquiryOpen(true);
+      return;
+    }
     const message = encodeURIComponent(
       `Hello! I found your listing "${listing.title}" on ${cityConfig.brandName} (${cityConfig.code} local directory). I'd like more details.`
     );
-    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${cleanWhatsApp}?text=${message}`, '_blank');
   };
 
   const handleShare = async (textToShare?: string) => {
@@ -533,20 +553,53 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${editPhone.trim() 
                 <Send className="w-4 h-4" />
                 <span>Enquire</span>
               </button>
-              <button
-                onClick={handleCall}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm shadow-xs transition"
-              >
-                <Phone className="w-4 h-4 text-emerald-400" />
-                <span>Call</span>
-              </button>
-              <button
-                onClick={handleWhatsApp}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>WhatsApp</span>
-              </button>
+              {hasValidPhone ? (
+                <button
+                  type="button"
+                  onClick={handleCall}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm shadow-xs transition cursor-pointer"
+                  aria-label={`Call ${listing.title}`}
+                >
+                  <Phone className="w-4 h-4 text-emerald-400" />
+                  <span>Call</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 text-slate-400 font-semibold text-xs sm:text-sm shadow-xs border border-slate-200 cursor-not-allowed select-none"
+                  title="Direct phone not provided for this listing — please use Enquire"
+                  aria-label="Call unavailable"
+                >
+                  <Phone className="w-4 h-4 text-slate-300" />
+                  <span>Call</span>
+                </button>
+              )}
+
+              {hasValidWhatsApp ? (
+                <button
+                  type="button"
+                  onClick={handleWhatsApp}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition cursor-pointer"
+                  aria-label={`WhatsApp ${listing.title}`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>WhatsApp</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 text-slate-400 font-semibold text-xs sm:text-sm shadow-xs border border-slate-200 cursor-not-allowed select-none"
+                  title="WhatsApp contact not provided for this listing"
+                  aria-label="WhatsApp unavailable"
+                >
+                  <MessageSquare className="w-4 h-4 text-slate-300" />
+                  <span>WhatsApp</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -797,13 +850,32 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${editPhone.trim() 
 
               <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs text-slate-500">Need a custom quote or service inquiry?</span>
-                <button
-                  onClick={handleWhatsApp}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1.5"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Inquire via WhatsApp</span>
-                </button>
+                {hasValidWhatsApp ? (
+                  <button
+                    type="button"
+                    onClick={handleWhatsApp}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1.5 cursor-pointer"
+                    aria-label={`WhatsApp ${listing.title}`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Inquire via WhatsApp</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEnquiryOpen(true);
+                      setEnquirySuccess(false);
+                      setEnquiryError('');
+                    }}
+                    className="px-4 py-2 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    style={{ backgroundColor: cityConfig.theme.primaryColor }}
+                    aria-label={`Send enquiry to ${listing.title}`}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Send Online Enquiry</span>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1863,13 +1935,14 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${editPhone.trim() 
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                        Your Mobile (Optional)
+                        Your Mobile Number *
                       </label>
                       <input
                         type="tel"
+                        required
                         value={editPhone}
                         onChange={(e) => setEditPhone(e.target.value)}
-                        placeholder="In case we need clarification"
+                        placeholder="10-digit contact mobile"
                         className="w-full px-3 py-2 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:outline-hidden focus:border-slate-800 bg-slate-50 focus:bg-white"
                       />
                     </div>

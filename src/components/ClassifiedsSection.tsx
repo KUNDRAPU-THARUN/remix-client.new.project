@@ -10,6 +10,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { ClassifiedItem, CityConfig } from '../types';
+import { resolveListingContact } from '../utils/contactValidation';
 
 interface ClassifiedsSectionProps {
   classifieds: ClassifiedItem[];
@@ -34,15 +35,24 @@ export const ClassifiedsSection: React.FC<ClassifiedsSectionProps> = ({
     : classifieds.filter((c) => c.category === selectedCategory);
 
   const handleWhatsApp = (item: ClassifiedItem) => {
-    const phone = item.whatsapp || item.phone.replace(/[^0-9]/g, '');
+    const contact = resolveListingContact(item.phone, item.whatsapp);
+    if (!contact.hasValidWhatsApp) {
+      alert('WhatsApp contact is not available for this classified ad.');
+      return;
+    }
     const message = encodeURIComponent(
       `Hello ${item.postedBy}! I am interested in your classified ad "${item.title}" listed on ${brandName}.`
     );
-    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${contact.whatsappNumber}?text=${message}`, '_blank');
   };
 
   const handleCall = (phone: string) => {
-    window.location.href = `tel:${phone.replace(/\s+/g, '')}`;
+    const contact = resolveListingContact(phone);
+    if (!contact.hasValidPhone) {
+      alert('Direct telephone contact is not available for this classified ad.');
+      return;
+    }
+    window.location.href = `tel:${contact.dialablePhone}`;
   };
 
   return (
