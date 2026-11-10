@@ -165,7 +165,7 @@ class CDPClient {
   constructor(private wsUrl: string) {}
 
   async connect(): Promise<void> {
-    const WSClass = (globalThis as any).WebSocket || (await import('ws')).default;
+    const WSClass = (globalThis as any).WebSocket;
     return new Promise((resolve, reject) => {
       this.ws = new WSClass(this.wsUrl);
       this.ws.addEventListener('open', () => resolve());

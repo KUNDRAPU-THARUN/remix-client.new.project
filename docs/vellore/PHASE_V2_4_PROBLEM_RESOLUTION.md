@@ -23,6 +23,7 @@ Phase V2.4 executes a comprehensive stabilization and problem-resolution cycle f
 | **DEF-V2.4-03** | `src/components/Footer.tsx` | **Low (P3)** | Brand suffix was hardcoded as `<span className="text-[#E51E31]">Ads</span>` (Chittoor crimson). | Vellore Ads displayed red accent instead of its configured `#176AC4` blue theme color. | **RESOLVED** |
 | **DEF-V2.4-04** | `src/components/FloatingChatbot.tsx` | **Low (P3)** | Menu link to WhatsApp helpdesk was not guarded by `{phoneClean && ...}`. | On city profiles where support phone is unassigned (e.g. Bengaluru), the link rendered `https://wa.me/?text=...`. | **RESOLVED** |
 | **DEF-V2.4-05** | `src/App.tsx` | **High (P1)** | Directory listing wipeout when remote Supabase fetch failed or returned empty array. | Erased preview businesses from memory on cold start or offline/network blocked state. | **RESOLVED** |
+| **DEF-V2.4-06** | `scripts/verify-vellore-v2-4-stabilization.ts` | **Medium (P2)** | VS Code Problems panel flagged TS7016 due to dynamic `ws` package import without types. | Replaced with native global `(globalThis as any).WebSocket` to achieve 0 compiler errors under `npm run lint`. | **RESOLVED** |
 
 ---
 
