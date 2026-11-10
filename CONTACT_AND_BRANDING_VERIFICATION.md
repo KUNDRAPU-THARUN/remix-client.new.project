@@ -1,12 +1,13 @@
 # KAARYAN LABS — THREE-CITY CONTACT & BRANDING VERIFICATION MATRIX
+
 ## Complete Brand Isolation, Regional Contact Routing & Metadata Audit
 
-**Platform:** KAARYAN LABS Multi-City Engine (`remix-client.new.project`)
-**Deployment:** Production Vercel (`remix-client-new-project.vercel.app`)
-**Auditor:** Senior Full-Stack Architect & QA Lead, KAARYAN LABS
-**Date:** November 3, 2026
-**Scope:** Chittoor Ads (`AP-03`), Vellore Ads (`TN-23`), Bengaluru Ads (`KA-01`)
-**Verdict:** **100% VERIFIED — ZERO CROSS-CITY CONTAMINATION**
+- **Platform:** KAARYAN LABS Multi-City Engine (`remix-client.new.project`)
+- **Deployment:** Production Vercel (`remix-client-new-project.vercel.app`)
+- **Auditor:** Senior Full-Stack Architect & QA Lead, KAARYAN LABS
+- **Date:** November 3, 2026
+- **Scope:** Chittoor Ads (`AP-03`), Vellore Ads (`TN-23`), Bengaluru Ads (`KA-01`)
+- **Verdict:** **100% VERIFIED — ZERO CROSS-CITY CONTAMINATION**
 
 ---
 
@@ -24,7 +25,7 @@
 | **Support Email** | `support@chittoorads.com` | `info@velloreads.com` | `support@bengaluruads.com` |
 | **Office Location Descriptor** | Gandhi Road Center, Chittoor - 517001 *(Landmark)* | Katpadi Main Road, Near VIT Junction, Vellore - 632014 *(Landmark)* | Indiranagar Tech Corridor, Bengaluru - 560038 *(Landmark zone)* |
 | **Primary Regional Language** | Telugu (తెలుగు) | Tamil (தமிழ்) | Kannada (ಕನ್ನಡ) |
-| **Native Script Badge** | చిత్తూరు అత్యவసర సేవలు | வேலூர் மாவட்ட அவசர உதவி | ಬೆಂಗಳೂರು ತುರ್ತು ಸೇವೆಗಳು |
+| **Native Script Badge** | చిత్తూరు అత్యవసర సేవలు | வேலூர் மாவட்ட அவசர உதவி | ಬೆಂಗಳೂರು ತುರ್ತು ಸೇವೆಗಳು |
 
 ---
 
@@ -33,6 +34,7 @@
 Each city features a dedicated, localized 24x7 emergency helpline directory accessible via the header phone button or emergency shortcut:
 
 ### A. Vellore Ads (`TN-23`) — Verified Helplines
+
 - **CMC Hospital Emergency (Ida Scudder Road):** `0416-2281000` / `0416-2282000` (24x7 Level 1 Trauma & Casualty)
 - **Govt. Vellore Medical College (Adukkamparai):** `0416-2260900` (Government Referral & Emergency)
 - **Vellore District Police Control Room:** `0416-2222100` / `100` (SP Office, Sathuvachari)
@@ -41,6 +43,7 @@ Each city features a dedicated, localized 24x7 emergency helpline directory acce
 - **Vellore Municipal Corporation (Infantry Road):** `0416-2220025` (Civic & Public Health Helpline)
 
 ### B. Chittoor Ads (`AP-03`) — Verified Helplines
+
 - **District Govt Hospital (GGH Chittoor):** `08572-225225` (Trauma, Casualty & Emergency Ward)
 - **Chittoor Town & District Police:** `08572-226100` / `100` (District SP Office & Town 1-Town Station)
 - **APSPDCL Electricity Complaints:** `1912` (Southern Power Distribution Call Center)
@@ -48,6 +51,7 @@ Each city features a dedicated, localized 24x7 emergency helpline directory acce
 - **Chittoor Municipal Corporation:** `08572-227300` (Drinking Water, Sanitation & Drainage)
 
 ### C. Bengaluru Ads (`KA-01`) — Verified Helplines
+
 - **Victoria Hospital / Bowring Emergency:** `080-26701150` (Trauma, Burns & Multispeciality 24x7)
 - **Namma 112 (Bengaluru City Police):** `112` / `080-22942222` (Unified Central Command Center)
 - **Karnataka Fire & Emergency Services:** `101` / `080-22971500` (Citywide Fire Brigade & Rescue)
@@ -60,7 +64,7 @@ Each city features a dedicated, localized 24x7 emergency helpline directory acce
 
 | Field | Chittoor Ads | Vellore Ads | Bengaluru Ads |
 | :--- | :--- | :--- | :--- |
-| **Document `<title>`** | `Chittoor Ads | Local Business Directory, Classifieds & Services` | `Vellore Ads | Local Business Directory, Classifieds & Hospitals` | `Bengaluru Ads | Local Business Directory, Classifieds & Tech Services` |
+| **Document Title (`<title>`)** | `Chittoor Ads | Local Business Directory, Classifieds & Services` | `Vellore Ads | Local Business Directory, Classifieds & Hospitals` | `Bengaluru Ads | Local Business Directory, Classifieds & Tech Services` |
 | **Meta Description** | "Discover verified local businesses, restaurants, hospitals, Kanipakam travel services, real estate, and classified ads in Chittoor, Andhra Pradesh." | "Discover verified local businesses, CMC hospital doctors, VIT student PGs, Ambur biryani restaurants, movie theatres, and classified ads in Vellore, Tamil Nadu." | "Discover verified local businesses, IT startups, coworking spaces, multispeciality hospitals, and classified ads in Bengaluru, Karnataka." |
 | **Open Graph `og:title`** | Chittoor Ads — Local Directory & Classifieds | Vellore Ads — Local Directory & Classifieds | Bengaluru Ads — Local Directory & Classifieds |
 | **Canonical Link** | `https://remix-client-new-project.vercel.app/city/chittoor` | `https://remix-client-new-project.vercel.app/city/vellore` | `https://remix-client-new-project.vercel.app/city/bengaluru` |
@@ -88,4 +92,3 @@ Each city features a dedicated, localized 24x7 emergency helpline directory acce
 - [x] **Vellore Theatres and Attractions sections isolated exclusively to Vellore (`TN-23`).**
 - [x] **Quick Callback Enquiry form routes dynamically to the active city without cross-posting.**
 - [x] **AI Scout (`askCityScout`) responds with local contextual data corresponding to the active city.**
-
