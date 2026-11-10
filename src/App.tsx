@@ -192,6 +192,7 @@ export const MainAppContent: React.FC = () => {
   useEffect(() => {
     if (businessService.isConfigured()) {
       businessService.getPublishedListings(route.cityId).then((remoteListings) => {
+        if (!remoteListings || remoteListings.length === 0) return;
         setListings((prev) => {
           const userPending = prev.filter(
             (l) => l.status === 'Pending Approval' && (l.cityId || 'chittoor') === route.cityId
