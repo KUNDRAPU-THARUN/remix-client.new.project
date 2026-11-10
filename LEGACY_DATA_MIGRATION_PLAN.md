@@ -191,44 +191,49 @@ INSERT INTO businesses (
 
 Legacy listings do not have active Supabase Auth user IDs (`posted_by_user IS NULL`). To allow business owners to claim and manage their migrated listings without friction:
 
-1. **Self-Service Verification by SMS OTP / WhatsApp:**
-  - The owner visits the Business Owner Dashboard `/city/vellore/dashboard`.
-  - Clicks **"Claim My Existing Business"**.
-  - Enters their registered phone number (matched against `businesses.phone`).
-  - Receives an OTP on that number.
-  - Upon verification, their `auth.users.id` is linked to `businesses.posted_by_user`.
+### 7.1 Self-Service Verification by SMS OTP / WhatsApp
 
-2. **Immediate Dashboard Access:**
-  - Once claimed, the business appears in the merchant's **My Listings** tab.
-  - They can immediately edit opening hours, upload high-res images, respond to customer enquiries, and monitor visitor impressions.
+- The owner visits the Business Owner Dashboard `/city/vellore/dashboard`.
+- Clicks **"Claim My Existing Business"**.
+- Enters their registered phone number (matched against `businesses.phone`).
+- Receives an OTP on that number.
+- Upon verification, their `auth.users.id` is linked to `businesses.posted_by_user`.
+
+### 7.2 Immediate Dashboard Access
+
+- Once claimed, the business appears in the merchant's **My Listings** tab.
+- They can immediately edit opening hours, upload high-res images, respond to customer enquiries, and monitor visitor impressions.
 
 ---
 
 ## 8. Rollback and Verification Strategy
 
-1. **Pre-Migration Snapshot:**
-  - A full pg_dump backup of the production database is taken prior to batch execution:
+### 8.1 Pre-Migration Snapshot
 
-    ```bash
-    pg_dump -h db.supabase.co -U postgres -d postgres -t businesses -t customer_enquiries > pre_migration_backup.sql
-    ```
+A full pg_dump backup of the production database is taken prior to batch execution:
 
-2. **Transaction Scoping:**
-  - The migration runs inside an explicit transaction block:
+```bash
+pg_dump -h db.supabase.co -U postgres -d postgres -t businesses -t customer_enquiries > pre_migration_backup.sql
+```
 
-    ```sql
-    BEGIN;
-    -- Batch insert commands
-    -- If error count > 0, ROLLBACK;
-    COMMIT;
-    ```
+### 8.2 Transaction Scoping
 
-3. **Partitioned Deletion Capability:**
-  - In the unlikely event of an abort request, all migrated records are identifiable by their city tag and migration sequence prefix (`v-mig-%`):
+The migration runs inside an explicit transaction block:
 
-    ```sql
-    DELETE FROM businesses WHERE city_id = 'vellore' AND id LIKE 'v-mig-%';
-    ```
+```sql
+BEGIN;
+-- Batch insert commands
+-- If error count > 0, ROLLBACK;
+COMMIT;
+```
+
+### 8.3 Partitioned Deletion Capability
+
+In the unlikely event of an abort request, all migrated records are identifiable by their city tag and migration sequence prefix (`v-mig-%`):
+
+```sql
+DELETE FROM businesses WHERE city_id = 'vellore' AND id LIKE 'v-mig-%';
+```
 
 ---
 

@@ -2,8 +2,8 @@
 
 ## Comprehensive Architectural, UI/UX, Content & SEO Audit Report
 
-- **Client Website:** <https://velloreads.com/>
-- **Deployed New Vellore Platform:** <https://remix-client-new-project.vercel.app/city/vellore>
+- **Client Website:** [velloreads.com](https://velloreads.com/)
+- **Deployed New Vellore Platform:** [remix-client-new-project.vercel.app/city/vellore](https://remix-client-new-project.vercel.app/city/vellore)
 - **Repository:** `remix-client.new.project`
 - **Target Territory:** Vellore (`TN-23`), Tamil Nadu, India
 - **Auditor:** Senior Full-Stack Architect, Web QA Engineer, UI/UX Auditor & Supabase Engineer — KAARYAN LABS
@@ -19,15 +19,10 @@ This audit provides a comprehensive, feature-by-feature comparison between the l
 
 ### Key Audit Findings
 
-1. **Design Principle Retained:** The new KAARYAN LABS design language (clean SaaS aesthetic, primary brand colors red/blue/green/yellow, card layouts, mobile responsiveness, and modern typography) is vastly superior to the dated PHP/Materialize legacy template of `velloreads.com`. We strictly retain this design and **do not copy the legacy UI/UX theme**.
-2. **Branding & SEO Finding (Verified):** The reported issue of `/city/vellore` exposing a "ChittoorAds" title was verified. In the deployed Vite SPA, the server-delivered `index.html` serves static `<title>` and `<meta property="og:...">` tags hardcoded to ChittoorAds. While client-side JavaScript hydration updates `document.title` to *"Vellore Ads - Local Business Directory & Services (TN-23)"*, web crawlers, search bots, and social media scrapers receive Chittoor metadata.
-3. **Category Directory Bloat:** The legacy site contains **1,015 distinct category routes** riddled with severe duplication (`Hospital` vs `Hospital-&-Clinics`, `Hotel` vs `Hotel-&-Resorts`, `School` vs `Schools`, `IT-Solutions` vs `Solutions`). Conversely, the new application currently hardcodes 18 Chittoor-centric categories (`CHITTOOR_CATEGORIES`), causing regional mismatches (e.g., "Kanipakam Tours" and "Mango Mandis" showing for Vellore).
-4. **Missing Legacy Content Modules:** Several highly localized features from `velloreads.com` are currently absent in the new application:
-  - **Local Theatres Directory:** Prominent cinemas (Vishnu Cinemas, Balaji Cinemas, Lakshmi Multiplex, etc.).
-  - **Top City Attractions:** Vellore Fort, Sripuram Golden Temple, Jalakandeswarar Temple.
-  - **Homepage Quick Service Request:** Global multi-category quote request form.
-  - **Pricing & Subscription Packages Page:** Public presentation of Free, Gold, Platinum, and Premium merchant tiers.
-  - **Franchise Partner Portal:** Public inquiry and onboarding page for city franchise expansion.
+- **Design Principle Retained:** The new KAARYAN LABS design language (clean SaaS aesthetic, primary brand colors red/blue/green/yellow, card layouts, mobile responsiveness, and modern typography) is vastly superior to the dated PHP/Materialize legacy template of `velloreads.com`. We strictly retain this design and **do not copy the legacy UI/UX theme**.
+- **Branding & SEO Finding (Verified):** The reported issue of `/city/vellore` exposing a "ChittoorAds" title was verified. In the deployed Vite SPA, the server-delivered `index.html` serves static title (`&lt;title&gt;`) and Open Graph (`&lt;meta property="og:..."&gt;`) tags hardcoded to ChittoorAds. While client-side JavaScript hydration updates `document.title` to *"Vellore Ads - Local Business Directory & Services (TN-23)"*, web crawlers, search bots, and social media scrapers receive Chittoor metadata.
+- **Category Directory Bloat:** The legacy site contains **1,015 distinct category routes** riddled with severe duplication (`Hospital` vs `Hospital-&-Clinics`, `Hotel` vs `Hotel-&-Resorts`, `School` vs `Schools`, `IT-Solutions` vs `Solutions`). Conversely, the new application currently hardcodes 18 Chittoor-centric categories (`CHITTOOR_CATEGORIES`), causing regional mismatches (e.g., "Kanipakam Tours" and "Mango Mandis" showing for Vellore).
+- **Missing Legacy Content Modules:** Several highly localized features from `velloreads.com` are currently absent in the new application, including the Local Theatres Directory (Vishnu Cinemas, Balaji Cinemas, Lakshmi Multiplex), Top City Attractions (Vellore Fort, Sripuram Golden Temple), Homepage Quick Service Request (quote form), Pricing & Subscription Packages Page (tier details), and Franchise Partner Portal.
 
 ---
 
@@ -82,32 +77,35 @@ Audit performed on the live deployed URL (`https://remix-client-new-project.verc
 
 ### Implementation Classification
 
-- **Implemented & Deployed:**
-  - Modern hero search with locality and category filters (`src/components/HeroSearch.tsx`).
-  - Multi-city dynamic routing (`/city/vellore`, `/city/vellore/category/:id`, `/city/vellore/classifieds`).
-  - Vellore-specific locality configuration (11 localities: Katpadi, Sathuvachari, Bagayam, Fort City, etc. in `src/config/cities.ts`).
-  - Vellore hero banners carousel (`CMC Healthcare`, `Katpadi Hostels`, `Ambur Biryani`, `Golden Temple Lodges`).
-  - Vellore city grid hotspots (`Katpadi`, `Sathuvachari`, `Bagayam`, `Fort City`, `Ranipet Corridor`, `Gudiyatham Hub`).
-  - Category search results with sidebar navigation, locality chips, and ratings filtering (`CategoryResultsPage.tsx`).
-  - Business detail modal with directions, call, WhatsApp, reviews, and opening hours (`ListingDetailModal.tsx`).
-  - Customer enquiry lead generation backed by PostgreSQL `customer_enquiries` table.
-  - Full Business Owner Dashboard (`Overview`, `Listings`, `Enquiries`, `Insights`, `Profile`, `Settings`).
-  - Authenticated user management via Supabase GoTrue Auth.
-  - Multi-city city switcher modal (`CitySwitcherModal.tsx`).
+#### Implemented & Deployed
 
-- **Partially Implemented:**
-  - **Category Coverage:** Currently renders 18 categories from `CHITTOOR_CATEGORIES`. Shows Chittoor specialties ("Kanipakam Tours", "Mango Mandis") while missing core Vellore sectors.
-  - **Classifieds Categories:** `PostAdModal.tsx` reuses the 18 business categories rather than classified-specific listing types (Vehicles, Rentals, Electronics).
-  - **SEO Metadata:** Dynamic client title works via React `useEffect`, but initial server-delivered HTML contains ChittoorAds title and lacks Open Graph and canonical updates.
+- Modern hero search with locality and category filters (`src/components/HeroSearch.tsx`).
+- Multi-city dynamic routing (`/city/vellore`, `/city/vellore/category/:id`, `/city/vellore/classifieds`).
+- Vellore-specific locality configuration (11 localities: Katpadi, Sathuvachari, Bagayam, Fort City, etc. in `src/config/cities.ts`).
+- Vellore hero banners carousel (`CMC Healthcare`, `Katpadi Hostels`, `Ambur Biryani`, `Golden Temple Lodges`).
+- Vellore city grid hotspots (`Katpadi`, `Sathuvachari`, `Bagayam`, `Fort City`, `Ranipet Corridor`, `Gudiyatham Hub`).
+- Category search results with sidebar navigation, locality chips, and ratings filtering (`CategoryResultsPage.tsx`).
+- Business detail modal with directions, call, WhatsApp, reviews, and opening hours (`ListingDetailModal.tsx`).
+- Customer enquiry lead generation backed by PostgreSQL `customer_enquiries` table.
+- Full Business Owner Dashboard (`Overview`, `Listings`, `Enquiries`, `Insights`, `Profile`, `Settings`).
+- Authenticated user management via Supabase GoTrue Auth.
+- Multi-city city switcher modal (`CitySwitcherModal.tsx`).
 
-- **Missing in New Application:**
-  - Local Theatres & Cinemas directory.
-  - Vellore Top Attractions guide (Fort, Sripuram Golden Temple).
-  - Homepage Quick Quote service request form.
-  - Public Pricing & Membership packages page (`/pricing`).
-  - Franchise Partner recruitment page (`/franchise-partner`).
-  - Standalone About Us and Contact Us pages.
-  - Dedicated SEO business landing URLs (currently modal-based `?listing=<id>`).
+#### Partially Implemented
+
+- **Category Coverage:** Currently renders 18 categories from `CHITTOOR_CATEGORIES`. Shows Chittoor specialties ("Kanipakam Tours", "Mango Mandis") while missing core Vellore sectors.
+- **Classifieds Categories:** `PostAdModal.tsx` reuses the 18 business categories rather than classified-specific listing types (Vehicles, Rentals, Electronics).
+- **SEO Metadata:** Dynamic client title works via React `useEffect`, but initial server-delivered HTML contains ChittoorAds title and lacks Open Graph and canonical updates.
+
+#### Missing in New Application
+
+- Local Theatres & Cinemas directory.
+- Vellore Top Attractions guide (Fort, Sripuram Golden Temple).
+- Homepage Quick Quote service request form.
+- Public Pricing & Membership packages page (`/pricing`).
+- Franchise Partner recruitment page (`/franchise-partner`).
+- Standalone About Us and Contact Us pages.
+- Dedicated SEO business landing URLs (currently modal-based `?listing=<id>`).
 
 ---
 
@@ -115,39 +113,42 @@ Audit performed on the live deployed URL (`https://remix-client-new-project.verc
 
 ### Root Cause Analysis
 
-1. **Server-Delivered HTML (Static SPA):**
-   Vercel serves `dist/index.html` on initial request for `https://remix-client-new-project.vercel.app/city/vellore`. Lines 6-9 of `index.html` are:
+#### 4.1 Server-Delivered HTML (Static SPA)
 
-   ```html
-   <title>ChittoorAds - Discover Chittoor in One Click | Chittoor Business Directory & Classifieds</title>
-   <meta name="description" content="Discover Chittoor in One Click. Chittoor's premier local business directory..." />
-   <meta property="og:title" content="ChittoorAds - Discover Chittoor in One Click" />
-   ```
+Vercel serves `dist/index.html` on initial request for `https://remix-client-new-project.vercel.app/city/vellore`. Lines 6-9 of `index.html` are:
 
-   Web crawlers (Googlebot, Bingbot), WhatsApp/Facebook preview bots, and web readers that do not execute client-side JavaScript immediately index the site as **ChittoorAds**.
+```html
+<title>ChittoorAds - Discover Chittoor in One Click | Chittoor Business Directory & Classifieds</title>
+<meta name="description" content="Discover Chittoor in One Click. Chittoor's premier local business directory..." />
+<meta property="og:title" content="ChittoorAds - Discover Chittoor in One Click" />
+```
 
-2. **Client-Side Hydration Incompleteness:**
-   In `src/App.tsx` (lines 296-303):
+Web crawlers (Googlebot, Bingbot), WhatsApp/Facebook preview bots, and web readers that do not execute client-side JavaScript immediately index the site as **ChittoorAds**.
 
-   ```ts
-   useEffect(() => {
-     document.title = currentCity.seo.title;
-     const metaDesc = document.querySelector('meta[name="description"]');
-     if (metaDesc) metaDesc.setAttribute('content', currentCity.seo.description);
-   }, [currentCity]);
-   ```
+#### 4.2 Client-Side Hydration Incompleteness
 
-   This only updates `document.title` and `meta[name="description"]`. It **fails to update**:
+In `src/App.tsx` (lines 296-303):
 
-  - `<meta property="og:title">`
-  - `<meta property="og:description">`
-  - `<meta property="og:url">`
-  - `<meta name="twitter:title">`
-  - `<meta name="twitter:description">`
-  - `<link rel="canonical">` (missing entirely)
+```ts
+useEffect(() => {
+  document.title = currentCity.seo.title;
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) metaDesc.setAttribute('content', currentCity.seo.description);
+}, [currentCity]);
+```
 
-3. **Contact Details Discrepancy in `src/config/cities.ts`:**
-   Lines 370-374 set:
+This only updates `document.title` and `meta[name="description"]`. It **fails to update**:
+
+- Open Graph Title (`og:title`)
+- Open Graph Description (`og:description`)
+- Open Graph URL (`og:url`)
+- Twitter Title (`twitter:title`)
+- Twitter Description (`twitter:description`)
+- Canonical Link (`canonical` link tag)
+
+#### 4.3 Contact Details Discrepancy in `src/config/cities.ts`
+
+Lines 370-374 set:
 
    ```ts
    contact: {
@@ -173,22 +174,27 @@ Audit performed on the live deployed URL (`https://remix-client-new-project.verc
 
 The old site contains **1,015 category entries**, but analysis reveals severe structural bloat:
 
-1. **Direct Duplicates:**
-  - `Hospital` (447 KB page) AND `Hospital-&-Clinics`
-  - `Hotel` AND `Hotel-&-Resorts`
-  - `School` AND `Schools`
-  - `College` AND `Colleges`
-  - `Computer` AND `Computer-Repair`
-  - `Mobile` AND `Mobile-Shops`
-  - `Departmental` AND `Departmental-Store`
-  - `General` AND `General-Shop`
-  - `Rental` AND `Rental-House`
-  - `Estates` AND `Property` AND `Real-Estate-Agency`
-  - `Travels` AND `Tour-&-Travels`
+#### Direct Duplicates
 
-2. **Subcategory Confusion:** Specialty terms like "Ready made Dress", "Medicine", and "Driving School" are mixed as top-level parent categories alongside major industries.
+- `Hospital` (447 KB page) AND `Hospital-&-Clinics`
+- `Hotel` AND `Hotel-&-Resorts`
+- `School` AND `Schools`
+- `College` AND `Colleges`
+- `Computer` AND `Computer-Repair`
+- `Mobile` AND `Mobile-Shops`
+- `Departmental` AND `Departmental-Store`
+- `General` AND `General-Shop`
+- `Rental` AND `Rental-House`
+- `Estates` AND `Property` AND `Real-Estate-Agency`
+- `Travels` AND `Tour-&-Travels`
 
-3. **Ghost Categories:** Hundreds of generated slugs lead to zero listings or duplicate results.
+#### Subcategory Confusion
+
+Specialty terms like "Ready made Dress", "Medicine", and "Driving School" are mixed as top-level parent categories alongside major industries.
+
+#### Ghost Categories
+
+Hundreds of generated slugs lead to zero listings or duplicate results.
 
 ### Comparison: Legacy vs Current vs Database Schema
 
@@ -217,21 +223,13 @@ To achieve genuine feature and content parity with Vellore Ads without copying l
 ### 1. `VelloreAttractionsSection.tsx` (Priority: P1)
 
 - **Purpose:** Highlights Vellore's historical and spiritual identity.
-- **Content:**
-  - Historic Vellore Fort & Jalakandeswarar Temple (16th Century Vijayanagara Architecture).
-  - Sripuram Golden Temple (Sri Lakshmi Narayani Golden Temple, Malaikodi).
-  - Amirthi Zoological Park & Waterfalls.
-  - Government State Museum & Clock Tower.
+- **Key Attractions Covered:** Historic Vellore Fort & Jalakandeswarar Temple (16th Century Vijayanagara Architecture), Sripuram Golden Temple (Sri Lakshmi Narayani Golden Temple, Malaikodi), Amirthi Zoological Park & Waterfalls, and Government State Museum & Clock Tower.
 - **UX Design:** Responsive card slider matching the KAARYAN LABS aesthetic with distance markers and locality tags (`Fort City`, `Bagayam`).
 
 ### 2. `VelloreTheatresSection.tsx` (Priority: P1)
 
 - **Purpose:** Replaces the legacy "Theatre's in Vellore" section.
-- **Content:** Verified directory of local cinema halls:
-  - Vishnu Cinemas (Katpadi)
-  - Balaji Cinemas (Fort City)
-  - Lakshmi Multiplex (Thottapalayam)
-  - Apsara & Big Cinemas
+- **Verified Cinema Halls:** Vishnu Cinemas (Katpadi), Balaji Cinemas (Fort City), Lakshmi Multiplex (Thottapalayam), and Apsara & Big Cinemas.
 - **UX Design:** Clean status cards indicating screen count, sound system (Dolby Atmos), and direct Google Maps direction buttons (strictly zero fake ticketing).
 
 ### 3. `HomepageQuickEnquiry.tsx` (Priority: P1)
