@@ -15,6 +15,7 @@ import {
 import { Listing } from '../types';
 import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
 import { resolveListingContact } from '../utils/contactValidation';
+import { getOperatingHoursStatus } from '../utils/operatingHours';
 
 interface ListingCardProps {
   listing: Listing;
@@ -38,6 +39,9 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   const cleanWhatsApp = contact.whatsappNumber;
   const hasValidPhone = contact.hasValidPhone;
   const hasValidWhatsApp = contact.hasValidWhatsApp;
+
+  const isVellore = cityConfig.id === 'vellore';
+  const hoursStatus = getOperatingHoursStatus(listing.timings);
 
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -84,12 +88,22 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           {/* Top Badges */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
             <div className="flex items-center gap-1.5 flex-wrap">
-              {listing.isVerified && (
+              {listing.isVerified ? (
                 <span className="inline-flex items-center gap-1 bg-[#15995F] text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   Verified
                 </span>
-              )}
+              ) : isVellore ? (
+                listing.status === 'Pending Approval' ? (
+                  <span className="inline-flex items-center gap-1 bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
+                    Pending Approval
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 bg-slate-900/85 text-slate-100 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
+                    Preview Listing
+                  </span>
+                )
+              ) : null}
               {listing.isFeatured && (
                 <span className="inline-flex items-center bg-[#F5C325] text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                   Featured
@@ -182,9 +196,20 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           </div>
 
           {/* Timings */}
-          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center text-xs text-slate-500 gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="truncate">{listing.timings}</span>
+          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 gap-2">
+            <div className="flex items-center gap-1.5 truncate">
+              <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="truncate">{listing.timings || (isVellore ? 'Hours Unavailable' : 'Regular Hours')}</span>
+            </div>
+            {isVellore && (
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${hoursStatus.badgeClass}`}
+                title={hoursStatus.currentIstTime ? `Evaluated at ${hoursStatus.currentIstTime}` : undefined}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${hoursStatus.dotClass}`} />
+                <span>{hoursStatus.label}</span>
+              </span>
+            )}
           </div>
         </div>
       </div>

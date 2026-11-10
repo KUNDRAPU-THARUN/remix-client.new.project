@@ -26,6 +26,8 @@ import { Listing, Review, UserAccount, CityConfig } from '../types';
 import { resolveListingContact } from '../utils/contactValidation';
 import { enquiryService } from '../services/enquiryService';
 import { getCityCategories } from '../config/categories';
+import { getOperatingHoursStatus } from '../utils/operatingHours';
+import { VelloreImageGallery } from './VelloreImageGallery';
 
 interface StandaloneBusinessPageProps {
   listingId: string | null;
@@ -210,6 +212,8 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
   const cleanWhatsApp = contact.whatsappNumber;
   const hasValidPhone = contact.hasValidPhone;
   const hasValidWhatsApp = contact.hasValidWhatsApp;
+  const isVellore = currentCity.id === 'vellore';
+  const hoursStatus = getOperatingHoursStatus(listing.timings);
 
   const categories = getCityCategories(currentCity.id);
   const categoryConfig = categories.find((c) => c.id === listing.category);
@@ -329,16 +333,32 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
                   {listing.area}
                 </span>
 
-                {listing.isVerified && (
+                {listing.isVerified ? (
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-[#15995F] border border-emerald-200 flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Verified Merchant</span>
                   </span>
-                )}
+                ) : isVellore ? (
+                  listing.status === 'Pending Approval' ? (
+                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      Preview (Under Moderation)
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                      Preview Listing
+                    </span>
+                  )
+                ) : null}
 
-                {listing.status === 'Pending Approval' && (
+                {listing.status === 'Pending Approval' && !isVellore && (
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                     Preview (Under Moderation)
+                  </span>
+                )}
+
+                {listing.priceRange && (
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                    {listing.priceRange}
                   </span>
                 )}
               </div>
@@ -348,7 +368,7 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
               </h1>
 
               {/* Rating and Reviews */}
-              <div className="flex items-center gap-3 text-xs sm:text-sm">
+              <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
                 <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
                   <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                   <span className="font-black text-slate-900">{listing.rating.toFixed(1)}</span>
@@ -357,9 +377,15 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
                   ({listing.reviewsCount} verified {listing.reviewsCount === 1 ? 'review' : 'reviews'})
                 </span>
                 <span className="text-slate-300">•</span>
-                <span className="text-slate-600 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  {listing.timings || 'Open Regular Business Hours'}
+                <span className="text-slate-600 flex items-center gap-1.5 flex-wrap">
+                  <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>{listing.timings || (isVellore ? 'Hours Unavailable' : 'Open Regular Business Hours')}</span>
+                  {isVellore && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${hoursStatus.badgeClass}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${hoursStatus.dotClass}`} />
+                      <span>{hoursStatus.label}</span>
+                    </span>
+                  )}
                 </span>
               </div>
 
@@ -538,9 +564,24 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
                 {/* Operating Hours Box */}
                 <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-100 flex items-start gap-3">
                   <Clock className="w-5 h-5 text-[#176AC4] shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-900">Operating Schedule</h3>
-                    <p className="text-xs text-slate-600 mt-0.5">{listing.timings || 'Mon – Sat: 9:00 AM – 8:00 PM'}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h3 className="text-xs font-bold text-slate-900">Operating Schedule</h3>
+                      {isVellore && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${hoursStatus.badgeClass}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${hoursStatus.dotClass}`} />
+                          <span>{hoursStatus.label}</span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1">
+                      {listing.timings || (isVellore ? 'Hours not provided' : 'Mon – Sat: 9:00 AM – 8:00 PM')}
+                    </p>
+                    {isVellore && hoursStatus.currentIstTime && (
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Evaluated at {hoursStatus.currentIstTime}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -571,27 +612,21 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
             {/* TAB: Photos */}
             {activeTab === 'photos' && listing.images && (
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-6">
-                <h2 className="text-lg font-black text-slate-900 font-heading">
-                  Photo Gallery
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {listing.images.map((img, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setLightboxPhoto(img)}
-                      className="aspect-video rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer group relative"
-                    >
-                      <img
-                        src={img}
-                        alt={`${listing.title} photo ${idx + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      />
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold">
-                        View Full Size
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-black text-slate-900 font-heading">
+                    Photo Gallery
+                  </h2>
+                  <span className="text-xs text-slate-500 font-semibold">
+                    {listing.images.length} {listing.images.length === 1 ? 'Photo' : 'Photos'}
+                  </span>
                 </div>
+                <VelloreImageGallery
+                  images={listing.images}
+                  title={listing.title}
+                  aspectRatioClass="h-72 sm:h-96 md:h-[450px]"
+                  showThumbnails={true}
+                  altPrefix={listing.title}
+                />
               </div>
             )}
 
