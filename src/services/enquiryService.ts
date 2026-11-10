@@ -49,6 +49,24 @@ export interface SubmitGeneralLeadParams {
   message: string;
 }
 
+export interface SubmitEnquiryResult {
+  enquiry: CustomerEnquiry | null;
+  error?: string;
+  persisted?: boolean;
+  duplicatePrevented?: boolean;
+  isOffline?: boolean;
+}
+
+export interface SubmitGeneralLeadResult {
+  success: boolean;
+  leadId?: string;
+  note?: string;
+  error?: string;
+  persisted?: boolean;
+  duplicatePrevented?: boolean;
+  isOffline?: boolean;
+}
+
 const STORAGE_KEY = 'chittoorads_enquiries';
 
 function getStoredEnquiries(): CustomerEnquiry[] {
@@ -77,7 +95,7 @@ export const enquiryService = {
     return isSupabaseConfigured();
   },
 
-  async submitEnquiry(params: SubmitEnquiryParams): Promise<{ enquiry: CustomerEnquiry | null; error?: string }> {
+  async submitEnquiry(params: SubmitEnquiryParams): Promise<SubmitEnquiryResult> {
     // 1. Input Validation
     if (!params.customerName.trim() || params.customerName.trim().length < 2) {
       return { enquiry: null, error: 'Please enter a valid customer name (at least 2 characters).' };
@@ -92,11 +110,18 @@ export const enquiryService = {
       return { enquiry: null, error: 'Please enter your requirement or question (at least 5 characters).' };
     }
 
+    if (params.customerEmail && params.customerEmail.trim()) {
+      const emailTrimmed = params.customerEmail.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+        return { enquiry: null, error: 'Please enter a valid email address (e.g. name@example.com).' };
+      }
+    }
+
     const supabase = getSupabaseClient();
     if (!supabase) {
-      // Local fallback
+      // Local fallback in offline development
       const localEnquiry: CustomerEnquiry = {
-        id: `enq-${Date.now()}`,
+        id: `local-demo-${Date.now()}`,
         businessId: params.businessId,
         businessName: params.businessName || 'Local Business',
         cityId: params.cityId,
@@ -111,7 +136,7 @@ export const enquiryService = {
 
       const existing = getStoredEnquiries();
       saveStoredEnquiries([localEnquiry, ...existing]);
-      return { enquiry: localEnquiry };
+      return { enquiry: localEnquiry, persisted: false, isOffline: true };
     }
 
     try {
@@ -123,6 +148,38 @@ export const enquiryService = {
         .maybeSingle();
 
       const targetBusinessId = bData?.id || params.businessId;
+
+      // 2. Duplicate submission protection on uncertain network retry (within 60s)
+      const recentWindow = new Date(Date.now() - 60000).toISOString();
+      const { data: existingDup } = await supabase
+        .from('customer_enquiries')
+        .select('id, created_at')
+        .eq('business_id', targetBusinessId)
+        .eq('customer_phone', params.customerPhone.trim())
+        .gte('created_at', recentWindow)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingDup?.id) {
+        return {
+          enquiry: {
+            id: existingDup.id,
+            businessId: params.businessId,
+            businessName: bData?.name || params.businessName,
+            cityId: params.cityId,
+            customerId: params.customerId,
+            customerName: params.customerName.trim(),
+            customerPhone: params.customerPhone.trim(),
+            customerEmail: params.customerEmail?.trim() || undefined,
+            message: params.message.trim(),
+            status: 'pending',
+            createdAt: existingDup.created_at,
+          },
+          persisted: true,
+          duplicatePrevented: true,
+        };
+      }
 
       const { data, error } = await supabase
         .from('customer_enquiries')
@@ -140,7 +197,7 @@ export const enquiryService = {
         .single();
 
       if (error) {
-        return { enquiry: null, error: error.message };
+        return { enquiry: null, error: error.message, persisted: false };
       }
 
       const enquiry: CustomerEnquiry = {
@@ -157,13 +214,13 @@ export const enquiryService = {
         createdAt: data.created_at,
       };
 
-      return { enquiry };
+      return { enquiry, persisted: true };
     } catch (err) {
-      return { enquiry: null, error: err instanceof Error ? err.message : 'Could not submit enquiry.' };
+      return { enquiry: null, error: err instanceof Error ? err.message : 'Could not submit enquiry.', persisted: false };
     }
   },
 
-  async submitGeneralLead(params: SubmitGeneralLeadParams): Promise<{ success: boolean; leadId?: string; note?: string; error?: string }> {
+  async submitGeneralLead(params: SubmitGeneralLeadParams): Promise<SubmitGeneralLeadResult> {
     if (!params.customerName.trim() || params.customerName.trim().length < 2) {
       return { success: false, error: 'Please enter a valid customer name (at least 2 characters).' };
     }
@@ -177,10 +234,38 @@ export const enquiryService = {
       return { success: false, error: 'Please enter your requirement or question (at least 5 characters).' };
     }
 
+    if (params.customerEmail && params.customerEmail.trim()) {
+      const emailTrimmed = params.customerEmail.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+        return { success: false, error: 'Please enter a valid email address (e.g. name@example.com).' };
+      }
+    }
+
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        const { error } = await (supabase as any)
+        // Check for recent duplicate submission on retry (within 60s)
+        const recentWindow = new Date(Date.now() - 60000).toISOString();
+        const { data: existingLead } = await (supabase as any)
+          .from('general_service_requests')
+          .select('id')
+          .eq('city_id', params.cityId)
+          .eq('customer_phone', params.customerPhone.trim())
+          .gte('created_at', recentWindow)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingLead?.id) {
+          return {
+            success: true,
+            leadId: existingLead.id,
+            persisted: true,
+            duplicatePrevented: true,
+          };
+        }
+
+        const { data, error } = await (supabase as any)
           .from('general_service_requests')
           .insert({
             city_id: params.cityId,
@@ -191,27 +276,32 @@ export const enquiryService = {
             customer_email: params.customerEmail?.trim() || null,
             message: params.message.trim(),
             status: 'pending',
-          });
+          })
+          .select('id')
+          .maybeSingle();
 
         if (error) {
           console.warn('Backend rejected general service request:', error);
           if (error.code === '42P01') {
             return {
               success: false,
+              persisted: false,
               error: 'General enquiry routing is pending database migration. Please reach out via our verified city contact desk.',
             };
           }
           return {
             success: false,
+            persisted: false,
             error: error.message || 'The server could not record your service enquiry.',
           };
         }
 
-        return { success: true };
+        return { success: true, leadId: data?.id, persisted: !!data?.id };
       } catch (err) {
         console.error('Backend general_service_requests failure:', err);
         return {
           success: false,
+          persisted: false,
           error: err instanceof Error ? err.message : 'Network error submitting service request.',
         };
       }
@@ -219,7 +309,7 @@ export const enquiryService = {
 
     // Offline / unconfigured development environment fallback
     const localLead: GeneralServiceRequest = {
-      id: `lead-${Date.now()}`,
+      id: `local-demo-${Date.now()}`,
       cityId: params.cityId,
       categoryId: params.categoryId,
       areaId: params.areaId,
@@ -243,8 +333,10 @@ export const enquiryService = {
 
     return {
       success: true,
-      leadId: localLead.id,
-      note: 'Demo mode: service request saved locally.'
+      leadId: undefined, // Strictly no fake server ID
+      persisted: false,
+      isOffline: true,
+      note: 'Demo mode: service request saved locally in browser.'
     };
   },
 

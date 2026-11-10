@@ -33,11 +33,13 @@ import {
   ExternalLink,
   Flag,
   HelpCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { Listing, Review } from '../types';
 import { CITIES, DEFAULT_CITY_ID } from '../config/cities';
 import { enquiryService } from '../services/enquiryService';
-import { resolveListingContact } from '../utils/contactValidation';
+import { resolveListingContact, validateIndianMobile } from '../utils/contactValidation';
+import { buildListingWhatsAppUrl } from '../utils/whatsappTemplates';
 import { getOperatingHoursStatus } from '../utils/operatingHours';
 import { VelloreImageGallery } from './VelloreImageGallery';
 
@@ -135,30 +137,66 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
   const [enquiryMessage, setEnquiryMessage] = useState('');
   const [isEnquirySubmitting, setIsEnquirySubmitting] = useState(false);
   const [enquirySuccess, setEnquirySuccess] = useState(false);
+  const [isEnquiryOffline, setIsEnquiryOffline] = useState(false);
   const [enquiryError, setEnquiryError] = useState('');
+  const [enquiryFieldErrors, setEnquiryFieldErrors] = useState<Record<string, string>>({});
+  const [serverEnquiryId, setServerEnquiryId] = useState<string | null>(null);
+
+  const validateEnquiry = (): boolean => {
+    const errors: Record<string, string> = {};
+    const trimmedName = enquiryName.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      errors.name = 'Please enter your full name (at least 2 characters).';
+    }
+
+    const mobileCheck = validateIndianMobile(enquiryPhone);
+    if (!mobileCheck.isValid) {
+      errors.phone = 'Please enter a valid 10-digit Indian mobile number.';
+    }
+
+    const trimmedMsg = enquiryMessage.trim();
+    if (!trimmedMsg || trimmedMsg.length < 5) {
+      errors.message = 'Please enter your requirement or question (at least 5 characters).';
+    }
+
+    if (enquiryEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(enquiryEmail.trim())) {
+      errors.email = 'Please enter a valid email address.';
+    }
+
+    setEnquiryFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleEnquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsEnquirySubmitting(true);
     setEnquiryError('');
+
+    if (!validateEnquiry()) {
+      return;
+    }
+
+    setIsEnquirySubmitting(true);
     const res = await enquiryService.submitEnquiry({
       businessId: listing.id,
       businessName: listing.title,
       cityId: listing.cityId || cityConfig.id,
-      customerName: enquiryName,
-      customerPhone: enquiryPhone,
-      customerEmail: enquiryEmail || undefined,
-      message: enquiryMessage,
+      customerName: enquiryName.trim(),
+      customerPhone: enquiryPhone.trim(),
+      customerEmail: enquiryEmail.trim() || undefined,
+      message: enquiryMessage.trim(),
     });
     setIsEnquirySubmitting(false);
     if (res.error) {
       setEnquiryError(res.error);
     } else {
       setEnquirySuccess(true);
+      setIsEnquiryOffline(!res.persisted);
+      setServerEnquiryId(res.persisted && res.enquiry?.id ? res.enquiry.id : null);
       setEnquiryName('');
       setEnquiryPhone('');
       setEnquiryEmail('');
       setEnquiryMessage('');
+      setEnquiryFieldErrors({});
     }
   };
 
@@ -271,10 +309,21 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
       setIsEnquiryOpen(true);
       return;
     }
-    const message = encodeURIComponent(
-      `Hello! I found your listing "${listing.title}" on ${cityConfig.brandName} (${cityConfig.code} local directory). I'd like more details.`
-    );
-    window.open(`https://wa.me/${cleanWhatsApp}?text=${message}`, '_blank');
+    const wa = buildListingWhatsAppUrl({
+      phone: listing.phone,
+      whatsapp: listing.whatsapp,
+      businessTitle: listing.title,
+      categoryId: listing.category,
+      localityName: areaName,
+      cityId: cityConfig.id,
+      brandName: cityConfig.brandName,
+      cityCode: cityConfig.code,
+    });
+    if (wa.isValid && wa.url) {
+      window.open(wa.url, '_blank');
+    } else {
+      setIsEnquiryOpen(true);
+    }
   };
 
   const handleShare = async (textToShare?: string) => {
@@ -1615,87 +1664,197 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
                   <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h5 className="font-bold text-base text-slate-900">Enquiry Sent Successfully!</h5>
-                  <p className="text-xs text-slate-600 max-w-xs mx-auto leading-relaxed">
-                    Your enquiry has been securely submitted directly to the verified business owner of <strong>{listing.title}</strong>. They will contact you shortly.
-                  </p>
+                  <h5 className="font-bold text-base text-slate-900">
+                    {isEnquiryOffline ? 'Enquiry Stored (Demo Mode)' : 'Enquiry Sent Successfully!'}
+                  </h5>
+                  {serverEnquiryId && (
+                    <p className="text-[11px] font-mono text-slate-500">
+                      Confirmed Reference: <span className="font-semibold text-slate-700">{serverEnquiryId}</span>
+                    </p>
+                  )}
+                  {isEnquiryOffline ? (
+                    <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5 max-w-xs mx-auto leading-relaxed">
+                      Your enquiry for <strong>{listing.title}</strong> has been stored locally in preview demo mode. Live routing requires an active server database connection.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-600 max-w-xs mx-auto leading-relaxed">
+                      Your enquiry has been registered for <strong>{listing.title}</strong>. The business contact or our regional directory team will reach out to you.
+                    </p>
+                  )}
                   <button
-                    onClick={() => setIsEnquiryOpen(false)}
+                    onClick={() => {
+                      setIsEnquiryOpen(false);
+                      setEnquirySuccess(false);
+                      setServerEnquiryId(null);
+                      setIsEnquiryOffline(false);
+                    }}
                     className="mt-2 px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition cursor-pointer"
                   >
                     Close Window
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleEnquirySubmit} className="space-y-3">
+                <form onSubmit={handleEnquirySubmit} noValidate className="space-y-3">
                   {enquiryError && (
-                    <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
-                      {enquiryError}
+                    <div
+                      role="alert"
+                      className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center justify-between gap-2"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>{enquiryError}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEnquiryError('')}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 underline hover:text-rose-950 cursor-pointer shrink-0"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Retry</span>
+                      </button>
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                    <label htmlFor="modal-enquiry-name" className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
                       Your Full Name *
                     </label>
-                    <div className="flex items-center px-3 py-2 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                    <div
+                      className={`flex items-center px-3 py-2 rounded-xl border ${
+                        enquiryFieldErrors.name ? 'border-red-500 bg-red-50/40' : 'border-slate-200 bg-slate-50'
+                      } focus-within:border-red-500 focus-within:bg-white transition`}
+                    >
                       <User className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                       <input
+                        id="modal-enquiry-name"
                         type="text"
                         required
+                        disabled={isEnquirySubmitting}
                         value={enquiryName}
-                        onChange={(e) => setEnquiryName(e.target.value)}
+                        onChange={(e) => {
+                          setEnquiryName(e.target.value);
+                          if (enquiryFieldErrors.name) {
+                            setEnquiryFieldErrors((prev) => ({ ...prev, name: '' }));
+                          }
+                        }}
                         placeholder="e.g. Anand Kumar"
-                        className="w-full text-xs font-medium text-slate-900 outline-hidden bg-transparent"
+                        aria-invalid={!!enquiryFieldErrors.name}
+                        aria-describedby={enquiryFieldErrors.name ? 'modal-enquiry-name-error' : undefined}
+                        className="w-full text-xs font-medium text-slate-900 outline-hidden bg-transparent disabled:opacity-60"
                       />
                     </div>
+                    {enquiryFieldErrors.name && (
+                      <p id="modal-enquiry-name-error" role="alert" className="text-[11px] font-medium text-red-600 mt-1">
+                        {enquiryFieldErrors.name}
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                    <label htmlFor="modal-enquiry-phone" className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
                       Mobile / WhatsApp Number *
                     </label>
-                    <div className="flex items-center px-3 py-2 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                    <div
+                      className={`flex items-center px-3 py-2 rounded-xl border ${
+                        enquiryFieldErrors.phone ? 'border-red-500 bg-red-50/40' : 'border-slate-200 bg-slate-50'
+                      } focus-within:border-red-500 focus-within:bg-white transition`}
+                    >
                       <Smartphone className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                       <input
+                        id="modal-enquiry-phone"
                         type="tel"
                         required
+                        disabled={isEnquirySubmitting}
                         value={enquiryPhone}
-                        onChange={(e) => setEnquiryPhone(e.target.value)}
-                        placeholder="e.g. 98480 12345"
-                        className="w-full text-xs font-medium text-slate-900 outline-hidden bg-transparent"
+                        onChange={(e) => {
+                          setEnquiryPhone(e.target.value);
+                          if (enquiryFieldErrors.phone) {
+                            setEnquiryFieldErrors((prev) => ({ ...prev, phone: '' }));
+                          }
+                        }}
+                        placeholder="e.g. 98423 44550"
+                        aria-invalid={!!enquiryFieldErrors.phone}
+                        aria-describedby={enquiryFieldErrors.phone ? 'modal-enquiry-phone-error' : undefined}
+                        className="w-full text-xs font-medium text-slate-900 outline-hidden bg-transparent disabled:opacity-60"
                       />
                     </div>
+                    {enquiryFieldErrors.phone && (
+                      <p id="modal-enquiry-phone-error" role="alert" className="text-[11px] font-medium text-red-600 mt-1">
+                        {enquiryFieldErrors.phone}
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                    <label htmlFor="modal-enquiry-email" className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
                       Email Address (Optional)
                     </label>
-                    <div className="flex items-center px-3 py-2 rounded-xl border border-slate-200 focus-within:border-red-500 bg-slate-50 focus-within:bg-white transition">
+                    <div
+                      className={`flex items-center px-3 py-2 rounded-xl border ${
+                        enquiryFieldErrors.email ? 'border-red-500 bg-red-50/40' : 'border-slate-200 bg-slate-50'
+                      } focus-within:border-red-500 focus-within:bg-white transition`}
+                    >
                       <Mail className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                       <input
+                        id="modal-enquiry-email"
                         type="email"
+                        disabled={isEnquirySubmitting}
                         value={enquiryEmail}
-                        onChange={(e) => setEnquiryEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEnquiryEmail(e.target.value);
+                          if (enquiryFieldErrors.email) {
+                            setEnquiryFieldErrors((prev) => ({ ...prev, email: '' }));
+                          }
+                        }}
                         placeholder="e.g. anand@gmail.com"
-                        className="w-full text-xs font-medium text-slate-900 outline-hidden bg-transparent"
+                        aria-invalid={!!enquiryFieldErrors.email}
+                        aria-describedby={enquiryFieldErrors.email ? 'modal-enquiry-email-error' : undefined}
+                        className="w-full text-xs font-medium text-slate-900 outline-hidden bg-transparent disabled:opacity-60"
                       />
                     </div>
+                    {enquiryFieldErrors.email && (
+                      <p id="modal-enquiry-email-error" role="alert" className="text-[11px] font-medium text-red-600 mt-1">
+                        {enquiryFieldErrors.email}
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                    <label htmlFor="modal-enquiry-message" className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
                       Your Message / Service Request *
                     </label>
                     <textarea
+                      id="modal-enquiry-message"
                       required
+                      disabled={isEnquirySubmitting}
                       rows={3}
                       value={enquiryMessage}
-                      onChange={(e) => setEnquiryMessage(e.target.value)}
+                      onChange={(e) => {
+                        setEnquiryMessage(e.target.value);
+                        if (enquiryFieldErrors.message) {
+                          setEnquiryFieldErrors((prev) => ({ ...prev, message: '' }));
+                        }
+                      }}
                       placeholder="Describe what services or details you require from this business..."
-                      className="w-full p-2.5 text-xs font-medium text-slate-900 rounded-xl border border-slate-200 focus:border-red-500 outline-hidden bg-slate-50 focus:bg-white transition resize-none"
+                      aria-invalid={!!enquiryFieldErrors.message}
+                      aria-describedby={enquiryFieldErrors.message ? 'modal-enquiry-message-error' : undefined}
+                      className={`w-full p-2.5 text-xs font-medium text-slate-900 rounded-xl border ${
+                        enquiryFieldErrors.message ? 'border-red-500 bg-red-50/40' : 'border-slate-200 bg-slate-50'
+                      } focus:border-red-500 outline-hidden focus:bg-white transition resize-none disabled:opacity-60`}
                     />
+                    {enquiryFieldErrors.message && (
+                      <p id="modal-enquiry-message-error" role="alert" className="text-[11px] font-medium text-red-600 mt-1">
+                        {enquiryFieldErrors.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Privacy Notice Microcopy */}
+                  <div className="flex items-start gap-1.5 pt-1 text-[11px] text-slate-500 leading-snug">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Privacy Notice:</strong> Your contact details are shared with this business listing (or our regional desk coordinator) solely to process your inquiry. We do not sell your personal contact details.
+                    </span>
                   </div>
 
                   <div className="pt-1">
@@ -1714,9 +1873,6 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
                       )}
                     </button>
                   </div>
-                  <p className="text-[10px] text-slate-400 text-center pt-1">
-                    Your contact information will only be shared with this {listing.isVerified ? 'verified ' : ''}merchant.
-                  </p>
                 </form>
               )}
             </div>

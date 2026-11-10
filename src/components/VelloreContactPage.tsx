@@ -13,6 +13,7 @@ import {
   ExternalLink,
   LifeBuoy,
   HeartPulse,
+  RefreshCw,
 } from 'lucide-react';
 import { CityConfig } from '../types';
 import { enquiryService } from '../services/enquiryService';
@@ -38,7 +39,9 @@ export const VelloreContactPage: React.FC<VelloreContactPageProps> = ({
   // Status state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isOfflineResult, setIsOfflineResult] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [serverLeadId, setServerLeadId] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const cleanPhone = currentCity.contact.phone.replace(/[^0-9+]/g, '');
@@ -95,6 +98,8 @@ export const VelloreContactPage: React.FC<VelloreContactPageProps> = ({
         setSubmitError(res.error);
       } else {
         setSubmitSuccess(true);
+        setIsOfflineResult(!res.persisted);
+        setServerLeadId(res.persisted && res.leadId ? res.leadId : null);
         // Clear message but retain contact for convenience
         setMessage('');
       }
@@ -304,12 +309,29 @@ export const VelloreContactPage: React.FC<VelloreContactPageProps> = ({
                 >
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="font-extrabold text-sm text-emerald-950">Thank you! Your message has been received.</h3>
-                    <p className="mt-1 text-emerald-800">
-                      Our Vellore desk has recorded your enquiry under topic <strong>"{subject}"</strong>. We will contact you via <strong>{phone}</strong> within 24 business hours.
-                    </p>
+                    <h3 className="font-extrabold text-sm text-emerald-950">
+                      {isOfflineResult ? 'Message Stored (Demo Mode)' : 'Thank you! Your message has been received.'}
+                    </h3>
+                    {serverLeadId && (
+                      <p className="mt-0.5 text-[11px] font-mono text-emerald-950">
+                        Confirmed Reference: <strong>{serverLeadId}</strong>
+                      </p>
+                    )}
+                    {isOfflineResult ? (
+                      <p className="mt-1 text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-2 leading-relaxed">
+                        Your message regarding <strong>"{subject}"</strong> has been recorded locally in preview demo mode. Live routing requires an active server database connection.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-emerald-800">
+                        Our Vellore desk has recorded your enquiry under topic <strong>"{subject}"</strong>. An authorized coordinator will contact you via <strong>{phone}</strong> within 24 business hours.
+                      </p>
+                    )}
                     <button
-                      onClick={() => setSubmitSuccess(false)}
+                      onClick={() => {
+                        setSubmitSuccess(false);
+                        setIsOfflineResult(false);
+                        setServerLeadId(null);
+                      }}
                       className="mt-2 text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer text-xs"
                     >
                       Send another message
@@ -322,13 +344,23 @@ export const VelloreContactPage: React.FC<VelloreContactPageProps> = ({
               {submitError && (
                 <div
                   role="alert"
-                  className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-3"
+                  className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start justify-between gap-3"
                 >
-                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="font-extrabold text-sm text-rose-950">Submission Failed</h3>
-                    <p className="mt-1 text-rose-800">{submitError}</p>
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-extrabold text-sm text-rose-950">Submission Failed</h3>
+                      <p className="mt-1 text-rose-800">{submitError}</p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubmitError(null)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 underline hover:text-rose-950 cursor-pointer shrink-0 mt-0.5"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Retry</span>
+                  </button>
                 </div>
               )}
 
@@ -482,8 +514,8 @@ export const VelloreContactPage: React.FC<VelloreContactPageProps> = ({
                   )}
                 </button>
 
-                <p className="text-[11px] text-slate-400 text-center mt-2">
-                  🔒 We respect your privacy. Your phone number is strictly used by our Vellore team to assist with your inquiry.
+                <p className="text-[11px] text-slate-500 text-center mt-2">
+                  🔒 <strong>Privacy Notice:</strong> Your contact information is used by our Vellore regional desk and authorized service coordinators to address your inquiry. We do not sell your contact details.
                 </p>
               </form>
             </div>

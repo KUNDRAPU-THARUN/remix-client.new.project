@@ -20,6 +20,7 @@ import { getCityCategories } from '../config/categories';
 import { useTranslation } from '../i18n/LanguageContext';
 import { resolveListingContact } from '../utils/contactValidation';
 import { getOperatingHoursStatus } from '../utils/operatingHours';
+import { buildListingWhatsAppUrl } from '../utils/whatsappTemplates';
 
 interface HomeSectionsProps {
   featuredListings: Listing[];
@@ -84,6 +85,17 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
               const hasValidWhatsApp = contact.hasValidWhatsApp;
               const isVellore = currentCity.id === 'vellore';
               const bizHours = getOperatingHoursStatus(biz.timings);
+
+              const waUrlResult = buildListingWhatsAppUrl({
+                phone: biz.phone,
+                whatsapp: biz.whatsapp,
+                businessTitle: biz.title,
+                categoryId: biz.category,
+                localityName: areaName,
+                cityId: currentCity.id,
+                brandName: currentCity.brandName,
+                cityCode: currentCity.code,
+              });
 
               return (
                 <div
@@ -204,15 +216,12 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
                         </button>
                       )}
 
-                      {hasValidWhatsApp ? (
+                      {hasValidWhatsApp && waUrlResult.isValid ? (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const message = encodeURIComponent(
-                              `Hello! I found your listing "${biz.title}" on ${currentCity.brandName} (${currentCity.code} Local Discovery). I would like to inquire about your services.`
-                            );
-                            window.open(`https://wa.me/${contact.whatsappNumber}?text=${message}`, '_blank');
+                            window.open(waUrlResult.url, '_blank');
                           }}
                           className="py-1.5 px-2 rounded-lg bg-[#15995F] hover:bg-emerald-700 text-white font-bold text-[11px] transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
                           title="Chat on WhatsApp"
