@@ -68,25 +68,52 @@ export interface SubmitGeneralLeadResult {
 }
 
 const STORAGE_KEY = 'chittoorads_enquiries';
+const GENERAL_LEADS_STORAGE_KEY = 'chittoorads_general_leads';
+
+let memoryEnquiries: CustomerEnquiry[] = [];
+let memoryGeneralLeads: GeneralServiceRequest[] = [];
 
 function getStoredEnquiries(): CustomerEnquiry[] {
-  if (typeof localStorage === 'undefined') return [];
+  if (typeof localStorage === 'undefined') return memoryEnquiries;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) return memoryEnquiries;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed : memoryEnquiries;
   } catch {
-    return [];
+    return memoryEnquiries;
   }
 }
 
 function saveStoredEnquiries(enquiries: CustomerEnquiry[]): void {
+  memoryEnquiries = enquiries;
   if (typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(enquiries));
   } catch (err) {
     console.warn('Could not persist enquiries to localStorage:', err);
+  }
+}
+
+function getStoredGeneralLeads(): GeneralServiceRequest[] {
+  if (typeof localStorage === 'undefined') return memoryGeneralLeads;
+  try {
+    const raw = localStorage.getItem(GENERAL_LEADS_STORAGE_KEY);
+    if (!raw) return memoryGeneralLeads;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : memoryGeneralLeads;
+  } catch {
+    return memoryGeneralLeads;
+  }
+}
+
+function saveStoredGeneralLeads(leads: GeneralServiceRequest[]): void {
+  memoryGeneralLeads = leads;
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(GENERAL_LEADS_STORAGE_KEY, JSON.stringify(leads));
+  } catch (err) {
+    console.warn('Could not save general lead to localStorage:', err);
   }
 }
 
@@ -120,6 +147,23 @@ export const enquiryService = {
     const supabase = getSupabaseClient();
     if (!supabase) {
       // Local fallback in offline development
+      const existing = getStoredEnquiries();
+      const recentDup = existing.find(
+        (e) =>
+          e.businessId === params.businessId &&
+          e.customerPhone === params.customerPhone.trim() &&
+          Date.now() - new Date(e.createdAt).getTime() < 60000
+      );
+
+      if (recentDup) {
+        return {
+          enquiry: recentDup,
+          persisted: false,
+          duplicatePrevented: true,
+          isOffline: true,
+        };
+      }
+
       const localEnquiry: CustomerEnquiry = {
         id: `local-demo-${Date.now()}`,
         businessId: params.businessId,
@@ -134,7 +178,6 @@ export const enquiryService = {
         createdAt: new Date().toISOString(),
       };
 
-      const existing = getStoredEnquiries();
       saveStoredEnquiries([localEnquiry, ...existing]);
       return { enquiry: localEnquiry, persisted: false, isOffline: true };
     }
@@ -246,12 +289,18 @@ export const enquiryService = {
       try {
         // Check for recent duplicate submission on retry (within 60s)
         const recentWindow = new Date(Date.now() - 60000).toISOString();
-        const { data: existingLead } = await (supabase as any)
+        let dupQuery = (supabase as any)
           .from('general_service_requests')
           .select('id')
           .eq('city_id', params.cityId)
           .eq('customer_phone', params.customerPhone.trim())
-          .gte('created_at', recentWindow)
+          .gte('created_at', recentWindow);
+
+        if (params.categoryId) {
+          dupQuery = dupQuery.eq('category_id', params.categoryId);
+        }
+
+        const { data: existingLead } = await dupQuery
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -308,6 +357,26 @@ export const enquiryService = {
     }
 
     // Offline / unconfigured development environment fallback
+    const leads = getStoredGeneralLeads();
+    const recentDup = leads.find(
+      (l) =>
+        l.cityId === params.cityId &&
+        l.categoryId === params.categoryId &&
+        l.customerPhone === params.customerPhone.trim() &&
+        Date.now() - new Date(l.createdAt).getTime() < 60000
+    );
+
+    if (recentDup) {
+      return {
+        success: true,
+        leadId: undefined,
+        persisted: false,
+        duplicatePrevented: true,
+        isOffline: true,
+        note: 'Duplicate prevented: Recent identical request within 60s recorded locally.',
+      };
+    }
+
     const localLead: GeneralServiceRequest = {
       id: `local-demo-${Date.now()}`,
       cityId: params.cityId,
@@ -321,15 +390,7 @@ export const enquiryService = {
       createdAt: new Date().toISOString(),
     };
 
-    if (typeof localStorage !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('chittoorads_general_leads');
-        const leads = raw ? JSON.parse(raw) : [];
-        localStorage.setItem('chittoorads_general_leads', JSON.stringify([localLead, ...leads]));
-      } catch (e) {
-        console.warn('Could not save general lead to localStorage:', e);
-      }
-    }
+    saveStoredGeneralLeads([localLead, ...leads]);
 
     return {
       success: true,
@@ -343,14 +404,8 @@ export const enquiryService = {
   async getGeneralServiceRequests(cityId?: CityId): Promise<GeneralServiceRequest[]> {
     const supabase = getSupabaseClient();
     if (!supabase) {
-      if (typeof localStorage === 'undefined') return [];
-      try {
-        const raw = localStorage.getItem('chittoorads_general_leads');
-        const leads: GeneralServiceRequest[] = raw ? JSON.parse(raw) : [];
-        return cityId ? leads.filter((l) => l.cityId === cityId) : leads;
-      } catch {
-        return [];
-      }
+      const leads = getStoredGeneralLeads();
+      return cityId ? leads.filter((l) => l.cityId === cityId) : leads;
     }
 
     try {

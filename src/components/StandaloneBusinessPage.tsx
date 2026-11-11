@@ -573,7 +573,7 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
                     About {listing.title}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                    {listing.description || 'Verified local establishment in Vellore providing quality services.'}
+                    {listing.description || 'Local establishment in Vellore providing quality services.'}
                   </p>
                 </div>
 
@@ -951,14 +951,16 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
               </form>
             </div>
 
-            {/* Merchant Verification Badge Box */}
+            {/* Merchant Directory / Verification Box */}
             <div className="bg-slate-100 rounded-3xl p-5 border border-slate-200 text-xs text-slate-600 space-y-2">
               <div className="flex items-center gap-2 text-slate-900 font-bold">
-                <ShieldCheck className="w-4 h-4 text-[#15995F]" />
-                <span>Verified by {currentCity.brandName}</span>
+                <ShieldCheck className={`w-4 h-4 ${listing.isVerified ? 'text-[#15995F]' : 'text-slate-500'}`} />
+                <span>{listing.isVerified ? `Verified by ${currentCity.brandName}` : `Directory Listing • ${currentCity.brandName}`}</span>
               </div>
               <p className="text-[11px] leading-relaxed">
-                Listed in {currentCity.name} ({currentCity.code}). Contact details and locality verified for direct customer convenience.
+                {listing.isVerified
+                  ? `Listed in ${currentCity.name} (${currentCity.code}). Contact details and locality verified for direct customer convenience.`
+                  : `Preview directory listing in ${currentCity.name} (${currentCity.code}). Direct enquiries are routed to the merchant or regional desk.`}
               </p>
             </div>
           </div>

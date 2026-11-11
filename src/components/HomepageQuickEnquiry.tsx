@@ -102,7 +102,7 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
           </h2>
 
           <p className="mt-2.5 text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-            Post your requirement in 30 seconds. Verified local service providers, doctors, contractors, and businesses in {currentCity.name} will contact you directly with free competitive estimates.
+            Post your requirement in 30 seconds. Local service providers, contractors, and businesses in {currentCity.name} will contact you directly with free competitive estimates.
           </p>
 
           <div className="mt-6 space-y-2.5 text-xs text-slate-300">
@@ -112,7 +112,7 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
             </div>
             <div className="flex items-center gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-[#15995F] shrink-0" />
-              <span>Direct Call / WhatsApp from Verified {currentCity.name} Experts</span>
+              <span>Direct Call / WhatsApp from Local {currentCity.name} Experts</span>
             </div>
             <div className="flex items-center gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-[#15995F] shrink-0" />
@@ -182,8 +182,8 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
                 <h3 className="font-black text-base font-heading text-slate-900">
                   Request Free Callback & Quotes
                 </h3>
-                <span className="text-[10px] bg-red-50 text-red-700 font-extrabold px-2 py-0.5 rounded-full border border-red-200">
-                  ⚡ Verified Leads
+                <span className="text-[10px] bg-blue-50 text-[#176AC4] font-extrabold px-2 py-0.5 rounded-full border border-blue-200">
+                  ⚡ Direct Quotes
                 </span>
               </div>
 
