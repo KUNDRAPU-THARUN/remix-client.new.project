@@ -3,10 +3,12 @@ import { CITIES, DEFAULT_CITY_ID, isCityId } from '../config/cities';
 
 export interface ParsedCityRoute {
   cityId: CityId;
-  tab: 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz';
+  tab: 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz' | 'community' | 'events';
   categoryId: string;
   savedOnly: boolean;
   listingId: string | null;
+  noticeId?: string | null;
+  eventId?: string | null;
   searchQuery: string;
   selectedArea: string;
   verifiedOnly: boolean;
@@ -90,9 +92,19 @@ export function parseCityRoute(
   const businessMatch = effectiveSubpath.match(/^\/business\/([^/]+)$/);
   const directListingId = bizMatch ? bizMatch[1] : (businessMatch ? businessMatch[1] : null);
 
+  // Community noticeboard & events matching (/community/:id or /community, /events/:id or /events)
+  const communityMatch = effectiveSubpath.match(/^\/community(?:\/([^/]+))?$/);
+  const eventsMatch = effectiveSubpath.match(/^\/events(?:\/([^/]+))?$/);
+  const noticeId = communityMatch?.[1] || null;
+  const eventId = eventsMatch?.[1] || null;
+
   let tab: ParsedCityRoute['tab'] = 'home';
   if (bizMatch) {
     tab = 'biz';
+  } else if (communityMatch) {
+    tab = 'community';
+  } else if (eventsMatch) {
+    tab = 'events';
   } else if (isCategory) {
     tab = 'category';
   } else if (effectiveSubpath === '/about' || effectiveSubpath === '/about-us') {
@@ -126,6 +138,8 @@ export function parseCityRoute(
     categoryId,
     savedOnly,
     listingId,
+    noticeId,
+    eventId,
     searchQuery: params.get('q') || '',
     selectedArea: validArea,
     verifiedOnly: params.get('verified') === '1',
@@ -150,6 +164,8 @@ export function buildCityRouteUrl(
     sortBy?: string;
     savedOnly?: boolean;
     listingId?: string | null;
+    noticeId?: string | null;
+    eventId?: string | null;
   },
   hostname: string = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
 ): string {
@@ -170,6 +186,10 @@ export function buildCityRouteUrl(
     path = `${prefix}/about`;
   } else if (tab === 'contact') {
     path = `${prefix}/contact`;
+  } else if (tab === 'community') {
+    path = filters?.noticeId ? `${prefix}/community/${filters.noticeId}` : `${prefix}/community`;
+  } else if (tab === 'events') {
+    path = filters?.eventId ? `${prefix}/events/${filters.eventId}` : `${prefix}/events`;
   } else
   if (tab === 'home' && filters?.listingId) {
     path = `${prefix}/business/${filters.listingId}`;

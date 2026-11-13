@@ -24,6 +24,8 @@ interface FooterProps {
   onNavigateFranchise?: () => void;
   onNavigateAbout?: () => void;
   onNavigateContact?: () => void;
+  onNavigateCommunity?: () => void;
+  onNavigateEvents?: () => void;
   currentCity: CityConfig;
   allCities: CityConfig[];
 }
@@ -39,6 +41,8 @@ export const Footer: React.FC<FooterProps> = ({
   onNavigateFranchise,
   onNavigateAbout,
   onNavigateContact,
+  onNavigateCommunity,
+  onNavigateEvents,
   currentCity,
   allCities,
 }) => {
@@ -195,6 +199,28 @@ export const Footer: React.FC<FooterProps> = ({
                   >
                     <Mail className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Contact Office & Helpdesk</span>
+                  </button>
+                </li>
+              )}
+              {currentCity.features.hasCommunityNoticeboard && onNavigateCommunity && (
+                <li>
+                  <button
+                    onClick={onNavigateCommunity}
+                    className="text-slate-300 hover:text-white font-medium transition flex items-center gap-1.5 cursor-pointer text-xs"
+                  >
+                    <Info className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Community Noticeboard</span>
+                  </button>
+                </li>
+              )}
+              {currentCity.features.hasLocalEvents && onNavigateEvents && (
+                <li>
+                  <button
+                    onClick={onNavigateEvents}
+                    className="text-slate-300 hover:text-white font-medium transition flex items-center gap-1.5 cursor-pointer text-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Local Events Calendar</span>
                   </button>
                 </li>
               )}

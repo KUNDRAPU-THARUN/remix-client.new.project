@@ -30,9 +30,35 @@
       "source": "/city/vellore/contact-us",
       "destination": "/city/vellore/contact",
       "permanent": true
+    },
+    {
+      "source": "/community",
+      "destination": "/city/vellore/community",
+      "permanent": true
+    },
+    {
+      "source": "/events",
+      "destination": "/city/vellore/events",
+      "permanent": true
     }
   ],
   "rewrites": [
+    {
+      "source": "/city/vellore/about",
+      "destination": "/city/vellore/about/index.html"
+    },
+    {
+      "source": "/city/vellore/contact",
+      "destination": "/city/vellore/contact/index.html"
+    },
+    {
+      "source": "/city/vellore/community",
+      "destination": "/city/vellore/community/index.html"
+    },
+    {
+      "source": "/city/vellore/events",
+      "destination": "/city/vellore/events/index.html"
+    },
     {
       "source": "/city/chittoor/(.*)",
       "destination": "/city/chittoor/index.html"

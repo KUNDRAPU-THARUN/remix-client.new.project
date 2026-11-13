@@ -30,6 +30,8 @@ import { CategoryResultsPage, ResultsFilters } from './components/CategoryResult
 import { VelloreAboutPage } from './components/VelloreAboutPage';
 import { VelloreContactPage } from './components/VelloreContactPage';
 import { StandaloneBusinessPage } from './components/StandaloneBusinessPage';
+import { VelloreCommunityPage } from './components/vellore/VelloreCommunityPage';
+import { VelloreEventsPage } from './components/vellore/VelloreEventsPage';
 import { UserDashboard } from './components/UserDashboard';
 import { FranchiseDashboardLayout } from './components/franchise/FranchiseDashboardLayout';
 import { AdminDashboardLayout } from './components/admin/AdminDashboardLayout';
@@ -52,7 +54,7 @@ import { migrationService } from './services/migrationService';
 import { getEffectiveDashboardCity, isSuperAdmin } from './utils/regionAuthorization';
 import { Lock } from 'lucide-react';
 
-type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz';
+type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz' | 'community' | 'events';
 
 interface AppRouteState {
   cityId: CityId;
@@ -60,6 +62,8 @@ interface AppRouteState {
   categoryId: string;
   savedOnly: boolean;
   listingId: string | null;
+  noticeId?: string | null;
+  eventId?: string | null;
   filters: ResultsFilters;
 }
 
@@ -75,6 +79,8 @@ function readAppRoute(): AppRouteState {
     categoryId: parsed.categoryId,
     savedOnly: parsed.savedOnly,
     listingId: parsed.listingId,
+    noticeId: parsed.noticeId,
+    eventId: parsed.eventId,
     filters: {
       searchQuery: parsed.searchQuery,
       selectedArea: parsed.selectedArea,
@@ -98,6 +104,8 @@ function appRouteUrl(route: AppRouteState): string {
       sortBy: route.filters.sortBy,
       savedOnly: route.savedOnly,
       listingId: route.listingId,
+      noticeId: route.noticeId,
+      eventId: route.eventId,
     }
   );
 }
@@ -428,13 +436,15 @@ export const MainAppContent: React.FC = () => {
   };
 
   const handleNavigateTab = (tab: string) => {
-    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard', 'franchise', 'admin', 'about', 'contact', 'biz'].includes(tab)) return;
+    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard', 'franchise', 'admin', 'about', 'contact', 'biz', 'community', 'events'].includes(tab)) return;
     navigate({
       ...route,
       tab: tab as Tab,
       categoryId: 'all',
       savedOnly: false,
       listingId: null,
+      noticeId: null,
+      eventId: null,
       filters: defaultFilters
     });
   };
@@ -867,6 +877,56 @@ export const MainAppContent: React.FC = () => {
               onAddReview={handleAddReview}
             />
           )}
+
+          {/* VIEW 9: VELLORE COMMUNITY NOTICEBOARD */}
+          {activeTab === 'community' && (
+            currentCity.features.hasCommunityNoticeboard ? (
+              <VelloreCommunityPage
+                currentCity={currentCity}
+                activeNoticeId={route.noticeId}
+                onNavigateHome={handleBackToHome}
+                onSelectNotice={(id) => {
+                  navigate({ ...route, noticeId: id }, false, false);
+                }}
+                onOpenEmergency={() => setIsEmergencyOpen(true)}
+              />
+            ) : (
+              <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+                <p className="text-gray-600 mb-4">Community noticeboard is exclusive to Vellore Ads (TN-23).</p>
+                <button
+                  onClick={handleBackToHome}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  Return to {currentCity.name} Home
+                </button>
+              </div>
+            )
+          )}
+
+          {/* VIEW 10: VELLORE LOCAL EVENTS CALENDAR */}
+          {activeTab === 'events' && (
+            currentCity.features.hasLocalEvents ? (
+              <VelloreEventsPage
+                currentCity={currentCity}
+                activeEventId={route.eventId}
+                onNavigateHome={handleBackToHome}
+                onSelectEvent={(id) => {
+                  navigate({ ...route, eventId: id }, false, false);
+                }}
+                onOpenEmergency={() => setIsEmergencyOpen(true)}
+              />
+            ) : (
+              <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+                <p className="text-gray-600 mb-4">Local events calendar is exclusive to Vellore Ads (TN-23).</p>
+                <button
+                  onClick={handleBackToHome}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  Return to {currentCity.name} Home
+                </button>
+              </div>
+            )
+          )}
         </main>
 
         {/* Footer with Multi-City Directory Links */}
@@ -880,6 +940,8 @@ export const MainAppContent: React.FC = () => {
           onNavigateFranchise={() => handleNavigateTab('franchise')}
           onNavigateAbout={() => handleNavigateTab('about')}
           onNavigateContact={() => handleNavigateTab('contact')}
+          onNavigateCommunity={() => handleNavigateTab('community')}
+          onNavigateEvents={() => handleNavigateTab('events')}
           currentCity={currentCity}
           allCities={allCities}
         />
