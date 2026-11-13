@@ -335,6 +335,8 @@ export const CITIES: Record<CityId, CityConfig> = {
     },
     features: {
       hasKanipakamSpecial: true,
+      hasCommunityNoticeboard: false,
+      hasLocalEvents: false,
       landmark: 'Sri Varasiddhi Vinayaka Swamy Temple & Mango Mandis',
       heroHeadingMain: 'Find Everything in',
       heroHeadingHighlight: 'Chittoor',
@@ -378,6 +380,8 @@ export const CITIES: Record<CityId, CityConfig> = {
     },
     features: {
       hasKanipakamSpecial: false,
+      hasCommunityNoticeboard: true,
+      hasLocalEvents: true,
       landmark: 'Historic Vellore Fort, Golden Temple & CMC Hospital Hub',
       heroHeadingMain: 'Find Everything in',
       heroHeadingHighlight: 'Vellore',
@@ -421,6 +425,8 @@ export const CITIES: Record<CityId, CityConfig> = {
     },
     features: {
       hasKanipakamSpecial: false,
+      hasCommunityNoticeboard: false,
+      hasLocalEvents: false,
       landmark: 'Silicon City Tech Hub, Metro Corridors & Innovation Clusters',
       heroHeadingMain: 'Find Everything in',
       heroHeadingHighlight: 'Bengaluru',

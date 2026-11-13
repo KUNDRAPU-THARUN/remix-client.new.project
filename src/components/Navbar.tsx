@@ -374,6 +374,34 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
+          {/* Vellore Community Noticeboard (Only if supported by city) */}
+          {currentCity.features.hasCommunityNoticeboard && (
+            <button
+              onClick={() => handleNavClick('community')}
+              className={`px-3 py-2 rounded-xl relative transition cursor-pointer ${
+                activeTab === 'community' && !isSavedViewActive
+                  ? 'text-[#176AC4] font-bold bg-blue-50/70'
+                  : 'hover:text-slate-900 hover:bg-slate-100/80'
+              }`}
+            >
+              <span>Community</span>
+            </button>
+          )}
+
+          {/* Vellore Local Events (Only if supported by city) */}
+          {currentCity.features.hasLocalEvents && (
+            <button
+              onClick={() => handleNavClick('events')}
+              className={`px-3 py-2 rounded-xl relative transition cursor-pointer ${
+                activeTab === 'events' && !isSavedViewActive
+                  ? 'text-[#176AC4] font-bold bg-blue-50/70'
+                  : 'hover:text-slate-900 hover:bg-slate-100/80'
+              }`}
+            >
+              <span>Events</span>
+            </button>
+          )}
+
           {/* Dashboard (if user logged in) */}
           {currentUser && (
             <button
@@ -645,6 +673,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 Kanipakam Pilgrimage & Cabs
+              </button>
+            )}
+
+            {currentCity.features.hasCommunityNoticeboard && (
+              <button
+                onClick={() => handleNavClick('community')}
+                className={`w-full text-left px-3 py-2.5 rounded-xl transition ${
+                  activeTab === 'community' ? 'bg-blue-50 text-[#176AC4] font-bold' : 'text-slate-800 hover:bg-slate-100'
+                }`}
+              >
+                Community Noticeboard
+              </button>
+            )}
+
+            {currentCity.features.hasLocalEvents && (
+              <button
+                onClick={() => handleNavClick('events')}
+                className={`w-full text-left px-3 py-2.5 rounded-xl transition ${
+                  activeTab === 'events' ? 'bg-blue-50 text-[#176AC4] font-bold' : 'text-slate-800 hover:bg-slate-100'
+                }`}
+              >
+                Local Events Calendar
               </button>
             )}
 

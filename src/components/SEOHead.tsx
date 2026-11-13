@@ -45,6 +45,12 @@ export const SEOHead: React.FC<SEOHeadProps> = ({ currentCity, selectedListing, 
     } else if (activeTab === 'biz') {
       title = `Business Profile - ${currentCity.brandName} (${currentCity.code})`;
       description = `View verified local business details, directions, contact, and reviews in ${currentCity.name} (${currentCity.code}).`;
+    } else if (activeTab === 'community') {
+      title = `Community Noticeboard - ${currentCity.brandName} (${currentCity.code})`;
+      description = `Local public announcements, civic initiatives, student updates, and non-commercial community notices in ${currentCity.name} (${currentCity.code}).`;
+    } else if (activeTab === 'events') {
+      title = `Local Events & Calendar - ${currentCity.brandName} (${currentCity.code})`;
+      description = `Discover upcoming conferences, cultural evenings, student symposiums, exhibitions, and tournaments in ${currentCity.name} (${currentCity.code}).`;
     }
 
     const url = typeof window !== 'undefined' ? window.location.href : `https://${currentCity.domain}`;

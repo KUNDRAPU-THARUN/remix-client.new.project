@@ -53,6 +53,8 @@ export interface CityConfig {
   };
   features: {
     hasKanipakamSpecial: boolean;
+    hasCommunityNoticeboard?: boolean;
+    hasLocalEvents?: boolean;
     landmark: string;
     heroHeadingMain: string;
     heroHeadingHighlight: string;

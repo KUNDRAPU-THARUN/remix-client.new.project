@@ -398,6 +398,155 @@ export interface Database {
         }
         Relationships: []
       }
+      community_notices: {
+        Row: {
+          id: string
+          city_id: string
+          title: string
+          category: string
+          content: string
+          locality: string
+          organizer_name: string
+          contact_phone: string | null
+          contact_email: string | null
+          submitter_phone: string | null
+          submitter_email: string | null
+          show_contact: boolean
+          status: 'pending' | 'published' | 'rejected' | 'archived' | 'expired'
+          priority: 'standard' | 'urgent' | 'pinned' | 'featured'
+          publish_date: string
+          expiry_date: string | null
+          rejection_reason: string | null
+          moderated_by: string | null
+          moderated_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          city_id?: string
+          title: string
+          category: string
+          content: string
+          locality: string
+          organizer_name: string
+          contact_phone?: string | null
+          contact_email?: string | null
+          submitter_phone?: string | null
+          submitter_email?: string | null
+          show_contact?: boolean
+          status?: 'pending' | 'published' | 'rejected' | 'archived' | 'expired'
+          priority?: 'standard' | 'urgent' | 'pinned' | 'featured'
+          publish_date?: string
+          expiry_date?: string | null
+          rejection_reason?: string | null
+          moderated_by?: string | null
+          moderated_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          city_id?: string
+          title?: string
+          category?: string
+          content?: string
+          locality?: string
+          organizer_name?: string
+          contact_phone?: string | null
+          contact_email?: string | null
+          submitter_phone?: string | null
+          submitter_email?: string | null
+          show_contact?: boolean
+          status?: 'pending' | 'published' | 'rejected' | 'archived' | 'expired'
+          priority?: 'standard' | 'urgent' | 'pinned' | 'featured'
+          publish_date?: string
+          expiry_date?: string | null
+          rejection_reason?: string | null
+          moderated_by?: string | null
+          moderated_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      local_events: {
+        Row: {
+          id: string
+          city_id: string
+          title: string
+          category: string
+          description: string
+          venue_name: string
+          venue_address: string
+          locality: string
+          start_date: string
+          end_date: string | null
+          time_display: string
+          organizer_name: string
+          organizer_contact: string | null
+          registration_url: string | null
+          is_free: boolean
+          entry_fee: string | null
+          banner_image: string | null
+          status: 'pending' | 'published' | 'rejected' | 'archived' | 'cancelled'
+          is_featured: boolean
+          rejection_reason: string | null
+          moderated_by: string | null
+          moderated_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          city_id?: string
+          title: string
+          category: string
+          description: string
+          venue_name: string
+          venue_address: string
+          locality: string
+          start_date: string
+          end_date?: string | null
+          time_display: string
+          organizer_name: string
+          organizer_contact?: string | null
+          registration_url?: string | null
+          is_free?: boolean
+          entry_fee?: string | null
+          banner_image?: string | null
+          status?: 'pending' | 'published' | 'rejected' | 'archived' | 'cancelled'
+          is_featured?: boolean
+          rejection_reason?: string | null
+          moderated_by?: string | null
+          moderated_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          city_id?: string
+          title?: string
+          category?: string
+          description?: string
+          venue_name?: string
+          venue_address?: string
+          locality?: string
+          start_date?: string
+          end_date?: string | null
+          time_display?: string
+          organizer_name?: string
+          organizer_contact?: string | null
+          registration_url?: string | null
+          is_free?: boolean
+          entry_fee?: string | null
+          banner_image?: string | null
+          status?: 'pending' | 'published' | 'rejected' | 'archived' | 'cancelled'
+          is_featured?: boolean
+          rejection_reason?: string | null
+          moderated_by?: string | null
+          moderated_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -408,6 +557,12 @@ export interface Database {
           _user_id: string
           _role: string
           _city_id?: string | null
+        }
+        Returns: boolean
+      }
+      is_vellore_franchise: {
+        Args: {
+          _user_id: string
         }
         Returns: boolean
       }

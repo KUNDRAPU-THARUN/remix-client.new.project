@@ -63,6 +63,22 @@ const SUBPAGE_SEO_DATA: SubPageSEO[] = [
     canonicalUrl: 'https://remix-client-new-project.vercel.app/city/vellore/contact',
     territoryCode: 'TN-23',
   },
+  {
+    cityId: 'vellore',
+    subpath: 'community',
+    title: 'Vellore Community Noticeboard - Public Announcements & Civic Updates (TN-23)',
+    description: 'Local public announcements, civic initiatives, student updates, and non-commercial community notices in Vellore (TN-23).',
+    canonicalUrl: 'https://remix-client-new-project.vercel.app/city/vellore/community',
+    territoryCode: 'TN-23',
+  },
+  {
+    cityId: 'vellore',
+    subpath: 'events',
+    title: 'Vellore Local Events Calendar - Conferences, Concerts & Workshops (TN-23)',
+    description: 'Discover upcoming conferences, cultural evenings, academic workshops, sports tournaments, and festivals in Vellore (TN-23).',
+    canonicalUrl: 'https://remix-client-new-project.vercel.app/city/vellore/events',
+    territoryCode: 'TN-23',
+  },
 ];
 
 function prerender() {

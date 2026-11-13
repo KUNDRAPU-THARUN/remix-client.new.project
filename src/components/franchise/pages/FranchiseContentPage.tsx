@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Film,
   Sparkles,
@@ -15,17 +15,51 @@ import {
   Clock,
   Ticket,
   Calendar,
+  Bell,
+  Check,
+  X,
+  ShieldCheck,
 } from 'lucide-react';
 import { CityConfig, EmergencyContact } from '../../../types';
 import { getCityEmergencyContacts } from '../../../config/emergency';
+import { communityService } from '../../../services/communityService';
+import { CommunityNotice, LocalEvent } from '../../../types/community';
 
 interface FranchiseContentPageProps {
   currentCity: CityConfig;
 }
 
 export const FranchiseContentPage: React.FC<FranchiseContentPageProps> = ({ currentCity }) => {
-  const [activeSubtab, setActiveSubtab] = useState<'theatres' | 'attractions' | 'banners' | 'emergency'>('theatres');
+  const [activeSubtab, setActiveSubtab] = useState<'theatres' | 'attractions' | 'banners' | 'emergency' | 'notices' | 'events'>('theatres');
   const emergencyList: EmergencyContact[] = getCityEmergencyContacts(currentCity.id);
+
+  // Community moderation state
+  const [notices, setNotices] = useState<CommunityNotice[]>([]);
+  const [events, setEvents] = useState<LocalEvent[]>([]);
+  const [loadingCommunity, setLoadingCommunity] = useState(false);
+
+  const loadFranchiseCommunity = async () => {
+    setLoadingCommunity(true);
+    const n = await communityService.getAllNoticesForFranchise(currentCity.id);
+    const e = await communityService.getAllEventsForFranchise(currentCity.id);
+    setNotices(n);
+    setEvents(e);
+    setLoadingCommunity(false);
+  };
+
+  useEffect(() => {
+    loadFranchiseCommunity();
+  }, [currentCity.id]);
+
+  const handleModerateNotice = async (id: string, status: 'published' | 'rejected' | 'archived') => {
+    await communityService.moderateNotice(id, status);
+    loadFranchiseCommunity();
+  };
+
+  const handleModerateEvent = async (id: string, status: 'published' | 'rejected' | 'archived') => {
+    await communityService.moderateEvent(id, status);
+    loadFranchiseCommunity();
+  };
 
   // Content for Vellore (or fallback for other cities)
   const isVellore = currentCity.id === 'vellore';
@@ -106,6 +140,34 @@ export const FranchiseContentPage: React.FC<FranchiseContentPageProps> = ({ curr
             <PhoneCall className="w-4 h-4" />
             <span>Emergency Helplines ({emergencyList.length})</span>
           </button>
+
+          {currentCity.features.hasCommunityNoticeboard && (
+            <button
+              onClick={() => setActiveSubtab('notices')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
+                activeSubtab === 'notices'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Bell className="w-4 h-4" />
+              <span>Community Notices ({notices.length})</span>
+            </button>
+          )}
+
+          {currentCity.features.hasLocalEvents && (
+            <button
+              onClick={() => setActiveSubtab('events')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
+                activeSubtab === 'events'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>Local Events ({events.length})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -285,6 +347,192 @@ export const FranchiseContentPage: React.FC<FranchiseContentPageProps> = ({ curr
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Content Section 5: Community Notices Moderation */}
+      {activeSubtab === 'notices' && (
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-black text-slate-900 font-heading">
+                Community Notices Moderation ({currentCity.name})
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Review, approve, or reject civic and community notices submitted by residents and local organizations.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+              <span>Staging / Local Storage Mode</span>
+            </div>
+          </div>
+
+          {loadingCommunity ? (
+            <div className="p-8 text-center text-xs text-slate-500">Loading notices...</div>
+          ) : notices.length === 0 ? (
+            <div className="bg-white p-8 rounded-2xl border border-slate-200/90 text-center text-xs text-slate-500">
+              No notices submitted for moderation yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notices.map((n) => (
+                <div
+                  key={n.id}
+                  className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                        {n.id}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                          n.status === 'published'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : n.status === 'rejected'
+                            ? 'bg-rose-50 text-rose-700'
+                            : 'bg-amber-50 text-amber-700'
+                        }`}
+                      >
+                        {n.status}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        Category: {n.category}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        Locality: {n.locality}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-bold text-slate-900">{n.title}</h4>
+                    <p className="text-xs text-slate-600 line-clamp-2">{n.content}</p>
+
+                    <div className="text-[11px] text-slate-500 flex items-center gap-3 pt-1">
+                      <span>Organizer: <strong>{n.organizerName}</strong></span>
+                      {n.contactPhone && <span>Phone: {n.contactPhone}</span>}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                    {n.status !== 'published' && (
+                      <button
+                        onClick={() => handleModerateNotice(n.id, 'published')}
+                        className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center gap-1"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Publish</span>
+                      </button>
+                    )}
+                    {n.status !== 'rejected' && (
+                      <button
+                        onClick={() => handleModerateNotice(n.id, 'rejected')}
+                        className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold hover:bg-rose-100 transition cursor-pointer flex items-center gap-1"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Reject</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Content Section 6: Local Events Moderation */}
+      {activeSubtab === 'events' && (
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-black text-slate-900 font-heading">
+                Local Events Moderation ({currentCity.name})
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Review and approve event listings, verify venue schedules, and ensure accurate timing.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+              <span>Staging / Local Storage Mode</span>
+            </div>
+          </div>
+
+          {loadingCommunity ? (
+            <div className="p-8 text-center text-xs text-slate-500">Loading events...</div>
+          ) : events.length === 0 ? (
+            <div className="bg-white p-8 rounded-2xl border border-slate-200/90 text-center text-xs text-slate-500">
+              No events submitted for moderation yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {events.map((evt) => (
+                <div
+                  key={evt.id}
+                  className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                        {evt.id}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                          evt.status === 'published'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : evt.status === 'rejected'
+                            ? 'bg-rose-50 text-rose-700'
+                            : 'bg-amber-50 text-amber-700'
+                        }`}
+                      >
+                        {evt.status}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        {evt.category.toUpperCase()}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        Locality: {evt.locality}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-bold text-slate-900">{evt.title}</h4>
+                    <p className="text-xs text-slate-600 line-clamp-2">{evt.description}</p>
+
+                    <div className="text-[11px] text-slate-500 space-y-0.5 pt-1">
+                      <div>
+                        <strong>Venue:</strong> {evt.venueName} — {evt.venueAddress}
+                      </div>
+                      <div>
+                        <strong>Schedule:</strong> {evt.timeDisplay} | Organizer: {evt.organizerName}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                    {evt.status !== 'published' && (
+                      <button
+                        onClick={() => handleModerateEvent(evt.id, 'published')}
+                        className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition cursor-pointer flex items-center gap-1"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Publish</span>
+                      </button>
+                    )}
+                    {evt.status !== 'rejected' && (
+                      <button
+                        onClick={() => handleModerateEvent(evt.id, 'rejected')}
+                        className="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold hover:bg-rose-100 transition cursor-pointer flex items-center gap-1"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Reject</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
