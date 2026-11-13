@@ -231,13 +231,13 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           role="search"
         >
           {/* Left Segment: City Localities Selector */}
-          <div className="w-full md:w-60 flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 md:bg-transparent rounded-xl md:rounded-l-full border md:border-0 border-slate-200 text-slate-800">
+          <div className="w-full md:w-60 flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 md:bg-transparent rounded-xl md:rounded-l-full border md:border-0 border-slate-200 text-slate-800 min-h-[44px]">
             <MapPin className="w-4 h-4 text-[#E51E31] shrink-0" />
             <select
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
               aria-label={`Select ${currentCity.name} locality`}
-              className="w-full py-1 text-xs sm:text-sm font-semibold outline-hidden bg-transparent text-slate-700 cursor-pointer"
+              className="w-full py-2.5 min-h-[44px] text-base sm:text-sm font-semibold outline-hidden bg-transparent text-slate-700 cursor-pointer"
             >
               <option value="all">📍 All Locations ({currentCity.name})</option>
               {currentCity.localities.filter((a) => a.id !== 'all').map((a) => (
@@ -251,13 +251,13 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           <div className="hidden md:block w-px h-8 bg-slate-200" />
 
           {/* Middle Segment: Category Selector */}
-          <div className="w-full md:w-60 flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 md:bg-transparent rounded-xl border md:border-0 border-slate-200 text-slate-800">
+          <div className="w-full md:w-60 flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 md:bg-transparent rounded-xl border md:border-0 border-slate-200 text-slate-800 min-h-[44px]">
             <Tag className="w-4 h-4 text-[#176AC4] shrink-0" />
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               aria-label="Select business category"
-              className="w-full py-1 text-xs sm:text-sm font-semibold outline-hidden bg-transparent text-slate-700 cursor-pointer"
+              className="w-full py-2.5 min-h-[44px] text-base sm:text-sm font-semibold outline-hidden bg-transparent text-slate-700 cursor-pointer"
             >
               <option value="all">{t('allCategories')}</option>
               {categories.map((c) => (
@@ -271,7 +271,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           <div className="hidden md:block w-px h-8 bg-slate-200" />
 
           {/* Right Segment: Keyword Service Search Input */}
-          <div className="w-full flex-1 flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 md:bg-transparent rounded-xl border md:border-0 border-slate-200">
+          <div className="w-full flex-1 flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 md:bg-transparent rounded-xl border md:border-0 border-slate-200 min-h-[44px]">
             <Search className="w-4 h-4 text-slate-400 shrink-0" />
             <input
               type="text"
@@ -279,13 +279,13 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search businesses in ${currentCity.name}...`}
               aria-label="Search keywords"
-              className="w-full py-1 text-xs sm:text-sm outline-hidden font-medium placeholder:text-slate-400 text-slate-900 bg-transparent"
+              className="w-full py-2.5 min-h-[44px] text-base sm:text-sm outline-hidden font-medium placeholder:text-slate-400 text-slate-900 bg-transparent"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="text-sm text-slate-400 hover:text-slate-700 font-bold px-1.5 cursor-pointer"
+                className="text-sm text-slate-400 hover:text-slate-700 font-bold px-2 py-1 min-h-[32px] min-w-[32px] cursor-pointer"
                 title="Clear query"
               >
                 ×
@@ -296,7 +296,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           {/* Primary Action Button */}
           <button
             type="submit"
-            className="w-full md:w-auto px-7 py-3 rounded-xl md:rounded-full bg-gradient-to-r from-[#E51E31] to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-sm transition shadow-md shadow-red-600/30 flex items-center justify-center gap-2 cursor-pointer shrink-0"
+            className="w-full md:w-auto px-7 py-3 min-h-[44px] rounded-xl md:rounded-full bg-gradient-to-r from-[#E51E31] to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-sm transition shadow-md shadow-red-600/30 flex items-center justify-center gap-2 cursor-pointer shrink-0"
           >
             <Search className="w-4 h-4 stroke-[2.5]" />
             <span>{t('searchButton')}</span>
@@ -313,7 +313,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
               key={tag.label}
               type="button"
               onClick={() => onQuickTagClick(tag.label, tag.catId)}
-              className="bg-black/45 hover:bg-[#E51E31] hover:text-white text-slate-200 px-3 py-1 rounded-full border border-white/25 backdrop-blur-xs transition font-semibold cursor-pointer text-xs"
+              className="bg-black/45 hover:bg-[#E51E31] hover:text-white text-slate-200 px-3 py-1.5 min-h-[36px] inline-flex items-center rounded-full border border-white/25 backdrop-blur-xs transition font-semibold cursor-pointer text-xs"
             >
               {tag.label}
             </button>

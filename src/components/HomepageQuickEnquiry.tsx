@@ -227,7 +227,7 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
                     placeholder="e.g. Senthil Kumar"
                     aria-invalid={!!fieldErrors.name}
                     aria-describedby={fieldErrors.name ? 'quick-enquiry-name-error' : undefined}
-                    className={`w-full text-xs px-3.5 py-2.5 rounded-xl border ${
+                    className={`w-full text-base sm:text-xs px-3.5 py-2.5 min-h-[44px] rounded-xl border ${
                       fieldErrors.name ? 'border-red-500 bg-red-50/40' : 'border-slate-200 bg-slate-50'
                     } focus:outline-hidden focus:border-blue-500 focus:bg-white transition disabled:opacity-60`}
                   />
@@ -257,7 +257,7 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
                     placeholder="e.g. 98423 44550"
                     aria-invalid={!!fieldErrors.phone}
                     aria-describedby={fieldErrors.phone ? 'quick-enquiry-phone-error' : undefined}
-                    className={`w-full text-xs px-3.5 py-2.5 rounded-xl border ${
+                    className={`w-full text-base sm:text-xs px-3.5 py-2.5 min-h-[44px] rounded-xl border ${
                       fieldErrors.phone ? 'border-red-500 bg-red-50/40' : 'border-slate-200 bg-slate-50'
                     } focus:outline-hidden focus:border-blue-500 focus:bg-white transition disabled:opacity-60`}
                   />
@@ -279,7 +279,7 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
                     disabled={isSubmitting}
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500 bg-slate-50 focus:bg-white cursor-pointer disabled:opacity-60"
+                    className="w-full text-base sm:text-xs px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500 bg-slate-50 focus:bg-white cursor-pointer disabled:opacity-60"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -298,7 +298,7 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
                     disabled={isSubmitting}
                     value={selectedArea}
                     onChange={(e) => setSelectedArea(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500 bg-slate-50 focus:bg-white cursor-pointer disabled:opacity-60"
+                    className="w-full text-base sm:text-xs px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500 bg-slate-50 focus:bg-white cursor-pointer disabled:opacity-60"
                   >
                     {localities.map((a) => (
                       <option key={a.id} value={a.id}>
@@ -320,7 +320,7 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="e.g. Need 2BHK rental flat near VIT / 24x7 ambulance enquiry / AC repair quote..."
-                  className="w-full text-xs px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500 bg-slate-50 focus:bg-white disabled:opacity-60"
+                  className="w-full text-base sm:text-xs px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:border-blue-500 bg-slate-50 focus:bg-white disabled:opacity-60"
                 />
               </div>
 
@@ -335,7 +335,7 @@ export const HomepageQuickEnquiry: React.FC<HomepageQuickEnquiryProps> = ({ curr
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#E51E31] to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-xs sm:text-sm shadow-md shadow-red-500/20 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3 min-h-[44px] rounded-xl bg-gradient-to-r from-[#E51E31] to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-black text-xs sm:text-sm shadow-md shadow-red-500/20 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
                 <span>{isSubmitting ? 'Submitting Enquiry...' : `Get Free Quotes in ${currentCity.name} →`}</span>

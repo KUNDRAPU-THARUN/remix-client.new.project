@@ -213,7 +213,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
               </div>
 
               {/* Vertical Module Radio-Item List */}
-              <div className="p-2 max-h-[460px] overflow-y-auto space-y-1">
+              <div className="p-2 max-h-[220px] lg:max-h-[460px] overflow-y-auto space-y-1">
                 {/* All Categories Option */}
                 <button
                   onClick={() => onSelectCategory('all')}
@@ -307,7 +307,7 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="e.g. Doctor, AC, Biryani..."
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:border-red-500 outline-hidden font-medium"
+                    className="w-full pl-9 pr-3 py-2.5 min-h-[44px] text-base sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:border-red-500 outline-hidden font-medium"
                   />
                 </div>
               </div>
@@ -318,11 +318,11 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                   Location / Area in {cityName}
                 </label>
                 <div className="relative">
-                  <MapPin className="w-4 h-4 text-red-500 absolute left-3 top-2.5 pointer-events-none" />
+                  <MapPin className="w-4 h-4 text-red-500 absolute left-3 top-3 pointer-events-none" />
                   <select
                     value={selectedArea}
                     onChange={(e) => setSelectedArea(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:border-red-500 outline-hidden font-medium cursor-pointer"
+                    className="w-full pl-9 pr-3 py-2.5 min-h-[44px] text-base sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:border-red-500 outline-hidden font-medium cursor-pointer"
                   >
                     {localities.map((a) => (
                       <option key={a.id} value={a.id}>

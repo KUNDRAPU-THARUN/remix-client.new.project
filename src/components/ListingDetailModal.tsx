@@ -108,6 +108,15 @@ const ListingDetailContent: React.FC<Omit<ListingDetailModalProps, 'listing'> & 
     timers.current.push(setTimeout(callback, delay));
   };
 
+  // Keyboard accessibility: close modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const cityConfig = CITIES[listing.cityId || DEFAULT_CITY_ID] || CITIES[DEFAULT_CITY_ID];
   const areaName = cityConfig.localities.find((a) => a.id === listing.area)?.name || listing.area;
 
@@ -480,10 +489,15 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
   const currentStarLabel = RATING_LABELS[hoverRating ?? rating] || 'Select Rating';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/75 backdrop-blur-xs overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="listing-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200"
+    >
       <div className="bg-white w-full max-w-4xl rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[94vh] flex flex-col border border-slate-200">
         {/* Modal Top Header */}
-        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/90 shrink-0">
+        <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/90 shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span
               className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border"
@@ -509,21 +523,21 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => handleShare()}
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition"
+              className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition cursor-pointer"
               title="Share listing link"
             >
               <Share2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => onToggleSave(listing.id)}
-              className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+              className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
               title={isSaved ? 'Remove from saved' : 'Save business'}
             >
               <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-red-600 text-red-600' : ''}`} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition"
+              className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition cursor-pointer"
               title="Close modal"
             >
               <X className="w-5 h-5" />
@@ -536,7 +550,7 @@ Submitted by: ${editName.trim() || 'Community Contributor'} (${cleanEditPhone})`
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 font-heading">
+                <h2 id="listing-modal-title" className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 font-heading">
                   {listing.title}
                 </h2>
                 {listing.isVerified ? (
