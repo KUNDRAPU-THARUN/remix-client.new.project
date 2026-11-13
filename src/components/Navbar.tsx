@@ -416,6 +416,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
+          {/* Vellore Heritage & Tourism (Only if supported by city) */}
+          {currentCity.features.hasTourismDirectory && (
+            <button
+              onClick={() => handleNavClick('tourism')}
+              className={`px-3 py-2 rounded-xl relative transition cursor-pointer ${
+                activeTab === 'tourism' && !isSavedViewActive
+                  ? 'text-[#176AC4] font-bold bg-blue-50/70'
+                  : 'hover:text-slate-900 hover:bg-slate-100/80'
+              }`}
+            >
+              <span>Tourism</span>
+            </button>
+          )}
+
           {/* Dashboard (if user logged in) */}
           {currentUser && (
             <button
@@ -717,6 +731,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 Local Events Calendar
+              </button>
+            )}
+
+            {currentCity.features.hasTourismDirectory && (
+              <button
+                onClick={() => handleNavClick('tourism')}
+                className={`w-full text-left px-3.5 py-3 min-h-[44px] flex items-center rounded-xl transition cursor-pointer ${
+                  activeTab === 'tourism' ? 'bg-blue-50 text-[#176AC4] font-bold' : 'text-slate-800 hover:bg-slate-100'
+                }`}
+              >
+                Heritage & Tourism
               </button>
             )}
 

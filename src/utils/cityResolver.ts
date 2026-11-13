@@ -3,12 +3,13 @@ import { CITIES, DEFAULT_CITY_ID, isCityId } from '../config/cities';
 
 export interface ParsedCityRoute {
   cityId: CityId;
-  tab: 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz' | 'community' | 'events';
+  tab: 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz' | 'community' | 'events' | 'tourism';
   categoryId: string;
   savedOnly: boolean;
   listingId: string | null;
   noticeId?: string | null;
   eventId?: string | null;
+  attractionSlug?: string | null;
   searchQuery: string;
   selectedArea: string;
   verifiedOnly: boolean;
@@ -68,9 +69,9 @@ export function resolveCurrentCity(pathname: string, hostname: string = window.l
  * Parses full URL into structured city route state.
  */
 export function parseCityRoute(
-  pathname: string = window.location.pathname,
-  search: string = window.location.search,
-  hostname: string = window.location.hostname
+  pathname: string = typeof window !== 'undefined' ? window.location.pathname : '/',
+  search: string = typeof window !== 'undefined' ? window.location.search : '',
+  hostname: string = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
 ): ParsedCityRoute {
   const domainCity = resolveCityFromHostname(hostname);
   const isCityDomain = domainCity !== null;
@@ -95,12 +96,16 @@ export function parseCityRoute(
   // Community noticeboard & events matching (/community/:id or /community, /events/:id or /events)
   const communityMatch = effectiveSubpath.match(/^\/community(?:\/([^/]+))?$/);
   const eventsMatch = effectiveSubpath.match(/^\/events(?:\/([^/]+))?$/);
+  const tourismMatch = effectiveSubpath.match(/^\/tourism(?:\/([^/]+))?$/);
   const noticeId = communityMatch?.[1] || null;
   const eventId = eventsMatch?.[1] || null;
+  const attractionSlug = tourismMatch?.[1] || null;
 
   let tab: ParsedCityRoute['tab'] = 'home';
   if (bizMatch) {
     tab = 'biz';
+  } else if (tourismMatch) {
+    tab = 'tourism';
   } else if (communityMatch) {
     tab = 'community';
   } else if (eventsMatch) {
@@ -140,6 +145,7 @@ export function parseCityRoute(
     listingId,
     noticeId,
     eventId,
+    attractionSlug,
     searchQuery: params.get('q') || '',
     selectedArea: validArea,
     verifiedOnly: params.get('verified') === '1',
@@ -166,6 +172,7 @@ export function buildCityRouteUrl(
     listingId?: string | null;
     noticeId?: string | null;
     eventId?: string | null;
+    attractionSlug?: string | null;
   },
   hostname: string = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
 ): string {
@@ -190,6 +197,8 @@ export function buildCityRouteUrl(
     path = filters?.noticeId ? `${prefix}/community/${filters.noticeId}` : `${prefix}/community`;
   } else if (tab === 'events') {
     path = filters?.eventId ? `${prefix}/events/${filters.eventId}` : `${prefix}/events`;
+  } else if (tab === 'tourism') {
+    path = filters?.attractionSlug ? `${prefix}/tourism/${filters.attractionSlug}` : `${prefix}/tourism`;
   } else
   if (tab === 'home' && filters?.listingId) {
     path = `${prefix}/business/${filters.listingId}`;

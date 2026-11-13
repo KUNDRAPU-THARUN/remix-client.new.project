@@ -1,5 +1,6 @@
 import React from 'react';
-import { MapPin, ExternalLink, Sparkles, Compass, Clock, ShieldCheck } from 'lucide-react';
+import { MapPin, ExternalLink, Sparkles, Clock } from 'lucide-react';
+import { PUBLISHED_VELLORE_ATTRACTIONS } from '../data/velloreTourismData';
 
 interface Attraction {
   id: string;
@@ -13,80 +14,27 @@ interface Attraction {
   directionsUrl: string;
 }
 
-const VELLORE_ATTRACTIONS: Attraction[] = [
-  {
-    id: 'att-1',
-    name: 'Vellore Fort & Moat',
-    nameNative: 'வேலூர் கோட்டை',
-    tagline: '16th-century Vijayanagara granite fortress surrounded by a wide moat',
-    distance: 'City Center (Bazaar Area)',
-    timings: 'Daily: 8:00 AM - 6:00 PM',
-    image: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80',
-    highlights: ['Grand granite stone ramparts', 'Surrounding water moat', 'Houses Archaeological Museum & Tipu Mahal'],
-    directionsUrl: 'https://maps.google.com/?q=Vellore+Fort',
-  },
-  {
-    id: 'att-2',
-    name: 'Sri Lakshmi Narayani Golden Temple (Sripuram)',
-    nameNative: 'ஸ்ரீபுரம் பொற்கோயில்',
-    tagline: 'Spiritual landmark covered in 1,500 kg of pure gold foil inside a star path',
-    distance: '8 km from Vellore (Thirumalaikodi)',
-    timings: 'Daily: 8:00 AM - 8:00 PM',
-    image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80',
-    highlights: ['1,500 kg pure gold sanctum', 'Star-shaped spiritual pathway', 'Peaceful green eco-park'],
-    directionsUrl: 'https://maps.google.com/?q=Sripuram+Golden+Temple+Vellore',
-  },
-  {
-    id: 'att-3',
-    name: 'Jalakandeswarar Temple',
-    nameNative: 'ஜலகண்டேஸ்வரர் கோவில்',
-    tagline: 'Masterpiece of Dravidian Vijayanagara stone architecture inside Vellore Fort',
-    distance: 'Inside Vellore Fort Complex',
-    timings: '6:30 AM - 1:00 PM & 5:00 PM - 8:30 PM',
-    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
-    highlights: ['Intricate 100-pillar stone hall', 'Monolithic dragon carvings', 'Active Lord Shiva sanctum'],
-    directionsUrl: 'https://maps.google.com/?q=Jalakandeswarar+Temple+Vellore',
-  },
-  {
-    id: 'att-4',
-    name: 'CMC Hospital Heritage Campus',
-    nameNative: 'சி.எம்.சி மருத்துவமனை பாரம்பரிய வளாகம்',
-    tagline: 'Founded by Dr. Ida S. Scudder in 1900, iconic center of healing and compassion',
-    distance: 'Ida Scudder Road, Vellore',
-    timings: '24x7 Active Hospital Campus',
-    image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80',
-    highlights: ['Century-old Scudder memorial', 'World-class medical specialties', 'Historic chapel & archives'],
-    directionsUrl: 'https://maps.google.com/?q=CMC+Hospital+Vellore',
-  },
-  {
-    id: 'att-5',
-    name: 'Palamathi Hills & Otteri Viewpoint',
-    nameNative: 'பாலமதி மலை & ஒட்டேரி காட்சிமுனை',
-    tagline: 'Scenic Eastern Ghats hilltop overlooking Vellore valley with serene viewpoints',
-    distance: '12 km from Vellore (Otteri)',
-    timings: 'Daily: 6:00 AM - 6:00 PM',
-    image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
-    highlights: ['Breathtaking panoramic city view', 'Cool breeze & sunset point', 'Surrounded by reserved forests'],
-    directionsUrl: 'https://maps.google.com/?q=Palamathi+Hills+Vellore',
-  },
-  {
-    id: 'att-6',
-    name: "St. John's Church (Fort Vellore)",
-    nameNative: 'புனித யோவான் தேவாலயம் (கோட்டை)',
-    tagline: 'Historic 1846 Anglican church built by the East India Company inside fort grounds',
-    distance: 'Inside Vellore Fort Complex',
-    timings: 'Daily: 9:00 AM - 5:00 PM',
-    image: 'https://images.unsplash.com/photo-1548625361-195fe5787e66?auto=format&fit=crop&w=800&q=80',
-    highlights: ['180+ years of colonial history', 'Historical memorial stones & bell tower', 'Quiet heritage sanctuary'],
-    directionsUrl: 'https://maps.google.com/?q=St+Johns+Church+Vellore+Fort',
-  },
-];
+const VELLORE_ATTRACTIONS: Attraction[] = PUBLISHED_VELLORE_ATTRACTIONS.map((att) => ({
+  id: att.id,
+  name: att.title,
+  nameNative: att.nameNative,
+  tagline: att.shortDescription,
+  distance: att.location.distanceFromCenter,
+  timings: att.visitorInformation.timings,
+  image: att.heroImage,
+  highlights: att.historicalHighlights,
+  directionsUrl: att.location.directionsUrl,
+}));
 
 interface VelloreAttractionsProps {
   onOpenCabBooking?: () => void;
+  onNavigateTourism?: () => void;
 }
 
-export const VelloreAttractionsSection: React.FC<VelloreAttractionsProps> = ({ onOpenCabBooking }) => {
+export const VelloreAttractionsSection: React.FC<VelloreAttractionsProps> = ({
+  onOpenCabBooking,
+  onNavigateTourism,
+}) => {
   return (
     <section className="py-8" aria-label="Historic Vellore Attractions & Places of Interest">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -105,16 +53,29 @@ export const VelloreAttractionsSection: React.FC<VelloreAttractionsProps> = ({ o
           </p>
         </div>
 
-        {onOpenCabBooking && (
-          <button
-            type="button"
-            onClick={onOpenCabBooking}
-            className="px-4 py-2.5 rounded-xl bg-[#176AC4] hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto shrink-0"
-          >
-            <span>🚕</span>
-            <span>Book Cab for Sightseeing</span>
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
+          {onNavigateTourism && (
+            <button
+              type="button"
+              onClick={onNavigateTourism}
+              className="px-4 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#176AC4] font-bold text-xs sm:text-sm border border-blue-200 transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>Explore All Tourism Guide</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          )}
+
+          {onOpenCabBooking && (
+            <button
+              type="button"
+              onClick={onOpenCabBooking}
+              className="px-4 py-2.5 rounded-xl bg-[#176AC4] hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>🚕</span>
+              <span>Book Cab for Sightseeing</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -177,6 +138,27 @@ export const VelloreAttractionsSection: React.FC<VelloreAttractionsProps> = ({ o
           </div>
         ))}
       </div>
+
+      {onNavigateTourism && (
+        <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-slate-50 to-blue-50 border border-blue-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div>
+            <span className="font-bold text-slate-800 text-xs sm:text-sm block">
+              Discover All Historical Sights, Pilgrimage Temples & Scenic Hills
+            </span>
+            <span className="text-[11px] text-slate-500">
+              Browse categories, detailed visitor guidelines, opening timings, and clinical notices.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onNavigateTourism}
+            className="px-4 py-2 rounded-xl bg-[#176AC4] hover:bg-blue-700 text-white font-bold text-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-2xs"
+          >
+            <span>Open Tourism Directory</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      )}
     </section>
   );
 };
