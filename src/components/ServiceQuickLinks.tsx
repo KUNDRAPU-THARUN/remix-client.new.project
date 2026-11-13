@@ -626,7 +626,7 @@ export const ServiceQuickLinks: React.FC<ServiceQuickLinksProps> = ({
       className="bg-white border-b border-slate-200/80 shadow-2xs py-4 sm:py-6 relative z-10"
       aria-label="Explore Popular Services"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-2.5 xs:px-4 sm:px-6">
         {/* Compact Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-3.5 sm:mb-4.5">
           <div className="flex items-center gap-2 flex-wrap">

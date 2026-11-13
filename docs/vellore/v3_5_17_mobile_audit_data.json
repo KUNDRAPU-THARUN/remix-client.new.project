@@ -1,0 +1,299 @@
+{
+  "timestamp": "2026-11-13T15:06:26.100Z",
+  "summary": {
+    "total": 49,
+    "passed": 49,
+    "failed": 0
+  },
+  "homepageResults": [
+    {
+      "viewport": "320px-SE1",
+      "width": 320,
+      "height": 568,
+      "url": "/city/vellore",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 320,
+      "innerWidth": 320,
+      "overflowElements": []
+    },
+    {
+      "viewport": "360px-Android",
+      "width": 360,
+      "height": 740,
+      "url": "/city/vellore",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 360,
+      "innerWidth": 360,
+      "overflowElements": []
+    },
+    {
+      "viewport": "375px-iPhone8",
+      "width": 375,
+      "height": 667,
+      "url": "/city/vellore",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "overflowElements": []
+    },
+    {
+      "viewport": "390px-iPhone13",
+      "width": 390,
+      "height": 844,
+      "url": "/city/vellore",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "overflowElements": []
+    },
+    {
+      "viewport": "414px-XR",
+      "width": 414,
+      "height": 896,
+      "url": "/city/vellore",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 414,
+      "innerWidth": 414,
+      "overflowElements": []
+    },
+    {
+      "viewport": "430px-ProMax",
+      "width": 430,
+      "height": 932,
+      "url": "/city/vellore",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 430,
+      "innerWidth": 430,
+      "overflowElements": []
+    },
+    {
+      "viewport": "768px-iPadPortrait",
+      "width": 768,
+      "height": 1024,
+      "url": "/city/vellore",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 768,
+      "innerWidth": 768,
+      "overflowElements": []
+    },
+    {
+      "viewport": "1024px-iPadLandscape",
+      "width": 1024,
+      "height": 768,
+      "url": "/city/vellore",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 1016,
+      "innerWidth": 1024,
+      "overflowElements": []
+    },
+    {
+      "viewport": "1280px-Desktop",
+      "width": 1280,
+      "height": 800,
+      "url": "/city/vellore",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 1272,
+      "innerWidth": 1280,
+      "overflowElements": []
+    }
+  ],
+  "communityResults": [
+    {
+      "viewport": "320px-SE1",
+      "width": 320,
+      "height": 568,
+      "url": "/city/vellore/community",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 320,
+      "innerWidth": 320,
+      "overflowElements": []
+    },
+    {
+      "viewport": "360px-Android",
+      "width": 360,
+      "height": 740,
+      "url": "/city/vellore/community",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 360,
+      "innerWidth": 360,
+      "overflowElements": []
+    },
+    {
+      "viewport": "375px-iPhone8",
+      "width": 375,
+      "height": 667,
+      "url": "/city/vellore/community",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "overflowElements": []
+    },
+    {
+      "viewport": "390px-iPhone13",
+      "width": 390,
+      "height": 844,
+      "url": "/city/vellore/community",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "overflowElements": []
+    },
+    {
+      "viewport": "414px-XR",
+      "width": 414,
+      "height": 896,
+      "url": "/city/vellore/community",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 414,
+      "innerWidth": 414,
+      "overflowElements": []
+    },
+    {
+      "viewport": "430px-ProMax",
+      "width": 430,
+      "height": 932,
+      "url": "/city/vellore/community",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 430,
+      "innerWidth": 430,
+      "overflowElements": []
+    },
+    {
+      "viewport": "768px-iPadPortrait",
+      "width": 768,
+      "height": 1024,
+      "url": "/city/vellore/community",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 768,
+      "innerWidth": 768,
+      "overflowElements": []
+    },
+    {
+      "viewport": "1024px-iPadLandscape",
+      "width": 1024,
+      "height": 768,
+      "url": "/city/vellore/community",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 1016,
+      "innerWidth": 1024,
+      "overflowElements": []
+    },
+    {
+      "viewport": "1280px-Desktop",
+      "width": 1280,
+      "height": 800,
+      "url": "/city/vellore/community",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 1272,
+      "innerWidth": 1280,
+      "overflowElements": []
+    }
+  ],
+  "eventsResults": [
+    {
+      "viewport": "320px-SE1",
+      "width": 320,
+      "height": 568,
+      "url": "/city/vellore/events",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 320,
+      "innerWidth": 320,
+      "overflowElements": []
+    },
+    {
+      "viewport": "360px-Android",
+      "width": 360,
+      "height": 740,
+      "url": "/city/vellore/events",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 360,
+      "innerWidth": 360,
+      "overflowElements": []
+    },
+    {
+      "viewport": "375px-iPhone8",
+      "width": 375,
+      "height": 667,
+      "url": "/city/vellore/events",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 375,
+      "innerWidth": 375,
+      "overflowElements": []
+    },
+    {
+      "viewport": "390px-iPhone13",
+      "width": 390,
+      "height": 844,
+      "url": "/city/vellore/events",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "overflowElements": []
+    },
+    {
+      "viewport": "414px-XR",
+      "width": 414,
+      "height": 896,
+      "url": "/city/vellore/events",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 414,
+      "innerWidth": 414,
+      "overflowElements": []
+    },
+    {
+      "viewport": "430px-ProMax",
+      "width": 430,
+      "height": 932,
+      "url": "/city/vellore/events",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 430,
+      "innerWidth": 430,
+      "overflowElements": []
+    },
+    {
+      "viewport": "768px-iPadPortrait",
+      "width": 768,
+      "height": 1024,
+      "url": "/city/vellore/events",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 768,
+      "innerWidth": 768,
+      "overflowElements": []
+    },
+    {
+      "viewport": "1024px-iPadLandscape",
+      "width": 1024,
+      "height": 768,
+      "url": "/city/vellore/events",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 1016,
+      "innerWidth": 1024,
+      "overflowElements": []
+    },
+    {
+      "viewport": "1280px-Desktop",
+      "width": 1280,
+      "height": 800,
+      "url": "/city/vellore/events",
+      "hasHorizontalOverflow": false,
+      "scrollWidth": 1272,
+      "innerWidth": 1280,
+      "overflowElements": []
+    }
+  ],
+  "breakpointsTested": [
+    "320px-SE1 (320x568)",
+    "360px-Android (360x740)",
+    "375px-iPhone8 (375x667)",
+    "390px-iPhone13 (390x844)",
+    "414px-XR (414x896)",
+    "430px-ProMax (430x932)",
+    "768px-iPadPortrait (768x1024)",
+    "1024px-iPadLandscape (1024x768)",
+    "1280px-Desktop (1280x800)"
+  ],
+  "landscapeTested": [
+    "568x320-SE1-Landscape (568x320)",
+    "667x375-iPhone-Landscape (667x375)"
+  ]
+}

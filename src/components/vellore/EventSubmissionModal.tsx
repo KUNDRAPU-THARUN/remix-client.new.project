@@ -49,6 +49,19 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
 
+  // Keyboard accessibility: close modal on Escape
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleReset();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,12 +135,12 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="event-modal-title"
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200"
     >
-      <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
         <button
           onClick={handleReset}
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition cursor-pointer"
+          className="absolute top-3.5 right-3.5 p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition cursor-pointer"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
@@ -157,7 +170,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
             <div className="flex justify-center">
               <button
                 onClick={handleReset}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition cursor-pointer"
+                className="w-full sm:w-auto px-6 py-2.5 min-h-[44px] bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition cursor-pointer flex items-center justify-center"
               >
                 Close Window
               </button>
@@ -198,7 +211,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. North Arcot Classical Carnatic Music Evening"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]"
                 />
                 <span className="text-[10px] text-gray-400 block text-right mt-0.5">
                   {title.length}/120 characters
@@ -213,7 +226,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as EventCategory)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white min-h-[44px] cursor-pointer"
                   >
                     {EVENT_CATEGORIES.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -230,7 +243,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                   <select
                     value={locality}
                     onChange={(e) => setLocality(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white min-h-[44px] cursor-pointer"
                   >
                     {currentCity.localities
                       .filter((l) => l.id !== 'all')
@@ -255,7 +268,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                     value={venueName}
                     onChange={(e) => setVenueName(e.target.value)}
                     placeholder="e.g. Gandhi Nagar Cultural Hall"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]"
                   />
                 </div>
 
@@ -270,7 +283,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                     value={venueAddress}
                     onChange={(e) => setVenueAddress(e.target.value)}
                     placeholder="e.g. Katpadi Main Road, Vellore - 632006"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]"
                   />
                 </div>
               </div>
@@ -285,7 +298,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                     required
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white min-h-[44px]"
                   />
                 </div>
 
@@ -297,7 +310,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                     type="datetime-local"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white min-h-[44px]"
                   />
                 </div>
               </div>
@@ -312,7 +325,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                   value={timeDisplay}
                   onChange={(e) => setTimeDisplay(e.target.value)}
                   placeholder="e.g. 09:30 AM – 05:00 PM IST"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]"
                 />
               </div>
 
@@ -323,7 +336,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                     id="isFree"
                     checked={isFree}
                     onChange={(e) => setIsFree(e.target.checked)}
-                    className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer min-h-[18px] min-w-[18px]"
                   />
                   <label htmlFor="isFree" className="text-xs font-semibold text-gray-800 cursor-pointer select-none">
                     Free Admission (No Ticket Required)
@@ -339,7 +352,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                       value={entryFee}
                       onChange={(e) => setEntryFee(e.target.value)}
                       placeholder="e.g. ₹150 Registration Fee / Delegate Pass"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 min-h-[44px]"
                     />
                   </div>
                 )}
@@ -357,7 +370,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                     value={organizerName}
                     onChange={(e) => setOrganizerName(e.target.value)}
                     placeholder="e.g. Vellore District Chamber of Commerce"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]"
                   />
                 </div>
 
@@ -370,7 +383,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                     value={organizerContact}
                     onChange={(e) => setOrganizerContact(e.target.value)}
                     placeholder="+91 81899 85559 / events@org.com"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]"
                   />
                 </div>
               </div>
@@ -384,7 +397,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                   value={registrationUrl}
                   onChange={(e) => setRegistrationUrl(e.target.value)}
                   placeholder="https://example.com/register"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[44px]"
                 />
                 <span className="text-[10px] text-gray-400 block mt-0.5">
                   Must begin with http:// or https:// (no script/data schemes permitted).
@@ -402,7 +415,7 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe the event, target audience, schedule, speaker list, and any special attendee instructions..."
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y"
                 />
                 <span className="text-[10px] text-gray-400 block text-right mt-0.5">
                   {description.length}/3000 characters
@@ -416,18 +429,18 @@ export const EventSubmissionModal: React.FC<EventSubmissionModalProps> = ({
                 </span>
               </div>
 
-              <div className="pt-2 flex justify-end gap-3">
+              <div className="pt-2 flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3">
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="px-4 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition cursor-pointer flex items-center justify-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2.5 min-h-[44px] bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer flex items-center justify-center"
                 >
                   {submitting ? 'Submitting...' : 'Submit Event'}
                 </button>

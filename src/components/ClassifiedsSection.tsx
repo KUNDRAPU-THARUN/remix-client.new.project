@@ -84,12 +84,12 @@ export const ClassifiedsSection: React.FC<ClassifiedsSectionProps> = ({
       </div>
 
       {/* Category Filter Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-6 no-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-6 no-scrollbar flex-nowrap" style={{ WebkitOverflowScrolling: 'touch' }}>
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`text-xs px-3.5 py-1.5 rounded-full font-semibold whitespace-nowrap transition ${
+            className={`text-xs px-3.5 py-2 min-h-[36px] shrink-0 flex items-center rounded-full font-semibold whitespace-nowrap transition cursor-pointer ${
               selectedCategory === cat
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
@@ -157,14 +157,14 @@ export const ClassifiedsSection: React.FC<ClassifiedsSectionProps> = ({
               <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
                 <button
                   onClick={() => handleCall(item.phone)}
-                  className="flex-1 py-2 rounded-xl border border-slate-200 text-slate-800 hover:bg-slate-50 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+                  className="flex-1 py-2.5 min-h-[44px] rounded-xl border border-slate-200 text-slate-800 hover:bg-slate-50 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   <Phone className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Call Seller</span>
                 </button>
                 <button
                   onClick={() => handleWhatsApp(item)}
-                  className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-2xs"
+                  className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-2xs cursor-pointer"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>WhatsApp</span>

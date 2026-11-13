@@ -71,6 +71,19 @@ export const VelloreCommunityPage: React.FC<VelloreCommunityPageProps> = ({
     loadNotices();
   }, [currentCity.id, selectedCategory, selectedLocality, searchQuery]);
 
+  // Keyboard accessibility: close detail modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onSelectNotice(null);
+      }
+    };
+    if (activeNoticeId) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [activeNoticeId, onSelectNotice]);
+
   // Active notice modal details
   const activeNotice = activeNoticeId ? notices.find((n) => n.id === activeNoticeId) : null;
 
@@ -175,15 +188,15 @@ export const VelloreCommunityPage: React.FC<VelloreCommunityPageProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search notices by keyword, title, organizer..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full pl-10 pr-4 py-2.5 min-h-[44px] border border-gray-200 rounded-xl text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
                   aria-label="Clear search"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -194,7 +207,7 @@ export const VelloreCommunityPage: React.FC<VelloreCommunityPageProps> = ({
               <select
                 value={selectedLocality}
                 onChange={(e) => setSelectedLocality(e.target.value)}
-                className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full sm:w-auto px-3 py-2.5 min-h-[44px] border border-gray-200 rounded-xl text-base sm:text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
               >
                 <option value="all">All Localities</option>
                 {currentCity.localities
@@ -209,12 +222,12 @@ export const VelloreCommunityPage: React.FC<VelloreCommunityPageProps> = ({
           </div>
 
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none flex-nowrap" style={{ WebkitOverflowScrolling: 'touch' }}>
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer border ${
+                className={`px-3.5 py-2 min-h-[36px] shrink-0 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer border ${
                   selectedCategory === cat.id
                     ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
                     : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900'
@@ -378,12 +391,12 @@ export const VelloreCommunityPage: React.FC<VelloreCommunityPageProps> = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="detail-notice-title"
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200"
         >
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
             <button
               onClick={() => onSelectNotice(null)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition cursor-pointer"
+              className="absolute top-3.5 right-3.5 p-2 min-h-[40px] min-w-[40px] flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition cursor-pointer"
               aria-label="Close detail"
             >
               <X className="w-5 h-5" />

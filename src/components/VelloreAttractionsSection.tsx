@@ -168,7 +168,7 @@ export const VelloreAttractionsSection: React.FC<VelloreAttractionsProps> = ({ o
                 href={att.directionsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-[#176AC4] hover:text-white text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 hover:border-transparent cursor-pointer"
+                className="w-full py-2.5 px-3 min-h-[44px] rounded-xl bg-slate-50 hover:bg-[#176AC4] hover:text-white text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200 hover:border-transparent cursor-pointer"
               >
                 <span>Get Directions</span>
                 <ExternalLink className="w-3.5 h-3.5" />

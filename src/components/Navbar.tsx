@@ -80,6 +80,20 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Keyboard accessibility: close open overlays on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+        setCitySwitcherOpen(false);
+        setCategoriesDropdownOpen(false);
+        setUserMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleNavClick = (tab: string) => {
     setActiveTab(tab);
     setMobileMenuOpen(false);
@@ -187,7 +201,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Desktop City Switcher / Locked Region Indicator */}
           {badgeInfo.isLocked ? (
             <div
-              className="flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-full bg-slate-100 text-slate-800 border border-slate-200 select-none shadow-2xs"
+              className="hidden sm:flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-full bg-slate-100 text-slate-800 border border-slate-200 select-none shadow-2xs"
               title={`Account locked to ${currentCity.name} (${currentCity.code}). Sign out to switch cities.`}
             >
               <span>{currentCity.name}</span>
@@ -195,7 +209,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0 ml-0.5" />
             </div>
           ) : (
-            <div className="relative" ref={citySwitcherRef}>
+            <div className="relative hidden sm:block" ref={citySwitcherRef}>
               <button
                 onClick={() => setCitySwitcherOpen(!citySwitcherOpen)}
                 className="flex items-center gap-1.5 text-xs font-extrabold px-2.5 sm:px-3 py-1.5 rounded-full transition cursor-pointer select-none border bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200"
@@ -583,8 +597,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 transition"
+            className="lg:hidden p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100 transition cursor-pointer"
             aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation-drawer"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -593,7 +609,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer Overlay */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 bg-white px-5 py-5 space-y-4 text-sm font-semibold shadow-2xl animate-in fade-in slide-in-from-top-3 duration-200">
+        <div
+          id="mobile-navigation-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile Navigation Menu"
+          className="lg:hidden border-t border-slate-200 bg-white px-4 sm:px-5 py-4 space-y-3.5 text-sm font-semibold shadow-2xl max-h-[85vh] overflow-y-auto animate-in fade-in slide-in-from-top-3 duration-200"
+        >
 
           {/* Mobile City Selector Header */}
           <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
@@ -624,7 +646,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <button
                       key={c.id}
                       onClick={() => handleSelectCity(c.id)}
-                      className={`py-2 px-1 rounded-xl text-xs font-bold text-center border transition ${
+                      className={`min-h-[44px] py-2 px-1 rounded-xl text-xs font-bold text-center border transition flex flex-col items-center justify-center cursor-pointer ${
                         isSelected
                           ? 'bg-[#E51E31] text-white border-[#E51E31] shadow-xs'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -642,7 +664,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="space-y-1">
             <button
               onClick={() => handleNavClick('home')}
-              className={`w-full text-left px-3 py-2.5 rounded-xl transition ${
+              className={`w-full text-left px-3.5 py-3 min-h-[44px] flex items-center rounded-xl transition cursor-pointer ${
                 activeTab === 'home' && !isSavedViewActive ? 'bg-red-50 text-[#E51E31] font-bold' : 'text-slate-800 hover:bg-slate-100'
               }`}
             >
@@ -653,13 +675,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onSelectCategory('all');
                 setMobileMenuOpen(false);
               }}
-              className="w-full text-left px-3 py-2.5 rounded-xl text-slate-800 hover:bg-slate-100"
+              className="w-full text-left px-3.5 py-3 min-h-[44px] flex items-center rounded-xl text-slate-800 hover:bg-slate-100 cursor-pointer"
             >
               All Businesses & Categories
             </button>
             <button
               onClick={() => handleNavClick('classifieds')}
-              className={`w-full text-left px-3 py-2.5 rounded-xl transition ${
+              className={`w-full text-left px-3.5 py-3 min-h-[44px] flex items-center rounded-xl transition cursor-pointer ${
                 activeTab === 'classifieds' ? 'bg-red-50 text-[#E51E31] font-bold' : 'text-slate-800 hover:bg-slate-100'
               }`}
             >
@@ -668,7 +690,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentCity.features.hasKanipakamSpecial && (
               <button
                 onClick={() => handleNavClick('kanipakam')}
-                className={`w-full text-left px-3 py-2.5 rounded-xl transition ${
+                className={`w-full text-left px-3.5 py-3 min-h-[44px] flex items-center rounded-xl transition cursor-pointer ${
                   activeTab === 'kanipakam' ? 'bg-red-50 text-[#E51E31] font-bold' : 'text-slate-800 hover:bg-slate-100'
                 }`}
               >
@@ -679,7 +701,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentCity.features.hasCommunityNoticeboard && (
               <button
                 onClick={() => handleNavClick('community')}
-                className={`w-full text-left px-3 py-2.5 rounded-xl transition ${
+                className={`w-full text-left px-3.5 py-3 min-h-[44px] flex items-center rounded-xl transition cursor-pointer ${
                   activeTab === 'community' ? 'bg-blue-50 text-[#176AC4] font-bold' : 'text-slate-800 hover:bg-slate-100'
                 }`}
               >
@@ -690,7 +712,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentCity.features.hasLocalEvents && (
               <button
                 onClick={() => handleNavClick('events')}
-                className={`w-full text-left px-3 py-2.5 rounded-xl transition ${
+                className={`w-full text-left px-3.5 py-3 min-h-[44px] flex items-center rounded-xl transition cursor-pointer ${
                   activeTab === 'events' ? 'bg-blue-50 text-[#176AC4] font-bold' : 'text-slate-800 hover:bg-slate-100'
                 }`}
               >
@@ -701,7 +723,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentUser && (
               <button
                 onClick={() => handleNavClick('dashboard')}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-[#176AC4] hover:bg-blue-50 font-bold"
+                className="w-full text-left px-3.5 py-3 min-h-[44px] flex items-center rounded-xl text-[#176AC4] hover:bg-blue-50 font-bold cursor-pointer"
               >
                 My Ads Dashboard
               </button>
@@ -710,9 +732,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentUser && (currentUser.isFranchise || currentUser.isSuperAdmin) && (
               <button
                 onClick={() => handleNavClick('franchise')}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-bold flex items-center gap-1.5"
+                className="w-full text-left px-3.5 py-3 min-h-[44px] flex items-center gap-1.5 rounded-xl text-red-600 hover:bg-red-50 font-bold cursor-pointer"
               >
-                <ShieldCheck className="w-4 h-4" />
+                <ShieldCheck className="w-4 h-4 shrink-0" />
                 <span>Franchise Command Center</span>
               </button>
             )}
@@ -720,9 +742,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentUser && (currentUser.isSuperAdmin || (currentUser.roles && currentUser.roles.some((r) => r.role === 'super_admin'))) && (
               <button
                 onClick={() => handleNavClick('admin')}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-red-700 hover:bg-red-50 font-bold flex items-center gap-1.5"
+                className="w-full text-left px-3.5 py-3 min-h-[44px] flex items-center gap-1.5 rounded-xl text-red-700 hover:bg-red-50 font-bold cursor-pointer"
               >
-                <Shield className="w-4 h-4" />
+                <Shield className="w-4 h-4 shrink-0" />
                 <span>Super Admin Portal</span>
               </button>
             )}
@@ -733,9 +755,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onLogout();
                   setMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 font-bold flex items-center gap-2 border-t border-slate-100 cursor-pointer"
+                className="w-full text-left px-3.5 py-3 min-h-[44px] flex items-center gap-2 rounded-xl text-rose-600 hover:bg-rose-50 font-bold border-t border-slate-100 cursor-pointer"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 shrink-0" />
                 <span>Sign Out ({currentCity.name})</span>
               </button>
             )}
@@ -744,17 +766,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="pt-2 border-t border-slate-100 space-y-2">
             <button
               onClick={() => { onOpenEmergency(); setMobileMenuOpen(false); }}
-              className="w-full text-left px-3 py-2.5 rounded-xl bg-red-50 text-[#E51E31] flex items-center justify-between font-bold"
+              className="w-full text-left px-3.5 py-3 min-h-[44px] rounded-xl bg-red-50 text-[#E51E31] flex items-center justify-between font-bold cursor-pointer"
             >
               <span>Emergency 24x7 Helplines</span>
-              <PhoneCall className="w-4 h-4" />
+              <PhoneCall className="w-4 h-4 shrink-0" />
             </button>
             <button
               onClick={() => { onOpenAI(); setMobileMenuOpen(false); }}
-              className="w-full text-left px-3 py-2.5 rounded-xl bg-amber-50 text-amber-900 flex items-center justify-between font-bold"
+              className="w-full text-left px-3.5 py-3 min-h-[44px] rounded-xl bg-amber-50 text-amber-900 flex items-center justify-between font-bold cursor-pointer"
             >
               <span>AI Scout Assistant</span>
-              <Sparkles className="w-4 h-4 text-[#F5C325]" />
+              <Sparkles className="w-4 h-4 text-[#F5C325] shrink-0" />
             </button>
           </div>
         </div>

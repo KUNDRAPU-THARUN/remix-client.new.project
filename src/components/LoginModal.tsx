@@ -100,6 +100,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   // Dynamic city initials for logo badge (CA = Chittoor, VA = Vellore, BA = Bengaluru, SA = Super Admin)
   const isSuperAdminPortal = selectedPortal === 'super_admin';
+
+  // Keyboard accessibility: close modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
   const logoInitials = isSuperAdminPortal
     ? 'SA'
     : selectedCityId === 'vellore'
@@ -586,8 +597,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="login-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-xs overflow-y-auto"
+    >
+      <div className="bg-white w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] overflow-y-auto border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
         {/* Dynamic City Top Bar */}
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -598,7 +614,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base font-heading text-white">
+                <h3 id="login-modal-title" className="font-bold text-base font-heading text-white">
                   {authMode === 'signin'
                     ? isSuperAdminPortal
                       ? 'Sign In to Super Admin Console'
