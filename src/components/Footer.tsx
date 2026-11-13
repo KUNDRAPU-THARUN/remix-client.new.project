@@ -8,7 +8,8 @@ import {
   Smartphone, 
   Sparkles,
   ExternalLink,
-  Info
+  Info,
+  Compass
 } from 'lucide-react';
 import { CityConfig } from '../types';
 import { getCityCategories } from '../config/categories';
@@ -26,6 +27,7 @@ interface FooterProps {
   onNavigateContact?: () => void;
   onNavigateCommunity?: () => void;
   onNavigateEvents?: () => void;
+  onNavigateTourism?: () => void;
   currentCity: CityConfig;
   allCities: CityConfig[];
 }
@@ -43,6 +45,7 @@ export const Footer: React.FC<FooterProps> = ({
   onNavigateContact,
   onNavigateCommunity,
   onNavigateEvents,
+  onNavigateTourism,
   currentCity,
   allCities,
 }) => {
@@ -221,6 +224,17 @@ export const Footer: React.FC<FooterProps> = ({
                   >
                     <Sparkles className="w-3.5 h-3.5 text-purple-400" />
                     <span>Local Events Calendar</span>
+                  </button>
+                </li>
+              )}
+              {currentCity.features.hasTourismDirectory && onNavigateTourism && (
+                <li>
+                  <button
+                    onClick={onNavigateTourism}
+                    className="text-slate-300 hover:text-white font-medium transition flex items-center gap-1.5 cursor-pointer text-xs"
+                  >
+                    <Compass className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Heritage & Tourism Guide</span>
                   </button>
                 </li>
               )}

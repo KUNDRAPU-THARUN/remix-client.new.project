@@ -32,6 +32,8 @@ import { VelloreContactPage } from './components/VelloreContactPage';
 import { StandaloneBusinessPage } from './components/StandaloneBusinessPage';
 import { VelloreCommunityPage } from './components/vellore/VelloreCommunityPage';
 import { VelloreEventsPage } from './components/vellore/VelloreEventsPage';
+import { VelloreTourismPage } from './components/vellore/VelloreTourismPage';
+import { AttractionDetailPage } from './components/vellore/AttractionDetailPage';
 import { UserDashboard } from './components/UserDashboard';
 import { FranchiseDashboardLayout } from './components/franchise/FranchiseDashboardLayout';
 import { AdminDashboardLayout } from './components/admin/AdminDashboardLayout';
@@ -54,7 +56,7 @@ import { migrationService } from './services/migrationService';
 import { getEffectiveDashboardCity, isSuperAdmin } from './utils/regionAuthorization';
 import { Lock } from 'lucide-react';
 
-type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz' | 'community' | 'events';
+type Tab = 'home' | 'category' | 'classifieds' | 'kanipakam' | 'dashboard' | 'franchise' | 'admin' | 'about' | 'contact' | 'biz' | 'community' | 'events' | 'tourism';
 
 interface AppRouteState {
   cityId: CityId;
@@ -64,6 +66,7 @@ interface AppRouteState {
   listingId: string | null;
   noticeId?: string | null;
   eventId?: string | null;
+  attractionSlug?: string | null;
   filters: ResultsFilters;
 }
 
@@ -81,6 +84,7 @@ function readAppRoute(): AppRouteState {
     listingId: parsed.listingId,
     noticeId: parsed.noticeId,
     eventId: parsed.eventId,
+    attractionSlug: parsed.attractionSlug,
     filters: {
       searchQuery: parsed.searchQuery,
       selectedArea: parsed.selectedArea,
@@ -106,6 +110,7 @@ function appRouteUrl(route: AppRouteState): string {
       listingId: route.listingId,
       noticeId: route.noticeId,
       eventId: route.eventId,
+      attractionSlug: route.attractionSlug,
     }
   );
 }
@@ -772,7 +777,10 @@ export const MainAppContent: React.FC = () => {
                 {route.cityId === 'vellore' && (
                   <div className="space-y-8 my-8">
                     <VelloreTheatresSection />
-                    <VelloreAttractionsSection onOpenCabBooking={() => setIsCabBookingOpen(true)} />
+                    <VelloreAttractionsSection
+                      onOpenCabBooking={() => setIsCabBookingOpen(true)}
+                      onNavigateTourism={() => handleNavigateTab('tourism')}
+                    />
                   </div>
                 )}
 
@@ -927,6 +935,49 @@ export const MainAppContent: React.FC = () => {
               </div>
             )
           )}
+
+          {/* VIEW 11: VELLORE HERITAGE & TOURISM DIRECTORY & DETAILS */}
+          {activeTab === 'tourism' && (
+            currentCity.features.hasTourismDirectory ? (
+              route.attractionSlug ? (
+                <AttractionDetailPage
+                  slug={route.attractionSlug}
+                  currentCity={currentCity}
+                  listings={publishedListings}
+                  onNavigateHome={handleBackToHome}
+                  onNavigateDirectory={() => {
+                    navigate({ ...route, attractionSlug: null }, false, false);
+                  }}
+                  onSelectAttractionSlug={(slug) => {
+                    navigate({ ...route, attractionSlug: slug }, false, false);
+                  }}
+                  onSelectListing={selectListing}
+                  onOpenCabBooking={() => setIsCabBookingOpen(true)}
+                  onOpenEmergency={() => setIsEmergencyOpen(true)}
+                />
+              ) : (
+                <VelloreTourismPage
+                  currentCity={currentCity}
+                  onNavigateHome={handleBackToHome}
+                  onSelectAttractionSlug={(slug) => {
+                    navigate({ ...route, attractionSlug: slug }, false, false);
+                  }}
+                  onOpenCabBooking={() => setIsCabBookingOpen(true)}
+                  onOpenEmergency={() => setIsEmergencyOpen(true)}
+                />
+              )
+            ) : (
+              <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+                <p className="text-gray-600 mb-4">Heritage & Tourism guide is exclusive to Vellore Ads (TN-23).</p>
+                <button
+                  onClick={handleBackToHome}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  Return to {currentCity.name} Home
+                </button>
+              </div>
+            )
+          )}
         </main>
 
         {/* Footer with Multi-City Directory Links */}
@@ -942,6 +993,7 @@ export const MainAppContent: React.FC = () => {
           onNavigateContact={() => handleNavigateTab('contact')}
           onNavigateCommunity={() => handleNavigateTab('community')}
           onNavigateEvents={() => handleNavigateTab('events')}
+          onNavigateTourism={() => handleNavigateTab('tourism')}
           currentCity={currentCity}
           allCities={allCities}
         />
