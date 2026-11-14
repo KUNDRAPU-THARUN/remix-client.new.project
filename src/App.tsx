@@ -51,7 +51,7 @@ import { FloatingChatbot } from './components/FloatingChatbot';
 import { Footer } from './components/Footer';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { businessService } from './services/businessService';
+import { businessService, BusinessDataState } from './services/businessService';
 import { migrationService } from './services/migrationService';
 import { getEffectiveDashboardCity, isSuperAdmin } from './utils/regionAuthorization';
 import { Lock } from 'lucide-react';
@@ -186,10 +186,18 @@ export const MainAppContent: React.FC = () => {
 
   // Primary State with localStorage persistence and backward-compatible city migration
   const [listings, setListings] = useState<Listing[]>(() => {
+    const isConfigured = businessService.isConfigured();
     const stored = readStored('chittoorads_listings', INITIAL_LISTINGS,
       (value): value is Listing[] => Array.isArray(value) && value.every(isListing));
     // Migration safeguard: assign 'chittoor' to legacy listings without a cityId
-    return stored.map((l) => ({ ...l, cityId: l.cityId || 'chittoor' }));
+    const mapped = stored.map((l) => ({ ...l, cityId: l.cityId || 'chittoor' }));
+    // When Supabase is configured (production/staging), remove Vellore mock listings from initial state
+    if (isConfigured) {
+      return mapped.filter(
+        (l) => !(l.cityId === 'vellore' && (l.id.startsWith('v-') || l.id.startsWith('vellore-local-') || !l.postedByUser || l.postedByUser === 'u-demo'))
+      );
+    }
+    return mapped;
   });
 
   const [classifieds] = useState<ClassifiedItem[]>(() => {
@@ -204,21 +212,58 @@ export const MainAppContent: React.FC = () => {
   // Authenticated user state from AuthContext
   const { currentUser, setCurrentUser, signOut: handleSignOut } = useAuth();
 
+  // Explicit Business Data States: LOADING, SUCCESS_WITH_RESULTS, SUCCESS_EMPTY, ERROR
+  const [businessDataState, setBusinessDataState] = useState<BusinessDataState>('loading');
+  const [businessError, setBusinessError] = useState<string | null>(null);
+  const listingsFetchSeqRef = useRef(0);
+
   // Fetch live listings from database when configured
-  useEffect(() => {
-    if (businessService.isConfigured()) {
-      businessService.getPublishedListings(route.cityId).then((remoteListings) => {
-        if (!remoteListings || remoteListings.length === 0) return;
-        setListings((prev) => {
-          const userPending = prev.filter(
-            (l) => l.status === 'Pending Approval' && (l.cityId || 'chittoor') === route.cityId
-          );
-          const others = prev.filter((l) => (l.cityId || 'chittoor') !== route.cityId);
-          return [...others, ...userPending, ...remoteListings];
-        });
-      });
+  const fetchCityListings = useCallback(async (cityId: CityId) => {
+    if (!businessService.isConfigured()) {
+      setBusinessDataState('success_with_results');
+      setBusinessError(null);
+      return;
     }
-  }, [route.cityId]);
+
+    const seq = ++listingsFetchSeqRef.current;
+    setBusinessDataState('loading');
+    setBusinessError(null);
+
+    try {
+      const result = await businessService.getPublishedListingsResult(cityId);
+      if (seq !== listingsFetchSeqRef.current) return;
+
+      if (result.state === 'error') {
+        setBusinessDataState('error');
+        setBusinessError(result.error || "We couldn't load businesses right now. Please try again.");
+        if (cityId === 'vellore') {
+          setListings((prev) => {
+            return prev.filter((l) => (l.cityId || 'chittoor') !== 'vellore' || l.status === 'Pending Approval');
+          });
+        }
+        return;
+      }
+
+      setListings((prev) => {
+        const userPending = prev.filter(
+          (l) => l.status === 'Pending Approval' && (l.cityId || 'chittoor') === cityId
+        );
+        const others = prev.filter((l) => (l.cityId || 'chittoor') !== cityId);
+        return [...others, ...userPending, ...result.listings];
+      });
+
+      setBusinessDataState(result.state);
+    } catch (err) {
+      if (seq !== listingsFetchSeqRef.current) return;
+      console.warn('Failed to load published listings:', err);
+      setBusinessDataState('error');
+      setBusinessError("We couldn't load businesses right now. Please try again.");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCityListings(route.cityId);
+  }, [route.cityId, fetchCityListings]);
 
   // Reconcile user-created local listings when user logs in
   useEffect(() => {
@@ -279,7 +324,9 @@ export const MainAppContent: React.FC = () => {
     if (!route.listingId) return null;
     let found = listings.find((listing) => listing.id === route.listingId);
     if (!found) {
-      found = INITIAL_LISTINGS.find((listing) => listing.id === route.listingId);
+      if (!businessService.isConfigured() || route.cityId !== 'vellore') {
+        found = INITIAL_LISTINGS.find((listing) => listing.id === route.listingId);
+      }
     }
     if (!found) return null;
     if (found.status === 'Pending Approval') {
@@ -829,6 +876,10 @@ export const MainAppContent: React.FC = () => {
               filters={route.filters}
               onFiltersChange={(filters) => navigate({ ...route, filters }, true, false)}
               currentCity={currentCity}
+              businessDataState={businessDataState}
+              businessError={businessError}
+              onRetry={() => fetchCityListings(route.cityId)}
+              onNavigateTab={handleNavigateTab}
             />
           )}
 

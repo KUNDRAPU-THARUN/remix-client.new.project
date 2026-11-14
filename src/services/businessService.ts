@@ -6,6 +6,12 @@ import { Database } from '../types/database.types';
 
 type BusinessUpdate = Database['public']['Tables']['businesses']['Update'];
 
+export type BusinessDataState = 'loading' | 'success_with_results' | 'success_empty' | 'error';
+
+function isUuid(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
 // Helper to convert database row to frontend Listing type
 function mapDbBusinessToListing(row: any, images: string[] = []): Listing {
   return {
@@ -59,23 +65,49 @@ export const businessService = {
     return isSupabaseConfigured();
   },
 
-  async getPublishedListings(cityId: CityId): Promise<Listing[]> {
+  async getPublishedListingsResult(cityId: CityId): Promise<{
+    listings: Listing[];
+    state: BusinessDataState;
+    error?: string;
+  }> {
     const supabase = getSupabaseClient();
     if (!supabase) {
       // Local fallback from localStorage or INITIAL_LISTINGS
+      // Vellore in production NEVER returns mock listings automatically
+      if (cityId === 'vellore') {
+        const raw = safeGetStorage('chittoorads_listings');
+        let userListings: Listing[] = [];
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              userListings = parsed.filter(
+                (l) => l.cityId === 'vellore' && l.postedByUser && l.postedByUser !== 'u-demo'
+              );
+            }
+          } catch {}
+        }
+        return {
+          listings: userListings,
+          state: userListings.length > 0 ? 'success_with_results' : 'success_empty',
+        };
+      }
+
       const raw = safeGetStorage('chittoorads_listings');
       let listings: Listing[] = INITIAL_LISTINGS;
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) listings = parsed;
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
-      return listings.filter(
+      const filtered = listings.filter(
         (l) => (l.cityId || 'chittoor') === cityId && (l.status || 'Active') === 'Active'
       );
+      return {
+        listings: filtered,
+        state: filtered.length > 0 ? 'success_with_results' : 'success_empty',
+      };
     }
 
     try {
@@ -108,14 +140,18 @@ export const businessService = {
 
         if (fallbackRes.error) {
           console.warn('Error fetching published businesses from Supabase:', fallbackRes.error.message);
-          return [];
+          return {
+            listings: [],
+            state: 'error',
+            error: "We couldn't load businesses right now. Please try again.",
+          };
         }
         data = fallbackRes.data;
       } else {
         data = joinedRes.data;
       }
 
-      return (data || []).map((row) => {
+      const mapped = (data || []).map((row) => {
         const images = Array.isArray(row.business_images) && row.business_images.length > 0
           ? row.business_images
               .sort((a: any, b: any) => (b.is_cover ? 1 : 0) - (a.is_cover ? 1 : 0) || (a.sort_order || 0) - (b.sort_order || 0))
@@ -124,9 +160,131 @@ export const businessService = {
           : [];
         return mapDbBusinessToListing(row, images);
       });
+
+      return {
+        listings: mapped,
+        state: mapped.length > 0 ? 'success_with_results' : 'success_empty',
+      };
     } catch (err) {
-      console.warn('Unexpected error in getPublishedListings:', err);
-      return [];
+      console.warn('Unexpected error in getPublishedListingsResult:', err);
+      return {
+        listings: [],
+        state: 'error',
+        error: "We couldn't load businesses right now. Please try again.",
+      };
+    }
+  },
+
+  async getPublishedListings(cityId: CityId): Promise<Listing[]> {
+    const res = await this.getPublishedListingsResult(cityId);
+    return res.listings;
+  },
+
+  async getListingById(
+    listingId: string,
+    cityId?: CityId
+  ): Promise<{ listing: Listing | null; state: 'success' | 'not_found' | 'error'; error?: string }> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      if (cityId === 'vellore') {
+        const raw = safeGetStorage('chittoorads_listings');
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const found = parsed.find(
+                (l) => l.id === listingId && l.cityId === 'vellore' && l.postedByUser && l.postedByUser !== 'u-demo'
+              );
+              if (found) return { listing: found, state: 'success' };
+            }
+          } catch {}
+        }
+        return { listing: null, state: 'not_found' };
+      }
+
+      const raw = safeGetStorage('chittoorads_listings');
+      let listings: Listing[] = INITIAL_LISTINGS;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) listings = parsed;
+        } catch {}
+      }
+      const found = listings.find((l) => l.id === listingId);
+      if (!found) return { listing: null, state: 'not_found' };
+      if (cityId && (found.cityId || 'chittoor') !== cityId) return { listing: null, state: 'not_found' };
+      return { listing: found, state: 'success' };
+    }
+
+    try {
+      let query = supabase
+        .from('businesses')
+        .select(`
+          *,
+          business_images (
+            id,
+            storage_path,
+            image_url,
+            is_cover,
+            sort_order
+          )
+        `);
+
+      if (isUuid(listingId)) {
+        query = query.or(`id.eq.${listingId},legacy_id.eq.${listingId}`);
+      } else {
+        query = query.eq('legacy_id', listingId);
+      }
+
+      query = query.eq('status', 'active');
+      if (cityId) {
+        query = query.eq('city_id', cityId);
+      }
+
+      const { data, error } = await query.maybeSingle();
+
+      if (error) {
+        let fallbackQuery = supabase
+          .from('businesses')
+          .select('*');
+
+        if (isUuid(listingId)) {
+          fallbackQuery = fallbackQuery.or(`id.eq.${listingId},legacy_id.eq.${listingId}`);
+        } else {
+          fallbackQuery = fallbackQuery.eq('legacy_id', listingId);
+        }
+
+        fallbackQuery = fallbackQuery.eq('status', 'active');
+        if (cityId) {
+          fallbackQuery = fallbackQuery.eq('city_id', cityId);
+        }
+
+        const { data: fbData, error: fbError } = await fallbackQuery.maybeSingle();
+        if (fbError) {
+          console.warn('Error in getListingById fallback:', fbError.message);
+          return { listing: null, state: 'error', error: "We couldn't load business details right now. Please try again." };
+        }
+        if (!fbData) {
+          return { listing: null, state: 'not_found' };
+        }
+        return { listing: mapDbBusinessToListing(fbData, []), state: 'success' };
+      }
+
+      if (!data) {
+        return { listing: null, state: 'not_found' };
+      }
+
+      const images = Array.isArray(data.business_images) && data.business_images.length > 0
+        ? data.business_images
+            .sort((a: any, b: any) => (b.is_cover ? 1 : 0) - (a.is_cover ? 1 : 0) || (a.sort_order || 0) - (b.sort_order || 0))
+            .map((img: any) => img.image_url)
+            .filter(Boolean)
+        : [];
+
+      return { listing: mapDbBusinessToListing(data, images), state: 'success' };
+    } catch (err) {
+      console.warn('Unexpected error in getListingById:', err);
+      return { listing: null, state: 'error', error: "We couldn't load business details right now. Please try again." };
     }
   },
 

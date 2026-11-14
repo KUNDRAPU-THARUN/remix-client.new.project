@@ -255,6 +255,29 @@ export const HomeSections: React.FC<HomeSectionsProps> = ({
               );
             })}
           </div>
+        ) : currentCity.id === 'vellore' ? (
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-10 text-center max-w-xl mx-auto shadow-xs">
+            <div className="w-14 h-14 bg-blue-50 text-[#176AC4] rounded-2xl flex items-center justify-center mx-auto mb-3.5">
+              <Building2 className="w-7 h-7" />
+            </div>
+            <span className="text-[11px] font-extrabold text-[#176AC4] uppercase tracking-wider">
+              {currentCity.brandName} ({currentCity.code})
+            </span>
+            <h3 className="text-xl font-bold text-slate-900 font-heading mt-1 mb-2">
+              Vellore Businesses Coming Soon
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed mb-5">
+              Verified local business listings will appear here as they are added to Vellore Ads.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={onViewAllBusinesses}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                Browse Categories
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center max-w-xl mx-auto shadow-xs">
             <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />

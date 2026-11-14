@@ -22,8 +22,10 @@ import {
   ShieldCheck,
   Building2,
   PlusCircle,
-  ArrowLeft
+  ArrowLeft,
+  AlertCircle
 } from 'lucide-react';
+import { BusinessDataState } from '../services/businessService';
 
 export interface ResultsFilters {
   searchQuery: string;
@@ -46,6 +48,10 @@ interface CategoryResultsPageProps {
   filters: ResultsFilters;
   onFiltersChange: (filters: ResultsFilters) => void;
   currentCity?: CityConfig;
+  businessDataState?: BusinessDataState;
+  businessError?: string | null;
+  onRetry?: () => void;
+  onNavigateTab?: (tab: any) => void;
 }
 
 export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
@@ -61,6 +67,10 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
   filters,
   onFiltersChange,
   currentCity,
+  businessDataState = 'success_with_results',
+  businessError = null,
+  onRetry,
+  onNavigateTab,
 }) => {
   const localities = currentCity?.localities || CHITTOOR_AREAS;
   const cityName = currentCity?.name || 'Chittoor';
@@ -434,7 +444,47 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
             </div>
 
             {/* Business Listings Grid */}
-            {sortedListings.length > 0 ? (
+            {businessDataState === 'loading' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6" aria-busy="true">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-200 p-4 animate-pulse">
+                    <div className="h-44 bg-slate-200 rounded-xl mb-4" />
+                    <div className="h-5 bg-slate-200 rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-slate-100 rounded w-1/2 mb-3" />
+                    <div className="h-10 bg-slate-100 rounded-xl" />
+                  </div>
+                ))}
+              </div>
+            ) : businessDataState === 'error' ? (
+              <div className="bg-white rounded-3xl border border-red-200/80 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs">
+                <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 font-heading mb-2">
+                  Unable to Load Businesses
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed mb-6">
+                  {businessError || "We couldn't load businesses right now. Please try again."}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {onRetry && (
+                    <button
+                      onClick={onRetry}
+                      className="px-5 py-2.5 bg-[#176AC4] hover:bg-blue-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Retry</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={onBackToHome}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    Return to Home
+                  </button>
+                </div>
+              </div>
+            ) : sortedListings.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {sortedListings.map((listing) => (
                   <ListingCard
@@ -446,6 +496,45 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                   />
                 ))}
               </div>
+            ) : listings.length === 0 && cityId === 'vellore' ? (
+              <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs">
+                <div className="w-16 h-16 bg-blue-50 text-[#176AC4] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Building2 className="w-8 h-8" />
+                </div>
+                <span className="text-[11px] font-extrabold text-[#176AC4] uppercase tracking-wider">
+                  {cityName} ({cityId.toUpperCase()})
+                </span>
+                <h3 className="text-2xl font-black text-slate-900 font-heading mt-1 mb-2">
+                  Vellore Businesses Coming Soon
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed mb-6">
+                  Verified local business listings will appear here as they are added to Vellore Ads.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    onClick={onBackToHome}
+                    className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    Return to Home
+                  </button>
+                  {onNavigateTab && (
+                    <>
+                      <button
+                        onClick={() => onNavigateTab('tourism')}
+                        className="px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-[#176AC4] border border-blue-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                      >
+                        Explore Heritage & Tourism
+                      </button>
+                      <button
+                        onClick={() => onNavigateTab('community')}
+                        className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                      >
+                        Community Notices
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
                 <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -455,7 +544,9 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                   No listings found in {currentCategory.name}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-md mx-auto">
-                  Try clearing your search query, choosing "All Locations", or be the first to list a business in this sector!
+                  {cityId === 'vellore'
+                    ? "Try clearing your search query or choosing 'All Locations'."
+                    : "Try clearing your search query, choosing 'All Locations', or be the first to list a business in this sector!"}
                 </p>
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                   <button
@@ -464,13 +555,15 @@ export const CategoryResultsPage: React.FC<CategoryResultsPageProps> = ({
                   >
                     Reset Filters
                   </button>
-                  <button
-                    onClick={onOpenPostAd}
-                    className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>+ List Your Business</span>
-                  </button>
+                  {cityId !== 'vellore' && (
+                    <button
+                      onClick={onOpenPostAd}
+                      className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      <span>+ List Your Business</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}

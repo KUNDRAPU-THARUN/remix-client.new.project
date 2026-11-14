@@ -1,6 +1,10 @@
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { CityId } from '../types';
 
+function isUuid(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
 export interface CustomerEnquiry {
   id: string;
   businessId: string;
@@ -147,6 +151,15 @@ export const enquiryService = {
     const supabase = getSupabaseClient();
     if (!supabase) {
       // Local fallback in offline development
+      // Vellore strictly rejects mock/demo business IDs
+      if (params.cityId === 'vellore' && (params.businessId.startsWith('v-') || params.businessId.includes('demo') || params.businessId.includes('00000000'))) {
+        return {
+          enquiry: null,
+          error: "Unable to submit enquiry: The requested business listing could not be found or is no longer available.",
+          persisted: false,
+        };
+      }
+
       const existing = getStoredEnquiries();
       const recentDup = existing.find(
         (e) =>
@@ -183,14 +196,53 @@ export const enquiryService = {
     }
 
     try {
-      // Find UUID for business
-      const { data: bData } = await supabase
+      // Find UUID for business and verify it exists, matches city, and is active
+      let bQuery = supabase
         .from('businesses')
-        .select('id, name')
-        .or(`id.eq.${params.businessId},legacy_id.eq.${params.businessId}`)
-        .maybeSingle();
+        .select('id, name, city_id, status');
 
-      const targetBusinessId = bData?.id || params.businessId;
+      if (isUuid(params.businessId)) {
+        bQuery = bQuery.or(`id.eq.${params.businessId},legacy_id.eq.${params.businessId}`);
+      } else {
+        bQuery = bQuery.eq('legacy_id', params.businessId);
+      }
+
+      const { data: bData, error: bError } = await bQuery.maybeSingle();
+
+      if (bError) {
+        console.warn('Error verifying business for enquiry:', bError.message);
+        return {
+          enquiry: null,
+          error: "Unable to verify business details. Please check your connection and try again.",
+          persisted: false,
+        };
+      }
+
+      if (!bData) {
+        return {
+          enquiry: null,
+          error: "Unable to submit enquiry: The requested business listing could not be found or is no longer available.",
+          persisted: false,
+        };
+      }
+
+      if (bData.status !== 'active') {
+        return {
+          enquiry: null,
+          error: "Unable to submit enquiry: This business listing is currently inactive.",
+          persisted: false,
+        };
+      }
+
+      if (params.cityId && bData.city_id && bData.city_id !== params.cityId) {
+        return {
+          enquiry: null,
+          error: "Unable to submit enquiry: City territory mismatch.",
+          persisted: false,
+        };
+      }
+
+      const targetBusinessId = bData.id;
 
       // 2. Duplicate submission protection on uncertain network retry (within 60s)
       const recentWindow = new Date(Date.now() - 60000).toISOString();
@@ -209,7 +261,7 @@ export const enquiryService = {
           enquiry: {
             id: existingDup.id,
             businessId: params.businessId,
-            businessName: bData?.name || params.businessName,
+            businessName: bData.name || params.businessName,
             cityId: params.cityId,
             customerId: params.customerId,
             customerName: params.customerName.trim(),
@@ -240,7 +292,7 @@ export const enquiryService = {
         .single();
 
       if (error) {
-        return { enquiry: null, error: error.message, persisted: false };
+        return { enquiry: null, error: "Failed to submit enquiry. Please try again.", persisted: false };
       }
 
       const enquiry: CustomerEnquiry = {
