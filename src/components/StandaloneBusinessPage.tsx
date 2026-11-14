@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   MapPin,
   Phone,
@@ -22,10 +22,12 @@ import {
   Image as ImageIcon,
   Check,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
-import { Listing, Review, UserAccount, CityConfig } from '../types';
+import { Listing, Review, UserAccount, CityConfig, CityId } from '../types';
 import { resolveListingContact, validateIndianMobile } from '../utils/contactValidation';
 import { enquiryService } from '../services/enquiryService';
+import { businessService } from '../services/businessService';
 import { getCityCategories } from '../config/categories';
 import { getOperatingHoursStatus } from '../utils/operatingHours';
 import { VelloreImageGallery } from './VelloreImageGallery';
@@ -54,11 +56,54 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
   onNavigateCategory,
   onAddReview,
 }) => {
-  // Resolve listing from available listings
-  const listing = useMemo(() => {
+  // Support direct deep-link lookup from database
+  const inMemoryListing = useMemo(() => {
     if (!listingId) return null;
     return listings.find((l) => l.id === listingId) || null;
   }, [listingId, listings]);
+
+  const [remoteListing, setRemoteListing] = useState<Listing | null>(null);
+  const [fetchStatus, setFetchStatus] = useState<'idle' | 'loading' | 'success' | 'not_found' | 'error'>('idle');
+  const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
+
+  const loadListing = useCallback(async (id: string, cityId: CityId) => {
+    setFetchStatus('loading');
+    setFetchErrorMessage(null);
+    try {
+      const res = await businessService.getListingById(id, cityId);
+      if (res.state === 'success' && res.listing) {
+        setRemoteListing(res.listing);
+        setFetchStatus('success');
+      } else if (res.state === 'error') {
+        setRemoteListing(null);
+        setFetchStatus('error');
+        setFetchErrorMessage(res.error || "We couldn't load business details right now. Please try again.");
+      } else {
+        setRemoteListing(null);
+        setFetchStatus('not_found');
+      }
+    } catch {
+      setRemoteListing(null);
+      setFetchStatus('error');
+      setFetchErrorMessage("We couldn't load business details right now. Please try again.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (inMemoryListing) {
+      setRemoteListing(null);
+      setFetchStatus('idle');
+      return;
+    }
+    if (listingId && businessService.isConfigured()) {
+      loadListing(listingId, currentCity.id);
+    } else {
+      setRemoteListing(null);
+      setFetchStatus('idle');
+    }
+  }, [listingId, inMemoryListing, currentCity.id, loadListing]);
+
+  const listing = inMemoryListing || remoteListing;
 
   // Security check: pending listings are only visible to the owner, franchise partner, or super admin
   const isPendingAuthorized = useMemo(() => {
@@ -103,6 +148,66 @@ export const StandaloneBusinessPage: React.FC<StandaloneBusinessPageProps> = ({
 
   // Search state for not-found fallback
   const [searchQuery, setSearchQuery] = useState('');
+
+  // ---------------------------------------------------------------------------
+  // CASE 0A: LOADING STATE (Direct deep-link lookup in flight)
+  // ---------------------------------------------------------------------------
+  if (fetchStatus === 'loading') {
+    return (
+      <div className="bg-slate-50 min-h-screen py-12 px-4 sm:px-6" aria-busy="true">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="h-6 w-32 bg-slate-200 rounded animate-pulse" />
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm animate-pulse space-y-4">
+            <div className="h-64 bg-slate-200 rounded-2xl w-full" />
+            <div className="h-8 bg-slate-200 rounded w-2/3" />
+            <div className="h-4 bg-slate-100 rounded w-1/3" />
+            <div className="h-20 bg-slate-50 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CASE 0B: ERROR STATE (Database connection failure)
+  // ---------------------------------------------------------------------------
+  if (fetchStatus === 'error') {
+    return (
+      <div className="bg-slate-50 min-h-screen py-12 px-4 sm:px-6">
+        <div className="max-w-2xl mx-auto bg-white rounded-3xl p-8 sm:p-12 border border-red-200/80 shadow-md text-center">
+          <div className="w-16 h-16 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <span className="text-xs font-extrabold text-[#176AC4] uppercase tracking-wider">
+            {currentCity.name} Directory ({currentCity.code})
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 font-heading mt-1 mb-3">
+            Unable to Load Business
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto mb-6">
+            {fetchErrorMessage || "We couldn't load business details right now. Please try again."}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {listingId && (
+              <button
+                onClick={() => loadListing(listingId, currentCity.id)}
+                className="px-5 py-2.5 bg-[#176AC4] hover:bg-blue-600 text-white font-bold text-xs sm:text-sm rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Retry</span>
+              </button>
+            )}
+            <button
+              onClick={onNavigateHome}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer"
+            >
+              Return to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // CASE 1: LISTING NOT FOUND OR CITY MISMATCH
