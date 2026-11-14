@@ -435,13 +435,16 @@ export const MainAppContent: React.FC = () => {
       cityId: newCityId,
       tab: targetTab,
       listingId: null, // close any active modal from previous city
+      noticeId: null,
+      eventId: null,
+      attractionSlug: null,
       filters: { ...defaultFilters, selectedArea: 'all' },
     };
     navigate(nextRoute);
   };
 
   const handleNavigateTab = (tab: string) => {
-    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard', 'franchise', 'admin', 'about', 'contact', 'biz', 'community', 'events'].includes(tab)) return;
+    if (!['home', 'category', 'classifieds', 'kanipakam', 'dashboard', 'franchise', 'admin', 'about', 'contact', 'biz', 'community', 'events', 'tourism'].includes(tab)) return;
     navigate({
       ...route,
       tab: tab as Tab,
@@ -450,6 +453,7 @@ export const MainAppContent: React.FC = () => {
       listingId: null,
       noticeId: null,
       eventId: null,
+      attractionSlug: null,
       filters: defaultFilters
     });
   };
@@ -469,6 +473,9 @@ export const MainAppContent: React.FC = () => {
           categoryId: 'all',
           savedOnly: false,
           listingId: null,
+          noticeId: null,
+          eventId: null,
+          attractionSlug: null,
           filters: defaultFilters,
         });
       } else {
@@ -495,6 +502,9 @@ export const MainAppContent: React.FC = () => {
           categoryId: 'all',
           savedOnly: false,
           listingId: null,
+          noticeId: null,
+          eventId: null,
+          attractionSlug: null,
           filters: defaultFilters,
         });
       } else {
@@ -525,6 +535,9 @@ export const MainAppContent: React.FC = () => {
       categoryId: getCityCategories(route.cityId).some((cat) => cat.id === catId) ? catId : 'all',
       savedOnly: false,
       listingId: null,
+      noticeId: null,
+      eventId: null,
+      attractionSlug: null,
       filters: { ...defaultFilters, selectedArea: areaId || 'all' }
     });
   };
@@ -540,6 +553,9 @@ export const MainAppContent: React.FC = () => {
       categoryId: selectedCategory,
       savedOnly: false,
       listingId: null,
+      noticeId: null,
+      eventId: null,
+      attractionSlug: null,
       filters: { ...defaultFilters, searchQuery: query.trim(), selectedArea }
     });
   };
@@ -711,6 +727,9 @@ export const MainAppContent: React.FC = () => {
               categoryId: 'all',
               savedOnly: !isSavedViewActive,
               listingId: null,
+              noticeId: null,
+              eventId: null,
+              attractionSlug: null,
               filters: defaultFilters
             });
           }}
@@ -946,10 +965,10 @@ export const MainAppContent: React.FC = () => {
                   listings={publishedListings}
                   onNavigateHome={handleBackToHome}
                   onNavigateDirectory={() => {
-                    navigate({ ...route, attractionSlug: null }, false, false);
+                    navigate({ ...route, attractionSlug: null }, false, true);
                   }}
                   onSelectAttractionSlug={(slug) => {
-                    navigate({ ...route, attractionSlug: slug }, false, false);
+                    navigate({ ...route, attractionSlug: slug }, false, true);
                   }}
                   onSelectListing={selectListing}
                   onOpenCabBooking={() => setIsCabBookingOpen(true)}
@@ -960,7 +979,7 @@ export const MainAppContent: React.FC = () => {
                   currentCity={currentCity}
                   onNavigateHome={handleBackToHome}
                   onSelectAttractionSlug={(slug) => {
-                    navigate({ ...route, attractionSlug: slug }, false, false);
+                    navigate({ ...route, attractionSlug: slug }, false, true);
                   }}
                   onOpenCabBooking={() => setIsCabBookingOpen(true)}
                   onOpenEmergency={() => setIsEmergencyOpen(true)}
