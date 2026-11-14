@@ -13,6 +13,15 @@ import { INITIAL_VELLORE_NOTICES, INITIAL_VELLORE_EVENTS } from '../data/mockCom
 const STORAGE_KEY_NOTICES = 'velloreads_community_notices';
 const STORAGE_KEY_EVENTS = 'velloreads_local_events';
 
+/**
+ * Authoritative public column projection for community_notices.
+ * Explicitly aligned with PostgreSQL column grants in migration 20261112000001.
+ * Submitter PII columns (submitter_phone, submitter_email) and internal moderation
+ * columns (moderated_by, moderated_at, rejection_reason) are STRICTLY OMITTED.
+ */
+export const PUBLIC_COMMUNITY_NOTICE_COLUMNS =
+  'id, city_id, title, category, content, locality, organizer_name, contact_phone, contact_email, show_contact, status, priority, publish_date, expiry_date, created_at, updated_at';
+
 let memoryNotices: CommunityNotice[] = [...INITIAL_VELLORE_NOTICES];
 let memoryEvents: LocalEvent[] = [...INITIAL_VELLORE_EVENTS];
 
@@ -143,14 +152,14 @@ export const communityService = {
    * Fetch published, active notices for public display.
    */
   async getNotices(cityId: CityId, filters?: NoticeFilterOptions): Promise<CommunityNotice[]> {
-    // If Supabase configured, attempt remote query
+    // If Supabase configured, attempt remote query with authorized public columns
     if (isSupabaseConfigured()) {
       try {
         const client = getSupabaseClient();
         if (!client) throw new Error('Client unavailable');
         let query = (client as any)
           .from('community_notices')
-          .select('*')
+          .select(PUBLIC_COMMUNITY_NOTICE_COLUMNS)
           .eq('city_id', cityId)
           .eq('status', 'published')
           .lte('publish_date', new Date().toISOString())
@@ -163,9 +172,16 @@ export const communityService = {
           query = query.eq('locality', filters.locality);
         }
 
-        const { data, error } = await query;
-        if (!error && Array.isArray(data) && data.length > 0) {
-          // Map DB snake_case to camelCase
+        const { data, error, status } = await query;
+        if (error) {
+          // Categorize and log error: permission denied (401/403), schema mismatch (404), or gateway failure
+          console.error(`Supabase community_notices query failed (HTTP ${status}, code ${error.code}):`, error.message);
+          // In production, do not mask real database errors by fabricating mock notices; return clean empty set
+          return [];
+        }
+
+        if (Array.isArray(data)) {
+          // Successful response from live database. If data is empty ([]), return [] representing 0 published notices
           return data.map((item: any) => ({
             id: item.id,
             cityId: item.city_id,
@@ -185,13 +201,14 @@ export const communityService = {
             updatedAt: item.updated_at,
           }));
         }
-      } catch (err) {
-        // Table may not yet be migrated in remote DB; fall through to local
-        console.debug('Supabase community_notices query skipped or failed, using local store:', err);
+      } catch (err: any) {
+        // Network or runtime exception connecting to Supabase
+        console.error('Supabase community_notices network/system exception:', err?.message || err);
+        return [];
       }
     }
 
-    // Local / fallback store
+    // Local / development mock store (active only when Supabase is completely unconfigured)
     const all = getStoredNotices().filter((n) => n.cityId === cityId && n.status === 'published');
     const now = new Date().toISOString();
 
@@ -224,6 +241,42 @@ export const communityService = {
    * Fetch notice by ID
    */
   async getNoticeById(id: string): Promise<CommunityNotice | null> {
+    if (isSupabaseConfigured()) {
+      try {
+        const client = getSupabaseClient();
+        if (client) {
+          const { data, error } = await (client as any)
+            .from('community_notices')
+            .select(PUBLIC_COMMUNITY_NOTICE_COLUMNS)
+            .eq('id', id)
+            .eq('status', 'published')
+            .maybeSingle();
+
+          if (!error && data) {
+            return {
+              id: data.id,
+              cityId: data.city_id,
+              title: data.title,
+              category: data.category,
+              content: data.content,
+              locality: data.locality,
+              organizerName: data.organizer_name,
+              contactPhone: data.contact_phone,
+              contactEmail: data.contact_email,
+              showContact: data.show_contact ?? true,
+              status: data.status,
+              priority: data.priority || 'standard',
+              publishDate: data.publish_date,
+              expiryDate: data.expiry_date,
+              createdAt: data.created_at,
+              updatedAt: data.updated_at,
+            };
+          }
+        }
+      } catch (err: any) {
+        console.debug('Supabase getNoticeById exception:', err?.message || err);
+      }
+    }
     const list = getStoredNotices();
     return list.find((n) => n.id === id) || null;
   },
@@ -574,10 +627,10 @@ export const communityService = {
             .order('created_at', { ascending: false });
 
           if (error || !data || !Array.isArray(data) || data.length === 0) {
-            // Fallback to table query
-            const res = await client
+            // Fallback to table query with authorized public columns
+            const res = await (client as any)
               .from('community_notices')
-              .select('*')
+              .select(PUBLIC_COMMUNITY_NOTICE_COLUMNS)
               .eq('city_id', cityId)
               .order('created_at', { ascending: false });
             data = res.data;
